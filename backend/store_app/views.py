@@ -9,14 +9,15 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
-    ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer
+    ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
+    InvoiceSerializer, InvoiceItemSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
 from django.http import HttpResponse
-from .utils.pdf_generator import generate_pdf_response
+from .utils.pdf_generator import generate_pdf_response, generate_invoice_pdf
 from .utils.excel_generator import generate_excel_response
 
 User = get_user_model()
@@ -137,18 +138,75 @@ class CustomerCheckoutView(APIView):
 
                     validated_items.append((product, quantity))
 
+                # Generate invoice number sequentially inside transaction
+                today_str = timezone.localtime(timezone.now()).strftime('%Y%m%d')
+                invoice_count_today = Invoice.objects.filter(invoice_number__startswith=f"SK-INV-{today_str}-").count()
+                invoice_number = f"SK-INV-{today_str}-{(invoice_count_today + 1):04d}"
+
+                invoice = Invoice.objects.create(
+                    invoice_number=invoice_number,
+                    customer=profile,
+                    subtotal=Decimal('0.00'),
+                    cgst_total=Decimal('0.00'),
+                    sgst_total=Decimal('0.00'),
+                    grand_total=Decimal('0.00')
+                )
+
+                subtotal_sum = Decimal('0.00')
+                cgst_sum = Decimal('0.00')
+                sgst_sum = Decimal('0.00')
+                grand_total_sum = Decimal('0.00')
+
                 transactions = []
                 for product, quantity in validated_items:
-                    amount = product.price * quantity
+                    unit_price = product.price
+                    total_item_inclusive = unit_price * quantity
+                    gst_rate = product.gst_rate
+
+                    # Backwards base taxable value & GST computation
+                    taxable_value = total_item_inclusive / (Decimal('1.00') + gst_rate / Decimal('100.00'))
+                    gst_total_item = total_item_inclusive - taxable_value
+                    cgst_amount = gst_total_item / Decimal('2.00')
+                    sgst_amount = gst_total_item / Decimal('2.00')
+
+                    # Quantize to 2 decimals
+                    taxable_value = taxable_value.quantize(Decimal('0.01'))
+                    cgst_amount = cgst_amount.quantize(Decimal('0.01'))
+                    sgst_amount = sgst_amount.quantize(Decimal('0.01'))
+                    total_item_inclusive = total_item_inclusive.quantize(Decimal('0.01'))
+
+                    InvoiceItem.objects.create(
+                        invoice=invoice,
+                        product=product,
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        gst_rate=gst_rate,
+                        cgst_amount=cgst_amount,
+                        sgst_amount=sgst_amount,
+                        total_amount=total_item_inclusive
+                    )
+
+                    subtotal_sum += taxable_value
+                    cgst_sum += cgst_amount
+                    sgst_sum += sgst_amount
+                    grand_total_sum += total_item_inclusive
+
                     tx = Transaction.objects.create(
                         khata_profile=profile,
                         transaction_type='CREDIT',
-                        amount=amount,
-                        description=f"Checked out {product.name} (Qty: {quantity}) via online store",
+                        amount=total_item_inclusive,
+                        description=f"Checked out {product.name} (Qty: {quantity}) [Inv: {invoice_number}]",
                         product=product,
-                        quantity=quantity
+                        quantity=quantity,
+                        invoice=invoice
                     )
                     transactions.append(tx)
+
+                invoice.subtotal = subtotal_sum
+                invoice.cgst_total = cgst_sum
+                invoice.sgst_total = sgst_sum
+                invoice.grand_total = grand_total_sum
+                invoice.save()
 
                 profile.refresh_from_db()
 
@@ -158,7 +216,9 @@ class CustomerCheckoutView(APIView):
         return Response({
             "detail": "Checkout completed successfully.",
             "current_balance": float(profile.current_balance),
-            "transactions_count": len(transactions)
+            "invoice_number": invoice_number,
+            "invoice_id": invoice.id,
+            "grand_total": float(grand_total_sum)
         }, status=status.HTTP_201_CREATED)
 
 class AdminDashboardAnalyticsView(APIView):
@@ -1170,11 +1230,111 @@ class ExportExcelView(APIView):
             ]
             excel_bytes = generate_excel_response("Balance Sheet", "Balance Sheet Statement", headers, data)
             filename = "balance_sheet.xlsx"
+        elif report_type == 'gst':
+            month = request.query_params.get('month')
+            year = request.query_params.get('year')
+            now = timezone.now()
+            month = int(month) if month else now.month
+            year = int(year) if year else now.year
+            
+            from store_app.tasks import generate_monthly_gst_report_task
+            try:
+                file_path = generate_monthly_gst_report_task(month, year)
+                with open(file_path, 'rb') as f:
+                    excel_bytes = f.read()
+                filename = f"gst_summary_{year}_{month:02d}.xlsx"
+            except Exception as e:
+                return Response({"detail": f"Failed to generate GST report: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response({"detail": "Invalid report type."}, status=status.HTTP_400_BAD_REQUEST)
             
         response = HttpResponse(excel_bytes, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'ADMIN':
+            return Invoice.objects.all().order_by('-created_at')
+        return Invoice.objects.filter(customer__user=user).order_by('-created_at')
+
+    @action(detail=True, methods=['get'])
+    def pdf(self, request, pk=None):
+        invoice = self.get_object()
+        try:
+            pdf_bytes = generate_invoice_pdf(invoice)
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
+            return response
+        except Exception as e:
+            return Response({"detail": f"Failed to generate invoice PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GSTSummaryView(APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
+        invoices = Invoice.objects.all()
+        if start_date:
+            invoices = invoices.filter(created_at__date__gte=start_date)
+        if end_date:
+            invoices = invoices.filter(created_at__date__lte=end_date)
+
+        totals = invoices.aggregate(
+            subtotal=Sum('subtotal'),
+            cgst=Sum('cgst_total'),
+            sgst=Sum('sgst_total'),
+            grand_total=Sum('grand_total')
+        )
+
+        subtotal = totals['subtotal'] or Decimal('0.00')
+        cgst = totals['cgst'] or Decimal('0.00')
+        sgst = totals['sgst'] or Decimal('0.00')
+        grand_total = totals['grand_total'] or Decimal('0.00')
+
+        # Calculate slabs
+        invoice_items = InvoiceItem.objects.filter(invoice__in=invoices)
+        slabs = [Decimal('0.00'), Decimal('5.00'), Decimal('12.00'), Decimal('18.00'), Decimal('28.00')]
+        slabs_breakdown = []
+
+        for rate in slabs:
+            items = invoice_items.filter(gst_rate=rate)
+            agg = items.aggregate(
+                total_sales=Sum('total_amount'),
+                cgst=Sum('cgst_amount'),
+                sgst=Sum('sgst_amount')
+            )
+            slab_inclusive = agg['total_sales'] or Decimal('0.00')
+            slab_cgst = agg['cgst'] or Decimal('0.00')
+            slab_sgst = agg['sgst'] or Decimal('0.00')
+            slab_taxable = slab_inclusive - (slab_cgst + slab_sgst)
+
+            slabs_breakdown.append({
+                'gst_rate': float(rate),
+                'taxable_amount': float(slab_taxable),
+                'cgst_collected': float(slab_cgst),
+                'sgst_collected': float(slab_sgst),
+                'total_collected': float(slab_cgst + slab_sgst),
+                'total_sales': float(slab_inclusive)
+            })
+
+        return Response({
+            'summary': {
+                'total_sales': float(grand_total),
+                'taxable_amount': float(subtotal),
+                'total_cgst': float(cgst),
+                'total_sgst': float(sgst),
+                'total_tax': float(cgst + sgst)
+            },
+            'slabs_breakdown': slabs_breakdown
+        })
 
 

@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Product, KhataProfile, Transaction
+from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem
 from decimal import Decimal
 
 User = get_user_model()
@@ -151,3 +151,113 @@ class StoreBackendTests(TestCase):
         # Assert stock did not change
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock_quantity, 100)
+
+    def test_gst_checkout_calculations(self):
+        """Test that checkout retrospectively calculates GST base and CGST/SGST correctly."""
+        self.customer.khata_profile.is_accessible_by_customer = True
+        self.customer.khata_profile.save()
+
+        # Create a product with 18% GST (inclusive retail price: ₹118.00)
+        gst_product = Product.objects.create(
+            name='GST Product 18%',
+            description='Test item with 18% GST',
+            price=Decimal('118.00'),
+            stock_quantity=10,
+            category='General',
+            gst_rate=Decimal('18.00'),
+            hsn_code='HSN1234'
+        )
+
+        self.client.force_authenticate(user=self.customer)
+        payload = {
+            "items": [
+                {"product_id": gst_product.id, "quantity": 2}
+            ]
+        }
+        
+        response = self.client.post('/api/checkout/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Verify invoice calculation
+        invoice_number = response.data['invoice_number']
+        invoice = Invoice.objects.get(invoice_number=invoice_number)
+        
+        # Total inclusive price = 118 * 2 = 236.00
+        # Taxable Value = 236 / 1.18 = 200.00
+        # GST Total = 36.00
+        # CGST = SGST = 18.00
+        self.assertEqual(invoice.grand_total, Decimal('236.00'))
+        self.assertEqual(invoice.subtotal, Decimal('200.00'))
+        self.assertEqual(invoice.cgst_total, Decimal('18.00'))
+        self.assertEqual(invoice.sgst_total, Decimal('18.00'))
+
+        # Verify InvoiceItem creation
+        item = invoice.items.first()
+        self.assertEqual(item.product, gst_product)
+        self.assertEqual(item.quantity, 2)
+        self.assertEqual(item.unit_price, Decimal('118.00'))
+        self.assertEqual(item.gst_rate, Decimal('18.00'))
+        self.assertEqual(item.cgst_amount, Decimal('18.00'))
+        self.assertEqual(item.sgst_amount, Decimal('18.00'))
+        self.assertEqual(item.total_amount, Decimal('236.00'))
+
+    def test_gst_summary_analytics(self):
+        """Test that GSTSummaryView correctly aggregates values by tax slab."""
+        self.customer.khata_profile.is_accessible_by_customer = True
+        self.customer.khata_profile.save()
+
+        # Create two products with different GST rates
+        prod_18 = Product.objects.create(
+            name='18% Prod',
+            price=Decimal('118.00'),
+            stock_quantity=10,
+            gst_rate=Decimal('18.00')
+        )
+        prod_5 = Product.objects.create(
+            name='5% Prod',
+            price=Decimal('105.00'),
+            stock_quantity=10,
+            gst_rate=Decimal('5.00')
+        )
+
+        self.client.force_authenticate(user=self.customer)
+        
+        # Checkout 1 item of each
+        payload = {
+            "items": [
+                {"product_id": prod_18.id, "quantity": 1},
+                {"product_id": prod_5.id, "quantity": 1}
+            ]
+        }
+        response = self.client.post('/api/checkout/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Authenticate as admin to query GST analytics
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/admin/analytics/gst/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        summary = response.data['summary']
+        # Total sales = 118 + 105 = 223.00
+        # Taxable base = 100 + 100 = 200.00
+        # CGST = 9 + 2.5 = 11.50
+        # SGST = 9 + 2.5 = 11.50
+        # Total tax = 23.00
+        self.assertAlmostEqual(summary['total_sales'], 223.00)
+        self.assertAlmostEqual(summary['taxable_amount'], 200.00)
+        self.assertAlmostEqual(summary['total_cgst'], 11.50)
+        self.assertAlmostEqual(summary['total_sgst'], 11.50)
+        self.assertAlmostEqual(summary['total_tax'], 23.00)
+
+        # Verify slabs breakdown
+        slabs = {slab['gst_rate']: slab for slab in response.data['slabs_breakdown']}
+        
+        # 18% slab verification
+        self.assertAlmostEqual(slabs[18.0]['total_sales'], 118.00)
+        self.assertAlmostEqual(slabs[18.0]['taxable_amount'], 100.00)
+        self.assertAlmostEqual(slabs[18.0]['total_collected'], 18.00)
+
+        # 5% slab verification
+        self.assertAlmostEqual(slabs[5.0]['total_sales'], 105.00)
+        self.assertAlmostEqual(slabs[5.0]['taxable_amount'], 100.00)
+        self.assertAlmostEqual(slabs[5.0]['total_collected'], 5.00)

@@ -1,0 +1,179 @@
+import os
+from datetime import datetime
+from decimal import Decimal
+from django.conf import settings
+from django.db.models import Sum
+from celery import shared_task
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+
+from store_app.models import Invoice, InvoiceItem
+
+@shared_task
+def generate_monthly_gst_report_task(month, year, admin_email=None):
+    """
+    Asynchronously compile monthly GST collections and output a styled Excel file.
+    """
+    # 1. Query Invoices for the target period
+    invoices = Invoice.objects.filter(created_at__year=year, created_at__month=month).order_by('created_at')
+
+    # Create Workbook
+    wb = Workbook()
+    
+    # --- Sheet 1: Summary ---
+    ws_summary = wb.active
+    ws_summary.title = "GST Summary"
+    ws_summary.views.sheetView[0].showGridLines = True
+    
+    # Styling helpers
+    font_title = Font(name='Calibri', size=16, bold=True, color='0F172A')
+    font_section = Font(name='Calibri', size=12, bold=True, color='10B981')
+    font_header = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
+    font_bold = Font(name='Calibri', size=11, bold=True)
+    font_regular = Font(name='Calibri', size=11)
+    
+    fill_header = PatternFill(start_color='10B981', end_color='10B981', fill_type='solid')
+    fill_zebra = PatternFill(start_color='F8FAFC', end_color='F8FAFC', fill_type='solid')
+    
+    align_left = Alignment(horizontal='left', vertical='center')
+    align_right = Alignment(horizontal='right', vertical='center')
+    align_center = Alignment(horizontal='center', vertical='center')
+    
+    thin_border = Border(
+        left=Side(style='thin', color='E2E8F0'),
+        right=Side(style='thin', color='E2E8F0'),
+        top=Side(style='thin', color='E2E8F0'),
+        bottom=Side(style='thin', color='E2E8F0')
+    )
+    
+    # Headers
+    ws_summary.merge_cells('A1:F1')
+    ws_summary['A1'] = f"Shivam Kirana Store - GST Audit Summary ({month:02d}/{year})"
+    ws_summary['A1'].font = font_title
+    ws_summary['A1'].alignment = align_center
+    
+    ws_summary.append([]) # Blank row
+    ws_summary.append([]) # Blank row
+    
+    ws_summary.append(["Tax Slab (%)", "Taxable Value (₹)", "CGST (₹)", "SGST (₹)", "Total Tax (₹)", "Total Sales (₹)"])
+    for col_idx in range(1, 7):
+        cell = ws_summary.cell(row=4, column=col_idx)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_center
+        cell.border = thin_border
+        
+    slabs = [Decimal('0.00'), Decimal('5.00'), Decimal('12.00'), Decimal('18.00'), Decimal('28.00')]
+    invoice_items = InvoiceItem.objects.filter(invoice__in=invoices)
+    
+    row_num = 5
+    total_taxable_all = Decimal('0.00')
+    total_cgst_all = Decimal('0.00')
+    total_sgst_all = Decimal('0.00')
+    total_sales_all = Decimal('0.00')
+    
+    for slab in slabs:
+        items = invoice_items.filter(gst_rate=slab)
+        agg = items.aggregate(
+            total_sales=Sum('total_amount'),
+            cgst=Sum('cgst_amount'),
+            sgst=Sum('sgst_amount')
+        )
+        slab_inclusive = agg['total_sales'] or Decimal('0.00')
+        slab_cgst = agg['cgst'] or Decimal('0.00')
+        slab_sgst = agg['sgst'] or Decimal('0.00')
+        slab_taxable = slab_inclusive - (slab_cgst + slab_sgst)
+        slab_tax = slab_cgst + slab_sgst
+        
+        ws_summary.append([
+            f"{slab}%",
+            float(slab_taxable),
+            float(slab_cgst),
+            float(slab_sgst),
+            float(slab_tax),
+            float(slab_inclusive)
+        ])
+        
+        for col_idx in range(1, 7):
+            cell = ws_summary.cell(row=row_num, column=col_idx)
+            cell.font = font_regular
+            cell.border = thin_border
+            cell.alignment = align_right if col_idx > 1 else align_center
+            if row_num % 2 == 0:
+                cell.fill = fill_zebra
+                
+        total_taxable_all += slab_taxable
+        total_cgst_all += slab_cgst
+        total_sgst_all += slab_sgst
+        total_sales_all += slab_inclusive
+        row_num += 1
+        
+    # Add Total Row
+    ws_summary.append([
+        "Total",
+        float(total_taxable_all),
+        float(total_cgst_all),
+        float(total_sgst_all),
+        float(total_cgst_all + total_sgst_all),
+        float(total_sales_all)
+    ])
+    for col_idx in range(1, 7):
+        cell = ws_summary.cell(row=row_num, column=col_idx)
+        cell.font = font_bold
+        cell.border = thin_border
+        cell.alignment = align_right if col_idx > 1 else align_center
+        cell.fill = PatternFill(start_color='E2E8F0', end_color='E2E8F0', fill_type='solid')
+        
+    # --- Sheet 2: Invoices ---
+    ws_invoices = wb.create_sheet(title="Invoice Ledger")
+    ws_invoices.views.sheetView[0].showGridLines = True
+    
+    ws_invoices.append(["Invoice Number", "Date", "Customer", "Subtotal (₹)", "CGST (₹)", "SGST (₹)", "Grand Total (₹)"])
+    for col_idx in range(1, 8):
+        cell = ws_invoices.cell(row=1, column=col_idx)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_center
+        cell.border = thin_border
+        
+    row_num = 2
+    for inv in invoices:
+        ws_invoices.append([
+            inv.invoice_number,
+            inv.created_at.strftime('%Y-%m-%d %H:%M'),
+            inv.customer.user.username,
+            float(inv.subtotal),
+            float(inv.cgst_total),
+            float(inv.sgst_total),
+            float(inv.grand_total)
+        ])
+        for col_idx in range(1, 8):
+            cell = ws_invoices.cell(row=row_num, column=col_idx)
+            cell.font = font_regular
+            cell.border = thin_border
+            cell.alignment = align_right if col_idx >= 4 else (align_center if col_idx <= 2 else align_left)
+            if row_num % 2 == 1:
+                cell.fill = fill_zebra
+        row_num += 1
+        
+    # Auto-adjust column widths
+    for ws in [ws_summary, ws_invoices]:
+        for col in ws.columns:
+            max_len = 0
+            for cell in col:
+                val = str(cell.value or '')
+                if len(val) > max_len:
+                    max_len = len(val)
+            col_letter = get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+            
+    # Save the output file
+    media_dir = os.path.join(settings.BASE_DIR, 'media', 'reports')
+    os.makedirs(media_dir, exist_ok=True)
+    
+    file_path = os.path.join(media_dir, f"gst_summary_{year}_{month:02d}.xlsx")
+    wb.save(file_path)
+    
+    # Return file path
+    return file_path

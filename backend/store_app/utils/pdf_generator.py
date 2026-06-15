@@ -142,3 +142,117 @@ def generate_pdf_response(title, subtitle_text, table_headers, table_data, summa
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
+
+
+def generate_invoice_pdf(invoice):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    story = []
+
+    title_style, subtitle_style, section_style, body_style, header_style = get_base_styles()
+
+    # Title Banner
+    story.append(Paragraph("SHIVAM KIRANA STORE", title_style))
+    story.append(Paragraph("GSTIN: 22AAAAA0000A1Z5 | Smart Grocery & Digital Khata Manager", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("TAX INVOICE", section_style))
+
+    # Meta Table (Invoice & Customer details)
+    meta_data = [
+        [
+            Paragraph(f"<b>Invoice No:</b> {invoice.invoice_number}", body_style),
+            Paragraph(f"<b>Customer Name:</b> {invoice.customer.user.username}", body_style)
+        ],
+        [
+            Paragraph(f"<b>Date:</b> {invoice.created_at.strftime('%Y-%m-%d %H:%M:%S')}", body_style),
+            Paragraph(f"<b>Phone Number:</b> {invoice.customer.user.phone_number or 'N/A'}", body_style)
+        ],
+        [
+            Paragraph("<b>State Code:</b> 22 (Chhattisgarh)", body_style),
+            Paragraph(f"<b>Outstanding Debt:</b> ₹{invoice.customer.current_balance}", body_style)
+        ]
+    ]
+    meta_table = Table(meta_data, colWidths=[270, 270])
+    meta_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), LIGHT_BG),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+        ('PADDING', (0,0), (-1,-1), 6),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 15))
+
+    # Items Header & Table
+    story.append(Paragraph("Billing Particulars", section_style))
+
+    headers = ['S.No', 'Product', 'HSN', 'Qty', 'Rate', 'Taxable', 'CGST%', 'CGST', 'SGST%', 'SGST', 'Total']
+    formatted_headers = [Paragraph(f"<font color='white'><b>{h}</b></font>", body_style) for h in headers]
+
+    table_data = [formatted_headers]
+
+    items = invoice.items.all()
+    for idx, item in enumerate(items, 1):
+        product_name = item.product.name if item.product else "Deleted Product"
+        hsn = item.product.hsn_code if item.product and item.product.hsn_code else "N/A"
+        gst_rate = item.gst_rate
+        half_rate = gst_rate / Decimal('2.00')
+
+        row = [
+            Paragraph(str(idx), body_style),
+            Paragraph(product_name, body_style),
+            Paragraph(hsn, body_style),
+            Paragraph(str(item.quantity), body_style),
+            Paragraph(f"₹{item.unit_price}", body_style),
+            Paragraph(f"₹{item.total_amount - (item.cgst_amount + item.sgst_amount)}", body_style),
+            Paragraph(f"{half_rate}%", body_style),
+            Paragraph(f"₹{item.cgst_amount}", body_style),
+            Paragraph(f"{half_rate}%", body_style),
+            Paragraph(f"₹{item.sgst_amount}", body_style),
+            Paragraph(f"₹{item.total_amount}", body_style),
+        ]
+        table_data.append(row)
+
+    col_widths = [25, 120, 40, 25, 50, 55, 35, 45, 35, 45, 65]
+    items_table = Table(table_data, colWidths=col_widths)
+
+    t_style = [
+        ('BACKGROUND', (0,0), (-1,0), PRIMARY_COLOR),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 6),
+        ('TOPPADDING', (0,0), (-1,0), 6),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,1), (-1,-1), 5),
+    ]
+
+    for i in range(1, len(table_data)):
+        if i % 2 == 0:
+            t_style.append(('BACKGROUND', (0,i), (-1,i), LIGHT_BG))
+
+    items_table.setStyle(TableStyle(t_style))
+    story.append(items_table)
+    story.append(Spacer(1, 15))
+
+    # Invoice Summary Totals Table (aligned to the right side of the page)
+    summary_data = [
+        [Paragraph("", body_style), Paragraph("<b>Taxable Subtotal:</b>", body_style), Paragraph(f"₹{invoice.subtotal}", body_style)],
+        [Paragraph("", body_style), Paragraph("<b>CGST Total:</b>", body_style), Paragraph(f"₹{invoice.cgst_total}", body_style)],
+        [Paragraph("", body_style), Paragraph("<b>SGST Total:</b>", body_style), Paragraph(f"₹{invoice.sgst_total}", body_style)],
+        [Paragraph("", body_style), Paragraph("<b>Grand Total (Incl Tax):</b>", body_style), Paragraph(f"<b>₹{invoice.grand_total}</b>", body_style)],
+    ]
+    summary_table = Table(summary_data, colWidths=[300, 140, 100])
+    summary_table.setStyle(TableStyle([
+        ('ALIGN', (1,0), (-1,-1), 'RIGHT'),
+        ('PADDING', (1,0), (-1,-1), 4),
+        ('LINEABOVE', (1,3), (2,3), 1, SECONDARY_COLOR),
+    ]))
+    story.append(summary_table)
+
+    story.append(Spacer(1, 30))
+    story.append(Paragraph("<font size=8 color='#64748B'>Thank you for shopping with Shivam Kirana Store. This is an electronically generated GST tax invoice charged directly on your secure credit ledger.</font>", body_style))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+

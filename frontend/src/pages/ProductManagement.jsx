@@ -19,6 +19,8 @@ const ProductManagement = () => {
   const [stockQuantity, setStockQuantity] = useState('');
   const [category, setCategory] = useState('');
   const [image, setImage] = useState('');
+  const [gstRate, setGstRate] = useState('0.00');
+  const [hsnCode, setHsnCode] = useState('');
 
   // Alerts
   const [errorMsg, setErrorMsg] = useState('');
@@ -49,6 +51,8 @@ const ProductManagement = () => {
     setStockQuantity('');
     setCategory('');
     setImage('');
+    setGstRate('0.00');
+    setHsnCode('');
     setErrorMsg('');
     setShowModal(true);
   };
@@ -62,6 +66,8 @@ const ProductManagement = () => {
     setStockQuantity(p.stock_quantity);
     setCategory(p.category || '');
     setImage(p.image || '');
+    setGstRate(p.gst_rate !== undefined ? p.gst_rate.toString() : '0.00');
+    setHsnCode(p.hsn_code || '');
     setErrorMsg('');
     setShowModal(true);
   };
@@ -92,6 +98,8 @@ const ProductManagement = () => {
       price: parseFloat(price),
       stock_quantity: parseInt(stockQuantity),
       category,
+      gst_rate: parseFloat(gstRate),
+      hsn_code: hsnCode,
       image: image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80'
     };
 
@@ -312,6 +320,34 @@ const ProductManagement = () => {
                   className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
                   placeholder="e.g. Dairy, Grains, Oils"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">GST Rate Slab *</label>
+                  <select
+                    value={gstRate}
+                    onChange={(e) => setGstRate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-3 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all cursor-pointer"
+                    required
+                  >
+                    <option value="0.00">0% GST</option>
+                    <option value="5.00">5% GST</option>
+                    <option value="12.00">12% GST</option>
+                    <option value="18.00">18% GST</option>
+                    <option value="28.00">28% GST</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">HSN Code</label>
+                  <input
+                    type="text"
+                    value={hsnCode}
+                    onChange={(e) => setHsnCode(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    placeholder="e.g. 1006"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

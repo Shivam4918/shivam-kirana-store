@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem
 
 User = get_user_model()
 
@@ -46,6 +46,11 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+    def validate_gst_rate(self, value):
+        if value < 0 or value > 100:
+            raise serializers.ValidationError("GST rate must be between 0% and 100%.")
+        return value
+
     def validate_price(self, value):
         if value <= 0:
             raise serializers.ValidationError("Price must be greater than zero.")
@@ -61,8 +66,8 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ('id', 'transaction_type', 'amount', 'description', 'remaining_balance_at_snapshot', 'created_at', 'product', 'product_name', 'quantity')
-        read_only_fields = ('id', 'remaining_balance_at_snapshot', 'created_at', 'product_name')
+        fields = ('id', 'transaction_type', 'amount', 'description', 'remaining_balance_at_snapshot', 'created_at', 'product', 'product_name', 'quantity', 'invoice')
+        read_only_fields = ('id', 'remaining_balance_at_snapshot', 'created_at', 'product_name', 'invoice')
 
     def validate_amount(self, value):
         if value <= 0:
@@ -155,4 +160,20 @@ class NotificationSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at')
 
 
+class InvoiceItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    hsn_code = serializers.CharField(source='product.hsn_code', read_only=True)
 
+    class Meta:
+        model = InvoiceItem
+        fields = '__all__'
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    items = InvoiceItemSerializer(many=True, read_only=True)
+    customer_username = serializers.CharField(source='customer.user.username', read_only=True)
+    customer_phone = serializers.CharField(source='customer.user.phone_number', read_only=True)
+
+    class Meta:
+        model = Invoice
+        fields = '__all__'

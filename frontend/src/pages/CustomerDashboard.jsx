@@ -180,9 +180,44 @@ const CustomerDashboard = () => {
     }
   };
 
+  const handleDownloadInvoice = async (invoiceId, invoiceNumber) => {
+    try {
+      const res = await api.get(`/invoices/${invoiceId}/pdf/`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${invoiceNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Invoice downloaded successfully!');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to download invoice PDF.', 'error');
+    }
+  };
+
   // Calculations
   const getCartCount = () => cart.reduce((total, item) => total + item.quantity, 0);
   const getCartSubtotal = () => cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+  
+  const getCartTaxDetails = () => {
+    let subtotal = 0;
+    let cgst = 0;
+    let sgst = 0;
+    cart.forEach(item => {
+      const qty = item.quantity;
+      const rate = parseFloat(item.product.gst_rate || 0.00);
+      const totalInclusive = item.product.price * qty;
+      const base = totalInclusive / (1 + rate / 100);
+      const tax = totalInclusive - base;
+      subtotal += base;
+      cgst += tax / 2;
+      sgst += tax / 2;
+    });
+    return { subtotal, cgst, sgst };
+  };
   
   // Blinkit/Zepto-style discounts (e.g. 5% off items as mock savings, or actual computed savings)
   const getCartSavings = () => {
@@ -353,8 +388,20 @@ const CustomerDashboard = () => {
                 <div className="p-5 border-t border-slate-100 bg-[#F8FAFC]/50 space-y-4">
                   <div className="space-y-2.5 text-xs text-text-secondary">
                     <div className="flex justify-between">
-                      <span>Subtotal</span>
+                      <span>Subtotal (Incl. GST)</span>
                       <span className="text-secondary font-semibold">₹{getCartSubtotal().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-slate-400 pl-2">
+                      <span>Taxable Value</span>
+                      <span>₹{getCartTaxDetails().subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-slate-400 pl-2">
+                      <span>CGST (Central Tax)</span>
+                      <span>₹{getCartTaxDetails().cgst.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-slate-400 pl-2">
+                      <span>SGST (State Tax)</span>
+                      <span>₹{getCartTaxDetails().sgst.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-accent font-medium">
                       <span>Promo Savings (5% OFF)</span>
@@ -761,6 +808,7 @@ const CustomerDashboard = () => {
                           <th className="py-4 px-6">Type</th>
                           <th className="py-4 px-6 text-right">Amount</th>
                           <th className="py-4 px-6 text-right">Remaining Balance liability</th>
+                          <th className="py-4 px-6 text-center">Invoice</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -798,6 +846,18 @@ const CustomerDashboard = () => {
                             </td>
                             <td className="py-4 px-6 font-extrabold text-secondary text-right text-sm">
                               ₹{parseFloat(tx.remaining_balance_at_snapshot).toFixed(2)}
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              {tx.invoice ? (
+                                <button
+                                  onClick={() => handleDownloadInvoice(tx.invoice, tx.id)}
+                                  className="text-primary hover:text-primary-hover font-bold text-xs bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 px-3 py-1.5 rounded-xl cursor-pointer shadow-sm transition-all active:scale-95"
+                                >
+                                  Download PDF
+                                </button>
+                              ) : (
+                                <span className="text-slate-400 font-light">-</span>
+                              )}
                             </td>
                           </tr>
                         ))}

@@ -1,16 +1,25 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
-  FiTrendingUp, FiDollarSign, FiBookOpen, FiActivity, FiRefreshCw, FiCheckCircle, FiLock, FiAlertTriangle 
+  FiTrendingUp, FiDollarSign, FiBookOpen, FiActivity, FiRefreshCw, FiCheckCircle, FiLock, FiAlertTriangle,
+  FiFileText, FiDownload, FiCalendar, FiPercent
 } from 'react-icons/fi';
 
 const FinancialReports = () => {
-  const [activeTab, setActiveTab] = useState('pl'); // 'pl', 'balance', 'cashflow'
+  const [activeTab, setActiveTab] = useState('pl'); // 'pl', 'balance', 'cashflow', 'gst'
   
   // States
   const [plData, setPlData] = useState(null);
   const [bsData, setBsData] = useState(null);
   const [cfData, setCfData] = useState(null);
+  const [gstSummary, setGstSummary] = useState(null);
+  const [gstSlabs, setGstSlabs] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [exportDownloading, setExportDownloading] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
   const [plPeriod, setPlPeriod] = useState('monthly'); // 'daily', 'weekly', 'monthly'
@@ -27,6 +36,14 @@ const FinancialReports = () => {
       } else if (activeTab === 'cashflow') {
         const res = await api.get('/admin/analytics/cash-flow/');
         setCfData(res.data);
+      } else if (activeTab === 'gst') {
+        const [gstRes, invoicesRes] = await Promise.all([
+          api.get(`/admin/analytics/gst/?start_date=${startDate}&end_date=${endDate}`),
+          api.get('/invoices/')
+        ]);
+        setGstSummary(gstRes.data.summary);
+        setGstSlabs(gstRes.data.slabs_breakdown);
+        setInvoices(invoicesRes.data);
       }
     } catch (err) {
       console.error('Error fetching financial reports:', err);
@@ -38,6 +55,61 @@ const FinancialReports = () => {
   useEffect(() => {
     fetchData();
   }, [activeTab, plPeriod]);
+
+  const handleGstExcelDownload = async () => {
+    setExportDownloading(true);
+    try {
+      let url = '/exports/excel/?type=gst';
+      let monthStr = '';
+      let yearStr = '';
+      
+      if (startDate) {
+        const d = new Date(startDate);
+        monthStr = `&month=${d.getMonth() + 1}`;
+        yearStr = `&year=${d.getFullYear()}`;
+      } else {
+        const d = new Date();
+        monthStr = `&month=${d.getMonth() + 1}`;
+        yearStr = `&year=${d.getFullYear()}`;
+      }
+      
+      url += `${monthStr}${yearStr}`;
+      
+      const response = await api.get(url, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `gst_summary_${startDate ? startDate.substring(0, 7) : new Date().toISOString().substring(0, 7)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to generate Excel report.');
+    } finally {
+      setExportDownloading(false);
+    }
+  };
+
+  const downloadSingleInvoicePDF = async (invoiceId, invoiceNumber) => {
+    setPdfDownloading(prev => ({ ...prev, [invoiceId]: true }));
+    try {
+      const res = await api.get(`/invoices/${invoiceId}/pdf/`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${invoiceNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to download invoice PDF.');
+    } finally {
+      setPdfDownloading(prev => ({ ...prev, [invoiceId]: false }));
+    }
+  };
 
   if (loading) {
     return (
@@ -78,7 +150,7 @@ const FinancialReports = () => {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex bg-white border border-slate-200/60 p-1.5 rounded-2xl w-max shadow-sm">
+      <div className="flex flex-wrap bg-white border border-slate-200/60 p-1.5 rounded-2xl w-max shadow-sm gap-1">
         <button
           onClick={() => setActiveTab('pl')}
           className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
@@ -108,6 +180,16 @@ const FinancialReports = () => {
           }`}
         >
           Cash Flow Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab('gst')}
+          className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+            activeTab === 'gst'
+              ? 'bg-primary text-white shadow-sm shadow-emerald-500/10'
+              : 'text-[#6B7280] hover:text-secondary'
+          }`}
+        >
+          GST Ledger & Reports
         </button>
       </div>
 
@@ -453,6 +535,252 @@ const FinancialReports = () => {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: GST LEDGER & REPORTS */}
+      {activeTab === 'gst' && gstSummary && (
+        <div className="space-y-6">
+          {/* Filters & Actions */}
+          <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-secondary text-sm sm:text-base flex items-center space-x-2">
+                  <FiCalendar className="text-primary w-5 h-5" />
+                  <span>GST Calculation Period</span>
+                </h3>
+                <p className="text-text-secondary text-xs mt-1">
+                  Select a date range to recalculate GST liabilities and filter the tax invoices ledger.
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-[#6B7280] font-semibold">From:</span>
+                  <input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 focus:border-primary focus:bg-white rounded-xl py-1.5 px-3 text-xs font-semibold text-secondary outline-none transition-all cursor-pointer"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-[#6B7280] font-semibold">To:</span>
+                  <input 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 focus:border-primary focus:bg-white rounded-xl py-1.5 px-3 text-xs font-semibold text-secondary outline-none transition-all cursor-pointer"
+                  />
+                </div>
+                <button
+                  onClick={fetchData}
+                  className="bg-primary hover:bg-primary-hover text-white text-xs font-extrabold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  Apply Filter
+                </button>
+                <button
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="bg-slate-100 hover:bg-slate-200 text-secondary text-xs font-extrabold px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-95"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleGstExcelDownload}
+                  disabled={exportDownloading}
+                  className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-extrabold px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center space-x-1.5 shadow-sm active:scale-95"
+                >
+                  {exportDownloading ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <FiDownload className="w-3.5 h-3.5" />
+                  )}
+                  <span>Download Excel Report</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* GST Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-6">
+            
+            {/* Total Sales */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-5 relative overflow-hidden shadow-sm hover:shadow-premium transition-shadow">
+              <span className="text-[9.5px] font-bold text-[#6B7280] uppercase tracking-wider block mb-1">Total Sales (Inclusive)</span>
+              <p className="text-2xl font-poppins font-extrabold text-secondary">₹{gstSummary.total_sales.toFixed(2)}</p>
+              <p className="text-[10px] text-text-secondary mt-1">Total billing value inclusive of tax</p>
+            </div>
+
+            {/* Base Taxable Value */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-5 relative overflow-hidden shadow-sm hover:shadow-premium transition-shadow">
+              <span className="text-[9.5px] font-bold text-[#6B7280] uppercase tracking-wider block mb-1">Taxable Subtotal</span>
+              <p className="text-2xl font-poppins font-extrabold text-secondary">₹{gstSummary.taxable_amount.toFixed(2)}</p>
+              <p className="text-[10px] text-text-secondary mt-1">Value of goods sold excluding GST</p>
+            </div>
+
+            {/* CGST Collected */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-5 relative overflow-hidden shadow-sm hover:shadow-premium transition-shadow">
+              <span className="text-[9.5px] font-bold text-[#6B7280] uppercase tracking-wider block mb-1">CGST Collected (50%)</span>
+              <p className="text-2xl font-poppins font-extrabold text-primary">₹{gstSummary.total_cgst.toFixed(2)}</p>
+              <p className="text-[10px] text-text-secondary mt-1">Central Goods & Services Tax</p>
+            </div>
+
+            {/* SGST Collected */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-5 relative overflow-hidden shadow-sm hover:shadow-premium transition-shadow">
+              <span className="text-[9.5px] font-bold text-[#6B7280] uppercase tracking-wider block mb-1">SGST Collected (50%)</span>
+              <p className="text-2xl font-poppins font-extrabold text-primary">₹{gstSummary.total_sgst.toFixed(2)}</p>
+              <p className="text-[10px] text-text-secondary mt-1">State Goods & Services Tax</p>
+            </div>
+
+            {/* Total Tax Collected */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-5 relative overflow-hidden shadow-sm hover:shadow-premium transition-shadow border-emerald-500/20 bg-emerald-50/5">
+              <span className="text-[9.5px] font-bold text-[#6B7280] uppercase tracking-wider block mb-1">Total Tax Collected</span>
+              <p className="text-2xl font-poppins font-extrabold text-emerald-600">₹{gstSummary.total_tax.toFixed(2)}</p>
+              <p className="text-[10px] text-text-secondary mt-1">Total GST collected (CGST + SGST)</p>
+            </div>
+
+          </div>
+
+          {/* Slabs & Invoice List Columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* GST SLABS BREAKDOWN */}
+            <div className="lg:col-span-1 bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm space-y-4 h-max">
+              <h3 className="font-extrabold text-secondary text-sm sm:text-base border-b border-slate-100 pb-2 uppercase tracking-wide flex items-center space-x-2">
+                <FiPercent className="text-primary" />
+                <span>GST Tax Slab Audits</span>
+              </h3>
+              
+              <div className="space-y-4">
+                {gstSlabs.map((slab) => {
+                  const getSlabStyles = (rate) => {
+                    if (rate === 0) return 'bg-slate-100 text-slate-700 border-slate-200';
+                    if (rate === 5) return 'bg-blue-50 text-blue-700 border-blue-150';
+                    if (rate === 12) return 'bg-purple-50 text-purple-700 border-purple-150';
+                    if (rate === 18) return 'bg-amber-50 text-amber-700 border-amber-150';
+                    return 'bg-rose-50 text-rose-700 border-rose-150';
+                  };
+                  
+                  return (
+                    <div key={slab.gst_rate} className="border border-slate-100 rounded-2xl p-4 space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getSlabStyles(slab.gst_rate)}`}>
+                          GST {slab.gst_rate}% Slab
+                        </span>
+                        <span className="text-xs font-extrabold text-secondary">
+                          ₹{slab.total_sales.toFixed(2)}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-text-secondary pt-1 border-t border-slate-50">
+                        <div>
+                          <p className="font-light">Taxable Base</p>
+                          <p className="font-semibold text-secondary">₹{slab.taxable_amount.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="font-light">Total Tax</p>
+                          <p className="font-semibold text-teal-600">₹{slab.total_collected.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between text-[9px] text-[#6B7280] font-light">
+                        <span>CGST: ₹{slab.cgst_collected.toFixed(2)}</span>
+                        <span>SGST: ₹{slab.sgst_collected.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* INVOICES LIST */}
+            <div className="lg:col-span-2 bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-extrabold text-secondary text-sm sm:text-base uppercase tracking-wide flex items-center space-x-2">
+                    <FiFileText className="text-primary" />
+                    <span>Store Tax Invoices</span>
+                  </h3>
+                  <p className="text-text-secondary text-xs mt-0.5">
+                    Viewing generated billing statements and corresponding tax receipts.
+                  </p>
+                </div>
+                
+                {/* Search Invoice */}
+                <input 
+                  type="text"
+                  placeholder="Search Invoice No / Customer..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 focus:border-primary focus:bg-white rounded-xl py-1.5 px-3.5 text-xs font-medium text-secondary outline-none transition-all w-full sm:w-64"
+                />
+              </div>
+
+              {/* Invoices Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-[#111827]">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-[#6B7280] font-bold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-2">Invoice No</th>
+                      <th className="py-3 px-2">Date</th>
+                      <th className="py-3 px-2">Customer</th>
+                      <th className="py-3 px-2 text-right">Taxable</th>
+                      <th className="py-3 px-2 text-right">CGST</th>
+                      <th className="py-3 px-2 text-right">SGST</th>
+                      <th className="py-3 px-2 text-right">Total</th>
+                      <th className="py-3 px-2 text-center">Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {invoices
+                      .filter(inv => 
+                        inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        inv.customer_username.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((inv) => (
+                        <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-2 font-bold text-secondary font-poppins">{inv.invoice_number}</td>
+                          <td className="py-3 px-2 text-text-secondary font-light">
+                            {new Date(inv.created_at).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </td>
+                          <td className="py-3 px-2 text-secondary font-bold">{inv.customer_username}</td>
+                          <td className="py-3 px-2 text-right text-text-secondary">₹{inv.subtotal.toFixed(2)}</td>
+                          <td className="py-3 px-2 text-right text-primary">₹{inv.cgst_total.toFixed(2)}</td>
+                          <td className="py-3 px-2 text-right text-primary">₹{inv.sgst_total.toFixed(2)}</td>
+                          <td className="py-3 px-2 text-right font-bold text-secondary">₹{inv.grand_total.toFixed(2)}</td>
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              onClick={() => downloadSingleInvoicePDF(inv.id, inv.invoice_number)}
+                              disabled={!!pdfDownloading[inv.id]}
+                              className="text-primary hover:text-primary-hover p-1.5 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center active:scale-90"
+                              title="Download Invoice PDF"
+                            >
+                              {pdfDownloading[inv.id] ? (
+                                <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <FiDownload className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    {invoices.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="py-8 text-center text-text-secondary font-light">
+                          No invoices found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

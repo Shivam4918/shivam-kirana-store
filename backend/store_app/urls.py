@@ -5,7 +5,7 @@ from .views import (
     CustomerKhataView, CustomerCheckoutView, AdminDashboardAnalyticsView, AdminCustomerViewSet,
     ExpenseViewSet, SupplierViewSet, PurchaseViewSet, NotificationViewSet,
     ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
-    ExportPDFView, ExportExcelView
+    ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView
 )
 
 router = DefaultRouter()
@@ -15,6 +15,7 @@ router.register(r'expenses', ExpenseViewSet, basename='expenses')
 router.register(r'suppliers', SupplierViewSet, basename='suppliers')
 router.register(r'purchases', PurchaseViewSet, basename='purchases')
 router.register(r'notifications', NotificationViewSet, basename='notifications')
+router.register(r'invoices', InvoiceViewSet, basename='invoices')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -28,6 +29,7 @@ urlpatterns = [
     path('admin/analytics/balance-sheet/', BalanceSheetAnalyticsView.as_view(), name='analytics-balance-sheet'),
     path('admin/analytics/cash-flow/', CashFlowAnalyticsView.as_view(), name='analytics-cash-flow'),
     path('admin/analytics/inventory/', InventoryAnalyticsView.as_view(), name='analytics-inventory'),
+    path('admin/analytics/gst/', GSTSummaryView.as_view(), name='analytics-gst'),
     
     # PDF & Excel Exports
     path('exports/pdf/', ExportPDFView.as_view(), name='export-pdf'),
