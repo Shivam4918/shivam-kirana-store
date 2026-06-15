@@ -1,0 +1,38 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    RegisterView, UserProfileView, ProductViewSet,
+    CustomerKhataView, CustomerCheckoutView, AdminDashboardAnalyticsView, AdminCustomerViewSet,
+    ExpenseViewSet, SupplierViewSet, PurchaseViewSet, NotificationViewSet,
+    ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
+    ExportPDFView, ExportExcelView
+)
+
+router = DefaultRouter()
+router.register(r'products', ProductViewSet, basename='products')
+router.register(r'admin/customers', AdminCustomerViewSet, basename='admin-customers')
+router.register(r'expenses', ExpenseViewSet, basename='expenses')
+router.register(r'suppliers', SupplierViewSet, basename='suppliers')
+router.register(r'purchases', PurchaseViewSet, basename='purchases')
+router.register(r'notifications', NotificationViewSet, basename='notifications')
+
+urlpatterns = [
+    path('auth/register/', RegisterView.as_view(), name='register'),
+    path('auth/profile/', UserProfileView.as_view(), name='profile'),
+    path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
+    path('checkout/', CustomerCheckoutView.as_view(), name='checkout'),
+    path('admin/analytics/', AdminDashboardAnalyticsView.as_view(), name='admin-analytics'),
+    
+    # Financial Analytics
+    path('admin/analytics/pl/', ProfitLossAnalyticsView.as_view(), name='analytics-pl'),
+    path('admin/analytics/balance-sheet/', BalanceSheetAnalyticsView.as_view(), name='analytics-balance-sheet'),
+    path('admin/analytics/cash-flow/', CashFlowAnalyticsView.as_view(), name='analytics-cash-flow'),
+    path('admin/analytics/inventory/', InventoryAnalyticsView.as_view(), name='analytics-inventory'),
+    
+    # PDF & Excel Exports
+    path('exports/pdf/', ExportPDFView.as_view(), name='export-pdf'),
+    path('exports/excel/', ExportExcelView.as_view(), name='export-excel'),
+    
+    path('', include(router.urls)),
+]
+
