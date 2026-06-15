@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import BarcodeScanner from '../components/BarcodeScanner';
 import { 
   FiSearch, FiLock, FiUnlock, FiCalendar, FiBookOpen, 
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
-  FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, FiStar
+  FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, FiStar, FiZap
 } from 'react-icons/fi';
 
 const CustomerDashboard = () => {
@@ -33,6 +34,9 @@ const CustomerDashboard = () => {
   // General UI state
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // Barcode scanner state
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -92,6 +96,42 @@ const CustomerDashboard = () => {
       fetchProducts();
     }
   }, [isKhataView]);
+
+  /** Handle barcode scan on storefront → add matched product to cart */
+  const handleBarcodeScanToCart = async (code) => {
+    setShowBarcodeScanner(false);
+    try {
+      const res = await api.get(`/products/by-barcode/?barcode=${encodeURIComponent(code)}`);
+      const product = res.data;
+      if (product.stock_quantity <= 0) {
+        showToast(`"${product.name}" is out of stock.`, 'error');
+        return;
+      }
+      // Add to cart (reuse addToCart logic)
+      setCart(prev => {
+        const existing = prev.find(item => item.product.id === product.id);
+        if (existing) {
+          if (existing.quantity >= product.stock_quantity) {
+            showToast(`Only ${product.stock_quantity} units available for "${product.name}".`, 'error');
+            return prev;
+          }
+          return prev.map(item =>
+            item.product.id === product.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          );
+        }
+        return [...prev, { product, quantity: 1 }];
+      });
+      showToast(`"${product.name}" added to cart via barcode scan! 🎯`, 'success');
+    } catch (err) {
+      if (err.response?.status === 404) {
+        showToast(`No product found for barcode "${code}"`, 'error');
+      } else {
+        showToast('Barcode lookup failed. Please try again.', 'error');
+      }
+    }
+  };
 
   // Handle Cart Operations
   const addToCart = (product) => {
@@ -510,6 +550,16 @@ const CustomerDashboard = () => {
                 />
               </div>
 
+              {/* Scan to Add button */}
+              <button
+                onClick={() => setShowBarcodeScanner(true)}
+                className="flex items-center justify-center space-x-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-4 py-2 rounded-xl shadow-sm shadow-emerald-500/20 transition-all cursor-pointer text-xs active:scale-95"
+                title="Scan a grocery barcode to instantly add to cart"
+              >
+                <FiZap className="w-4 h-4" />
+                <span>Scan to Add</span>
+              </button>
+
               {/* Sort By Price / Name */}
               <div className="relative flex items-center bg-white border border-slate-200 rounded-xl px-2.5 py-2">
                 <FiFilter className="w-4 h-4 text-slate-400 mr-1.5" />
@@ -923,6 +973,13 @@ const CustomerDashboard = () => {
         </div>
       )}
 
+      {showBarcodeScanner && (
+        <BarcodeScanner
+          title="Scan to Add to Cart"
+          onScan={handleBarcodeScanToCart}
+          onClose={() => setShowBarcodeScanner(false)}
+        />
+      )}
     </div>
   );
 };

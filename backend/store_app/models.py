@@ -27,6 +27,7 @@ class Product(models.Model):
     category = models.CharField(max_length=100, blank=True, null=True)
     gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     hsn_code = models.CharField(max_length=15, blank=True, null=True)
+    barcode = models.CharField(max_length=100, blank=True, null=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -60,12 +60,24 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'category', 'description']
+    search_fields = ['name', 'category', 'description', 'barcode']
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'by_barcode']:
             return [permissions.IsAuthenticated()]
         return [IsAdminUserRole()]
+
+    @action(detail=False, methods=['get'], url_path='by-barcode')
+    def by_barcode(self, request):
+        """Lookup a product by its barcode. Returns 404 if no product matches."""
+        barcode = request.query_params.get('barcode', '').strip()
+        if not barcode:
+            return Response({'detail': 'barcode query parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            product = Product.objects.get(barcode=barcode)
+            return Response(ProductSerializer(product).data)
+        except Product.DoesNotExist:
+            return Response({'detail': f'No product found with barcode "{barcode}".'}, status=status.HTTP_404_NOT_FOUND)
 
 class CustomerKhataView(APIView):
     permission_classes = [permissions.IsAuthenticated]

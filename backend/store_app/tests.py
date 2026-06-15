@@ -304,3 +304,23 @@ class StoreBackendTests(TestCase):
         # Verify persisted in DB
         profile.refresh_from_db()
         self.assertEqual(profile.credit_limit, Decimal('25000.00'))
+
+    def test_product_barcode_field(self):
+        """Test that we can create a product with a barcode and retrieve it via by-barcode API lookup."""
+        prod_barcode = Product.objects.create(
+            name='Barcoded Product',
+            price=Decimal('10.00'),
+            stock_quantity=10,
+            barcode='8901030733842'
+        )
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.get('/api/products/by-barcode/', {'barcode': '8901030733842'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], prod_barcode.id)
+        self.assertEqual(response.data['barcode'], '8901030733842')
+
+    def test_barcode_lookup_not_found(self):
+        """Test that lookup of a non-existent barcode returns 404."""
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.get('/api/products/by-barcode/', {'barcode': '9999999999999'})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

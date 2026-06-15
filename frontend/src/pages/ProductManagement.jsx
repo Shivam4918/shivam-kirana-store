@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiBox, FiX, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import BarcodeScanner from '../components/BarcodeScanner';
+import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiBox, FiX, FiCheckCircle, FiAlertCircle, FiZap, FiCamera } from 'react-icons/fi';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('add'); // 'add' or 'edit'
@@ -21,6 +22,11 @@ const ProductManagement = () => {
   const [image, setImage] = useState('');
   const [gstRate, setGstRate] = useState('0.00');
   const [hsnCode, setHsnCode] = useState('');
+  const [barcode, setBarcode] = useState('');
+
+  // Barcode scanner states
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerMode, setScannerMode] = useState('fill'); // 'fill' = fill form field, 'find' = find product
 
   // Alerts
   const [errorMsg, setErrorMsg] = useState('');
@@ -53,6 +59,7 @@ const ProductManagement = () => {
     setImage('');
     setGstRate('0.00');
     setHsnCode('');
+    setBarcode('');
     setErrorMsg('');
     setShowModal(true);
   };
@@ -68,6 +75,7 @@ const ProductManagement = () => {
     setImage(p.image || '');
     setGstRate(p.gst_rate !== undefined ? p.gst_rate.toString() : '0.00');
     setHsnCode(p.hsn_code || '');
+    setBarcode(p.barcode || '');
     setErrorMsg('');
     setShowModal(true);
   };
@@ -81,12 +89,10 @@ const ProductManagement = () => {
       setErrorMsg('Product name, price, and stock quantity are required.');
       return;
     }
-
     if (parseFloat(price) <= 0) {
       setErrorMsg('Price must be greater than zero.');
       return;
     }
-
     if (parseInt(stockQuantity) < 0) {
       setErrorMsg('Stock quantity cannot be negative.');
       return;
@@ -100,6 +106,7 @@ const ProductManagement = () => {
       category,
       gst_rate: parseFloat(gstRate),
       hsn_code: hsnCode,
+      barcode: barcode.trim() || null,
       image: image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80'
     };
 
@@ -115,14 +122,12 @@ const ProductManagement = () => {
       fetchProducts();
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.detail || 'Save action failed. Check values.');
+      setErrorMsg(err.response?.data?.detail || err.response?.data?.barcode?.[0] || 'Save action failed. Check values.');
     }
   };
 
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product from the catalog?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this product from the catalog?')) return;
     setErrorMsg('');
     setSuccessMsg('');
     try {
@@ -135,31 +140,80 @@ const ProductManagement = () => {
     }
   };
 
-  const filteredProducts = products.filter(p => 
+  /** Called when scanner decodes a barcode */
+  const handleBarcodeScan = async (code) => {
+    setShowScanner(false);
+
+    if (scannerMode === 'fill') {
+      // Fill the barcode field in the form
+      setBarcode(code);
+      setSuccessMsg(`Barcode captured: ${code}`);
+    } else if (scannerMode === 'find') {
+      // Find a product by this barcode
+      setSuccessMsg('');
+      setErrorMsg('');
+      try {
+        const res = await api.get(`/products/by-barcode/?barcode=${encodeURIComponent(code)}`);
+        openEditModal(res.data);
+        setSuccessMsg(`Found product: "${res.data.name}"`);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          setErrorMsg(`No product found for barcode "${code}". You can add it manually.`);
+        } else {
+          setErrorMsg('Barcode lookup failed. Try again.');
+        }
+      }
+    }
+  };
+
+  const openScanToFill = () => {
+    setScannerMode('fill');
+    setShowScanner(true);
+  };
+
+  const openScanToFind = () => {
+    setScannerMode('find');
+    setShowScanner(true);
+  };
+
+  const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.barcode && p.barcode.includes(searchQuery))
   );
 
   return (
     <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-y-auto bg-slate-50/50 text-[#111827] flex flex-col justify-start relative text-left">
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-poppins font-extrabold text-secondary">Inventory Catalog</h2>
-          <p className="text-[#6B7280] text-xs sm:text-sm">Manage products listed on the storefront, modify prices, and restock units.</p>
+          <p className="text-[#6B7280] text-xs sm:text-sm">Manage products, modify prices, restock units, and scan barcodes.</p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="bg-primary hover:bg-primary-hover text-white font-bold px-4.5 py-2.5 rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer text-xs sm:text-sm active:scale-95"
-        >
-          <FiPlus className="w-4.5 h-4.5" />
-          <span>Add Catalog Item</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          {/* Scan to Find button */}
+          <button
+            onClick={openScanToFind}
+            className="flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-secondary font-bold px-3.5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer text-xs active:scale-95"
+            title="Scan a barcode to instantly find & edit a product"
+          >
+            <FiZap className="w-4 h-4 text-primary" />
+            <span>Scan to Find</span>
+          </button>
+
+          <button
+            onClick={openAddModal}
+            className="bg-primary hover:bg-primary-hover text-white font-bold px-4.5 py-2.5 rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer text-xs sm:text-sm active:scale-95"
+          >
+            <FiPlus className="w-4.5 h-4.5" />
+            <span>Add Catalog Item</span>
+          </button>
+        </div>
       </div>
 
-      {/* Utilities: Search bar */}
+      {/* Search bar */}
       <div className="flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -169,7 +223,7 @@ const ProductManagement = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search catalog by name or category..."
+            placeholder="Search by name, category, or barcode..."
             className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2 pl-9 pr-4 text-xs sm:text-sm text-text-primary placeholder-slate-400 outline-none transition-all focus:ring-2 focus:ring-emerald-100"
           />
         </div>
@@ -201,6 +255,7 @@ const ProductManagement = () => {
                   <th className="py-4 px-6">Image</th>
                   <th className="py-4 px-6">Item Details</th>
                   <th className="py-4 px-6">Category</th>
+                  <th className="py-4 px-6">Barcode</th>
                   <th className="py-4 px-6 text-right">Price per unit</th>
                   <th className="py-4 px-6 text-right">Stock Level</th>
                   <th className="py-4 px-6 text-center">Actions</th>
@@ -212,10 +267,10 @@ const ProductManagement = () => {
                     <td className="py-4 px-6">
                       <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center overflow-hidden">
                         {p.image ? (
-                          <img 
-                            src={p.image} 
-                            alt={p.name} 
-                            className="w-full h-full object-cover" 
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=100&q=80';
@@ -236,6 +291,15 @@ const ProductManagement = () => {
                       <span className="text-[10px] font-extrabold text-secondary bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md uppercase tracking-wide">
                         {p.category || 'General'}
                       </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      {p.barcode ? (
+                        <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded-md tracking-widest">
+                          {p.barcode}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">No barcode</span>
+                      )}
                     </td>
                     <td className="py-4 px-6 font-extrabold text-secondary text-right">₹{parseFloat(p.price).toFixed(2)}</td>
                     <td className="py-4 px-6 text-right">
@@ -285,8 +349,8 @@ const ProductManagement = () => {
       {/* Add/Edit Product Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-premium-lg relative animate-in fade-in zoom-in-95 duration-200">
-            
+          <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-premium-lg relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-secondary p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-full transition-all cursor-pointer"
@@ -295,7 +359,7 @@ const ProductManagement = () => {
             </button>
 
             <h3 className="text-lg font-poppins font-extrabold text-secondary mb-6 text-left">
-              {modalType === 'add' ? 'Add Catalog Item' : 'Edit Product details'}
+              {modalType === 'add' ? 'Add Catalog Item' : 'Edit Product Details'}
             </h3>
 
             <form onSubmit={handleFormSubmit} className="space-y-4 text-left">
@@ -320,6 +384,31 @@ const ProductManagement = () => {
                   className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
                   placeholder="e.g. Dairy, Grains, Oils"
                 />
+              </div>
+
+              {/* Barcode field with scan button */}
+              <div>
+                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+                  Barcode <span className="normal-case font-normal text-slate-400 ml-1">(EAN-13, UPC-A, Code-128…)</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    className="flex-1 bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm font-mono text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    placeholder="Scan or type barcode..."
+                  />
+                  <button
+                    type="button"
+                    onClick={openScanToFill}
+                    className="flex items-center space-x-1.5 bg-emerald-50 hover:bg-emerald-100 text-primary border border-emerald-200 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95"
+                    title="Open camera to scan barcode"
+                  >
+                    <FiCamera className="w-4 h-4" />
+                    <span>Scan</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -398,6 +487,13 @@ const ProductManagement = () => {
                 ></textarea>
               </div>
 
+              {errorMsg && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-xl text-xs flex items-center space-x-2">
+                  <FiAlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
@@ -416,6 +512,15 @@ const ProductManagement = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <BarcodeScanner
+          title={scannerMode === 'fill' ? 'Scan Product Barcode' : 'Scan to Find Product'}
+          onScan={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
+        />
       )}
 
     </div>
