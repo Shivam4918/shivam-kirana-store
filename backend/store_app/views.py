@@ -41,9 +41,14 @@ class UserProfileView(APIView):
         if request.user.role == 'CUSTOMER':
             try:
                 khata = request.user.khata_profile
+                available = max(Decimal('0.00'), khata.credit_limit - khata.current_balance)
+                utilization = (float(khata.current_balance) / float(khata.credit_limit) * 100) if khata.credit_limit else 0
                 data['khata_status'] = {
                     'is_accessible': khata.is_accessible_by_customer,
                     'current_balance': float(khata.current_balance),
+                    'credit_limit': float(khata.credit_limit),
+                    'available_credit': float(available),
+                    'utilization_pct': round(utilization, 1),
                 }
             except KhataProfile.DoesNotExist:
                 data['khata_status'] = None
@@ -116,6 +121,10 @@ class CustomerCheckoutView(APIView):
         validated_items = []
         try:
             with db_transaction.atomic():
+                # Lock profile at start of checkout transaction to prevent concurrency issues
+                locked_profile = KhataProfile.objects.select_for_update().get(pk=profile.pk)
+                
+                cart_total = Decimal('0.00')
                 for item in items_data:
                     product_id = item.get('product_id')
                     qty = item.get('quantity')
@@ -137,6 +146,10 @@ class CustomerCheckoutView(APIView):
                         return Response({"detail": f"Insufficient stock for {product.name}. Available: {product.stock_quantity}"}, status=status.HTTP_400_BAD_REQUEST)
 
                     validated_items.append((product, quantity))
+                    cart_total += product.price * quantity
+
+                if locked_profile.current_balance + cart_total > locked_profile.credit_limit:
+                    raise ValueError(f"Checkout would exceed your credit limit of ₹{locked_profile.credit_limit}. Current Balance: ₹{locked_profile.current_balance}, Purchase Total: ₹{cart_total}")
 
                 # Generate invoice number sequentially inside transaction
                 today_str = timezone.localtime(timezone.now()).strftime('%Y%m%d')
@@ -310,6 +323,8 @@ class AdminCustomerViewSet(viewsets.ViewSet):
             
         data = []
         for profile in queryset:
+            available = max(Decimal('0.00'), profile.credit_limit - profile.current_balance)
+            utilization = (float(profile.current_balance) / float(profile.credit_limit) * 100) if profile.credit_limit else 0
             data.append({
                 'id': profile.id,
                 'customer_id': profile.user.id,
@@ -317,6 +332,9 @@ class AdminCustomerViewSet(viewsets.ViewSet):
                 'email': profile.user.email,
                 'phone': profile.user.phone_number,
                 'balance': float(profile.current_balance),
+                'credit_limit': float(profile.credit_limit),
+                'available_credit': float(available),
+                'utilization_pct': round(utilization, 1),
                 'total_credit': float(profile.total_credit),
                 'total_paid': float(profile.total_paid),
                 'is_accessible': profile.is_accessible_by_customer,
@@ -333,6 +351,8 @@ class AdminCustomerViewSet(viewsets.ViewSet):
         transactions = profile.transactions.all().order_by('-created_at')
         tx_serializer = TransactionSerializer(transactions, many=True)
         
+        available = max(Decimal('0.00'), profile.credit_limit - profile.current_balance)
+        utilization = (float(profile.current_balance) / float(profile.credit_limit) * 100) if profile.credit_limit else 0
         data = {
             'id': profile.id,
             'customer_id': profile.user.id,
@@ -340,6 +360,9 @@ class AdminCustomerViewSet(viewsets.ViewSet):
             'email': profile.user.email,
             'phone': profile.user.phone_number,
             'balance': float(profile.current_balance),
+            'credit_limit': float(profile.credit_limit),
+            'available_credit': float(available),
+            'utilization_pct': round(utilization, 1),
             'total_credit': float(profile.total_credit),
             'total_paid': float(profile.total_paid),
             'is_accessible': profile.is_accessible_by_customer,
@@ -366,6 +389,38 @@ class AdminCustomerViewSet(viewsets.ViewSet):
             "id": profile.id,
             "name": profile.user.username,
             "is_accessible": profile.is_accessible_by_customer
+        })
+
+    @action(detail=True, methods=['patch'], url_path='update-limit')
+    def update_limit(self, request, pk=None):
+        """Admin-only: set a per-customer credit limit."""
+        try:
+            profile = KhataProfile.objects.get(pk=pk)
+        except KhataProfile.DoesNotExist:
+            return Response({"detail": "Customer ledger profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        new_limit = request.data.get('credit_limit', None)
+        if new_limit is None:
+            return Response({"detail": "credit_limit field is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            limit_decimal = Decimal(str(new_limit))
+            if limit_decimal < Decimal('0.00'):
+                raise ValueError()
+        except Exception:
+            return Response({"detail": "credit_limit must be a valid non-negative number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile.credit_limit = limit_decimal
+        profile.save(update_fields=['credit_limit'])
+
+        available = max(Decimal('0.00'), profile.credit_limit - profile.current_balance)
+        utilization = (float(profile.current_balance) / float(profile.credit_limit) * 100) if profile.credit_limit else 0
+        return Response({
+            "id": profile.id,
+            "name": profile.user.username,
+            "credit_limit": float(profile.credit_limit),
+            "current_balance": float(profile.current_balance),
+            "available_credit": float(available),
+            "utilization_pct": round(utilization, 1),
         })
 
     @action(detail=True, methods=['post'], url_path='add-transaction')

@@ -22,13 +22,28 @@ def check_and_notify_stock(product):
         notify_admin(message, 'LOW_STOCK')
 
 def check_and_notify_customer_khata(khata_profile):
-    if khata_profile.current_balance >= 5000:
+    """Notify when the customer has used ≥80 % of their credit limit."""
+    from decimal import Decimal
+    limit = khata_profile.credit_limit if hasattr(khata_profile, 'credit_limit') else Decimal('10000.00')
+    if not limit or limit <= 0:
+        return  # No limit set – nothing to warn about
+
+    utilization_pct = (khata_profile.current_balance / limit) * 100
+
+    if utilization_pct >= 80:
+        pct_display = f"{utilization_pct:.0f}%"
         # Notify Admin
-        admin_msg = f"Customer '{khata_profile.user.username}' has a high outstanding balance of ₹{khata_profile.current_balance}."
+        admin_msg = (
+            f"Customer '{khata_profile.user.username}' has used {pct_display} of their credit limit "
+            f"(₹{khata_profile.current_balance} / ₹{limit})."
+        )
         notify_admin(admin_msg, 'HIGH_OUTSTANDING')
-        
+
         # Notify Customer
-        cust_msg = f"Your outstanding balance has reached a high level of ₹{khata_profile.current_balance}. Please settle due balances."
+        cust_msg = (
+            f"You have used {pct_display} of your ₹{limit} credit limit "
+            f"(balance: ₹{khata_profile.current_balance}). Please settle dues soon."
+        )
         Notification.objects.create(
             user=khata_profile.user,
             message=cust_msg,

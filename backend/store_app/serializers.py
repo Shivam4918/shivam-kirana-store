@@ -80,8 +80,8 @@ class KhataProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = KhataProfile
-        fields = ('id', 'user', 'current_balance', 'total_credit', 'total_paid', 'is_accessible_by_customer', 'transactions', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'current_balance', 'total_credit', 'total_paid', 'created_at', 'updated_at')
+        fields = ('id', 'user', 'current_balance', 'total_credit', 'total_paid', 'credit_limit', 'is_accessible_by_customer', 'transactions', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'current_balance', 'total_credit', 'total_paid', 'credit_limit', 'created_at', 'updated_at')
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 

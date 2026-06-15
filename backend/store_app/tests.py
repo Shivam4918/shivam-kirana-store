@@ -261,3 +261,46 @@ class StoreBackendTests(TestCase):
         self.assertAlmostEqual(slabs[5.0]['total_sales'], 105.00)
         self.assertAlmostEqual(slabs[5.0]['taxable_amount'], 100.00)
         self.assertAlmostEqual(slabs[5.0]['total_collected'], 5.00)
+
+    def test_checkout_blocked_by_credit_limit(self):
+        """Test that checkout is blocked when cart total would exceed the customer's credit limit."""
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        profile.credit_limit = Decimal('100.00')  # tight limit – 3 × ₹50 = ₹150 > ₹100
+        profile.save()
+
+        self.client.force_authenticate(user=self.customer)
+
+        # 3 × ₹50 = ₹150 which exceeds the ₹100 limit
+        response = self.client.post('/api/khata/checkout/', {
+            'items': [{'product_id': self.product.id, 'quantity': 3}]
+        }, format='json')
+
+        # Credit limit breach raises ValueError inside the atomic block → 400 or 500
+        self.assertNotEqual(response.status_code, status.HTTP_201_CREATED)
+        # Balance must remain unchanged (atomic rollback)
+        profile.refresh_from_db()
+        self.assertEqual(profile.current_balance, Decimal('0.00'))
+
+
+    def test_admin_update_credit_limit(self):
+        """Test that admin can set a per-customer credit limit via update-limit endpoint."""
+        self.client.force_authenticate(user=self.admin)
+
+        profile = self.customer.khata_profile
+
+        response = self.client.patch(
+            f'/api/admin/customers/{profile.id}/update-limit/',
+            {'credit_limit': 25000.00},
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+        self.assertAlmostEqual(data['credit_limit'], 25000.00)
+        self.assertIn('available_credit', data)
+        self.assertIn('utilization_pct', data)
+
+        # Verify persisted in DB
+        profile.refresh_from_db()
+        self.assertEqual(profile.credit_limit, Decimal('25000.00'))

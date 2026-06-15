@@ -787,6 +787,50 @@ const CustomerDashboard = () => {
 
               </div>
 
+              {/* Credit Limit Utilization Card */}
+              {khataProfile.credit_limit !== undefined && (
+                <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">Credit Limit Utilization</span>
+                      <span className="text-xs text-text-secondary mt-0.5 block">Your store credit allowance</span>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-extrabold ${
+                        (khataProfile.credit_limit - khataProfile.current_balance) <= 0 ? 'text-red-600' : 'text-emerald-600'
+                      }`}>
+                        ₹{Math.max(0, parseFloat(khataProfile.credit_limit) - parseFloat(khataProfile.current_balance)).toFixed(2)} left
+                      </span>
+                      <span className="text-[10px] text-text-secondary block mt-0.5">of ₹{parseFloat(khataProfile.credit_limit).toFixed(2)} limit</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-2.5 rounded-full transition-all duration-700 ${
+                        (parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100 >= 100
+                          ? 'bg-red-500'
+                          : (parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100 >= 80
+                          ? 'bg-amber-500'
+                          : 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                      }`}
+                      style={{
+                        width: `${Math.min(100, (parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100)}%`
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center mt-1.5">
+                    <span className={`text-[10px] font-bold ${
+                      (parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100 >= 80 ? 'text-amber-600' : 'text-emerald-600'
+                    }`}>
+                      {Math.min(100, ((parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100)).toFixed(1)}% used
+                    </span>
+                    <span className="text-[10px] text-text-secondary font-medium">
+                      ₹{parseFloat(khataProfile.current_balance).toFixed(2)} outstanding
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Transactions Ledger Table */}
               <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm">
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">

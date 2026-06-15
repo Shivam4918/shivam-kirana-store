@@ -38,6 +38,7 @@ class KhataProfile(models.Model):
     current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     total_credit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     total_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
     is_accessible_by_customer = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

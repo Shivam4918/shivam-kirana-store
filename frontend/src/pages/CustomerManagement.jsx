@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { 
   FiSearch, FiUser, FiPhone, FiMail, FiLock, FiUnlock, 
-  FiPlus, FiCalendar, FiX, FiArrowUpRight, FiArrowDownLeft, FiBookOpen, FiAlertCircle, FiCheckCircle
+  FiPlus, FiCalendar, FiX, FiArrowUpRight, FiArrowDownLeft, FiBookOpen, FiAlertCircle, FiCheckCircle,
+  FiEdit2, FiSliders, FiSave
 } from 'react-icons/fi';
 
 const CustomerManagement = () => {
@@ -31,6 +32,11 @@ const CustomerManagement = () => {
   // Alerts
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Credit limit editing
+  const [showLimitEditor, setShowLimitEditor] = useState(false);
+  const [limitInput, setLimitInput] = useState('');
+  const [limitLoading, setLimitLoading] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -207,6 +213,40 @@ const CustomerManagement = () => {
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.detail || 'Transaction failed. Check inputs.');
+    }
+  };
+
+  const handleUpdateCreditLimit = async () => {
+    if (!selectedProfile) return;
+    const newLimit = parseFloat(limitInput);
+    if (isNaN(newLimit) || newLimit < 0) {
+      setErrorMsg('Credit limit must be a valid non-negative number.');
+      return;
+    }
+    setLimitLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await api.patch(`/admin/customers/${selectedProfile.id}/update-limit/`, {
+        credit_limit: newLimit
+      });
+      const updated = res.data;
+      setSelectedProfile(prev => ({
+        ...prev,
+        credit_limit: updated.credit_limit,
+        available_credit: updated.available_credit,
+        utilization_pct: updated.utilization_pct,
+      }));
+      setCustomers(prev => prev.map(c =>
+        c.id === selectedProfile.id
+          ? { ...c, credit_limit: updated.credit_limit, available_credit: updated.available_credit, utilization_pct: updated.utilization_pct }
+          : c
+      ));
+      setSuccessMsg(`Credit limit for ${updated.name} updated to ₹${updated.credit_limit.toFixed(2)}.`);
+      setShowLimitEditor(false);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.detail || 'Failed to update credit limit.');
+    } finally {
+      setLimitLoading(false);
     }
   };
 
@@ -412,6 +452,87 @@ const CustomerManagement = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Credit Limit Utilization */}
+              {selectedProfile.credit_limit !== undefined && (
+                <div className="bg-gradient-to-br from-slate-50 to-emerald-50/30 border border-slate-200/70 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FiSliders className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-[10.5px] font-extrabold text-secondary uppercase tracking-wider">Credit Limit</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setLimitInput(selectedProfile.credit_limit?.toFixed(2) || '10000.00');
+                        setShowLimitEditor(v => !v);
+                      }}
+                      className="flex items-center space-x-1 text-[10px] font-bold text-primary hover:text-primary-hover transition-colors cursor-pointer"
+                    >
+                      <FiEdit2 className="w-3 h-3" />
+                      <span>Edit Limit</span>
+                    </button>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div>
+                    <div className="flex justify-between text-[10px] font-semibold text-text-secondary mb-1.5">
+                      <span>Used: ₹{(selectedProfile.balance || 0).toFixed(2)}</span>
+                      <span>Limit: ₹{(selectedProfile.credit_limit || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          (selectedProfile.utilization_pct || 0) >= 100
+                            ? 'bg-red-500'
+                            : (selectedProfile.utilization_pct || 0) >= 80
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(100, selectedProfile.utilization_pct || 0)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mt-1.5">
+                      <span className={`text-[10px] font-bold ${
+                        (selectedProfile.utilization_pct || 0) >= 80 ? 'text-amber-600' : 'text-emerald-600'
+                      }`}>
+                        {(selectedProfile.utilization_pct || 0).toFixed(1)}% used
+                      </span>
+                      <span className="text-[10px] font-semibold text-text-secondary">
+                        ₹{(selectedProfile.available_credit || 0).toFixed(2)} available
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Inline limit editor */}
+                  {showLimitEditor && (
+                    <div className="border-t border-slate-200 pt-3 flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={limitInput}
+                        onChange={e => setLimitInput(e.target.value)}
+                        className="flex-1 bg-white border border-slate-200 focus:border-primary rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
+                        placeholder="New credit limit (₹)"
+                      />
+                      <button
+                        onClick={handleUpdateCreditLimit}
+                        disabled={limitLoading}
+                        className="flex items-center space-x-1.5 bg-primary hover:bg-primary-hover text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-60 transition-all active:scale-95"
+                      >
+                        <FiSave className="w-3.5 h-3.5" />
+                        <span>{limitLoading ? 'Saving…' : 'Save'}</span>
+                      </button>
+                      <button
+                        onClick={() => setShowLimitEditor(false)}
+                        className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-500 cursor-pointer transition-all"
+                      >
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Ledger Action Trigger */}
               <button
