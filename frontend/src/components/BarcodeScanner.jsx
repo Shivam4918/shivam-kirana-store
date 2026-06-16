@@ -38,8 +38,15 @@ const BarcodeScanner = ({ onScan, onClose, title = 'Scan Barcode' }) => {
       return;
     }
 
-    const tempReader = new BrowserMultiFormatReader();
-    tempReader.listVideoInputDevices()
+    // First request user media permission to trigger browser prompt and populate labels
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then((stream) => {
+        // Stop temporary stream tracks immediately so the scanner reader can open it
+        stream.getTracks().forEach(track => track.stop());
+        
+        const tempReader = new BrowserMultiFormatReader();
+        return tempReader.listVideoInputDevices();
+      })
       .then((devices) => {
         setCameras(devices);
         if (devices.length > 0) {
@@ -56,8 +63,8 @@ const BarcodeScanner = ({ onScan, onClose, title = 'Scan Barcode' }) => {
         }
       })
       .catch((err) => {
-        console.error('Error listing cameras:', err);
-        setError('Camera access was denied. Please allow camera permissions and try again.');
+        console.error('Error starting camera or listing devices:', err);
+        setError('Camera access was denied. Please click the camera icon in your browser address bar and select "Allow" to enable the scanner.');
       });
   }, []);
 
