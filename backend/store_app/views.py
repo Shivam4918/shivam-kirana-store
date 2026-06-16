@@ -9,11 +9,11 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
     ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
-    InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer
+    InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer, WhatsAppLogSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
 from django.http import HttpResponse
@@ -238,6 +238,18 @@ class CustomerCheckoutView(APIView):
 
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Trigger WhatsApp notification asynchronously via Celery
+        from store_app.tasks import send_whatsapp_notification_task
+        send_whatsapp_notification_task.delay(
+            profile.id,
+            'TRANSACTION_ALERT',
+            {
+                'transaction_type': 'CREDIT',
+                'amount': float(grand_total_sum),
+                'description': f"Checked out items under invoice {invoice_number}"
+            }
+        )
 
         return Response({
             "detail": "Checkout completed successfully.",
@@ -499,11 +511,42 @@ class AdminCustomerViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"detail": "An error occurred while creating the transaction."}, status=status.HTTP_400_BAD_REQUEST)
             
+        # Trigger WhatsApp notification asynchronously via Celery
+        from store_app.tasks import send_whatsapp_notification_task
+        send_whatsapp_notification_task.delay(
+            profile.id,
+            'TRANSACTION_ALERT',
+            {
+                'transaction_type': tx_type,
+                'amount': float(amount_decimal),
+                'description': description
+            }
+        )
+
         return Response({
             "detail": f"{tx_type} transaction of {amount} added successfully.",
             "transaction": TransactionSerializer(tx).data,
             "current_balance": float(profile.current_balance)
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='send-whatsapp-reminder')
+    def send_whatsapp_reminder(self, request, pk=None):
+        try:
+            profile = KhataProfile.objects.select_related('user').get(pk=pk)
+        except KhataProfile.DoesNotExist:
+            return Response({"detail": "Customer ledger profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        message_type = request.data.get('message_type', 'PAYMENT_REMINDER')
+        if message_type not in ['PAYMENT_REMINDER', 'STATEMENT']:
+            return Response({"detail": "Invalid message_type. Must be PAYMENT_REMINDER or STATEMENT."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Trigger Celery task
+        from store_app.tasks import send_whatsapp_notification_task
+        send_whatsapp_notification_task.delay(
+            profile.id,
+            message_type
+        )
+        return Response({"detail": f"WhatsApp {message_type} notification queued successfully."})
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
@@ -1522,6 +1565,20 @@ class PaymentWebhookView(APIView):
                             amount=payment_req.amount,
                             description=f"Settled via online payment (Link ID: {link_id})"
                         )
+                        
+                        # Trigger WhatsApp notification asynchronously via Celery on commit
+                        from store_app.tasks import send_whatsapp_notification_task
+                        profile_id = payment_req.khata_profile.id
+                        amount_val = float(payment_req.amount)
+                        db_transaction.on_commit(lambda: send_whatsapp_notification_task.delay(
+                            profile_id,
+                            'TRANSACTION_ALERT',
+                            {
+                                'transaction_type': 'DEBIT',
+                                'amount': amount_val,
+                                'description': f"Online UPI Payment Received (Link: {link_id})"
+                            }
+                        ))
             except PaymentRequest.DoesNotExist:
                 logger.error(f"PaymentRequest not found for Razorpay Link ID: {link_id}")
                 return Response({"detail": "Payment request not found."}, status=status.HTTP_200_OK)
@@ -1535,6 +1592,35 @@ class PaymentWebhookView(APIView):
 class AdminPaymentRequestViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PaymentRequest.objects.all().order_by('-created_at')
     serializer_class = PaymentRequestSerializer
+    permission_classes = [IsAdminUserRole]
+
+
+class CustomerRequestWhatsAppStatementView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != 'CUSTOMER':
+            return Response({"detail": "Only customers can request statements."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            profile = request.user.khata_profile
+        except KhataProfile.DoesNotExist:
+            return Response({"detail": "Khata profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not profile.is_accessible_by_customer:
+            return Response({"detail": "Your Khata profile is locked."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Trigger background WhatsApp task
+        from store_app.tasks import send_whatsapp_notification_task
+        send_whatsapp_notification_task.delay(
+            profile.id,
+            'STATEMENT'
+        )
+        return Response({"detail": "Ledger statement summary has been requested and will be sent to your WhatsApp number shortly."})
+
+
+class WhatsAppLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = WhatsAppLog.objects.all().order_by('-sent_at')
+    serializer_class = WhatsAppLogSerializer
     permission_classes = [IsAdminUserRole]
 
     def get_queryset(self):

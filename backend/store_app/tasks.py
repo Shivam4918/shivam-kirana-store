@@ -177,3 +177,108 @@ def generate_monthly_gst_report_task(month, year, admin_email=None):
     
     # Return file path
     return file_path
+
+
+import logging
+logger = logging.getLogger(__name__)
+
+@shared_task
+def send_whatsapp_notification_task(khata_profile_id, message_type, context_data=None):
+    """
+    Background Celery task to send formatted WhatsApp notifications to customers
+    and log the transaction status in WhatsAppLog.
+    """
+    from store_app.models import KhataProfile, WhatsAppLog
+    from store_app.utils.whatsapp_helpers import send_whatsapp_message
+
+    try:
+        profile = KhataProfile.objects.select_related('user').get(id=khata_profile_id)
+    except KhataProfile.DoesNotExist:
+        logger.error(f"KhataProfile with ID {khata_profile_id} not found for WhatsApp notification.")
+        return False
+
+    customer_name = profile.user.first_name or profile.user.username
+    phone_number = profile.user.phone_number or ""
+    
+    if not phone_number:
+        WhatsAppLog.objects.create(
+            khata_profile=profile,
+            message_type=message_type,
+            phone_number="N/A",
+            message_body="[Failed: No phone number configured on customer profile]",
+            status='FAILED',
+            error_message="Phone number is empty on User model"
+        )
+        logger.warning(f"Failed to send WhatsApp message to KhataProfile {khata_profile_id}: No phone number.")
+        return False
+
+    balance = float(profile.current_balance)
+    body = ""
+
+    if message_type == 'TRANSACTION_ALERT':
+        tx_type = context_data.get('transaction_type', 'DEBIT') if context_data else 'DEBIT'
+        amount = context_data.get('amount', 0.0) if context_data else 0.0
+        desc = context_data.get('description', '') if context_data else ''
+        
+        # CREDIT means checkout on credit (increases debt), DEBIT means paid balance (decreases debt)
+        label = "Checkout on Credit" if tx_type == 'CREDIT' else "Ledger Payment"
+        
+        body = (
+            f"Namaste {customer_name}!\n\n"
+            f"A ledger entry has been logged at Shivam Kirana Store:\n"
+            f"• Transaction: {label}\n"
+            f"• Amount: ₹{amount:.2f}\n"
+            f"• Note: {desc}\n\n"
+            f"Your running outstanding balance is: ₹{balance:.2f}.\n\n"
+            f"Thank you for shopping with us!"
+        )
+    elif message_type == 'PAYMENT_REMINDER':
+        checkout_link = context_data.get('checkout_link') if context_data else None
+        if not checkout_link:
+            checkout_link = "http://localhost:5174/dashboard/khata"
+            
+        body = (
+            f"Namaste {customer_name}!\n\n"
+            f"This is a friendly payment reminder from Shivam Kirana Store.\n"
+            f"Your current outstanding balance is: ₹{balance:.2f}.\n\n"
+            f"You can settle your balance online using this secure checkout page:\n"
+            f"{checkout_link}\n\n"
+            f"Alternatively, you may pay cash at the store counter. Thank you!"
+        )
+    elif message_type == 'STATEMENT':
+        total_credit = float(profile.total_credit)
+        total_paid = float(profile.total_paid)
+        body = (
+            f"Namaste {customer_name}!\n\n"
+            f"Here is your ledger statement summary from Shivam Kirana Store:\n"
+            f"• Outstanding Balance: ₹{balance:.2f}\n"
+            f"• Lifetime Purchases: ₹{total_credit:.2f}\n"
+            f"• Lifetime Paid: ₹{total_paid:.2f}\n\n"
+            f"Please visit [http://localhost:5174/dashboard/khata] to view your full transaction history.\n\n"
+            f"Thank you!"
+        )
+    else:
+        body = context_data.get('body', '') if context_data else ''
+        if not body:
+            body = f"Namaste {customer_name}, your account balance is ₹{balance:.2f}."
+
+    # Create the log in PENDING status
+    log_entry = WhatsAppLog.objects.create(
+        khata_profile=profile,
+        message_type=message_type,
+        phone_number=phone_number,
+        message_body=body,
+        status='PENDING'
+    )
+
+    # Dispatch message
+    success, err = send_whatsapp_message(phone_number, body)
+
+    if success:
+        log_entry.status = 'SENT'
+    else:
+        log_entry.status = 'FAILED'
+        log_entry.error_message = err
+
+    log_entry.save()
+    return success

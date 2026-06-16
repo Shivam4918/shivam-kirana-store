@@ -281,3 +281,26 @@ class PaymentRequest(models.Model):
     def __str__(self):
         return f"Payment of ₹{self.amount} for {self.khata_profile.user.username} - {self.status}"
 
+
+class WhatsAppLog(models.Model):
+    MESSAGE_TYPES = (
+        ('PAYMENT_REMINDER', 'Payment Reminder'),
+        ('TRANSACTION_ALERT', 'Transaction Alert'),
+        ('STATEMENT', 'Account Statement'),
+    )
+    STATUS_CHOICES = (
+        ('SENT', 'Sent'),
+        ('FAILED', 'Failed'),
+        ('PENDING', 'Pending'),
+    )
+    khata_profile = models.ForeignKey(KhataProfile, on_delete=models.CASCADE, related_name='whatsapp_logs')
+    message_type = models.CharField(max_length=20, choices=MESSAGE_TYPES)
+    phone_number = models.CharField(max_length=20)
+    message_body = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    error_message = models.TextField(blank=True, null=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.message_type} to {self.phone_number} ({self.status})"
+

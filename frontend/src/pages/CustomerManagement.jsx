@@ -3,7 +3,7 @@ import api from '../services/api';
 import { 
   FiSearch, FiUser, FiPhone, FiMail, FiLock, FiUnlock, 
   FiPlus, FiCalendar, FiX, FiArrowUpRight, FiArrowDownLeft, FiBookOpen, FiAlertCircle, FiCheckCircle,
-  FiEdit2, FiSliders, FiSave
+  FiEdit2, FiSliders, FiSave, FiSend
 } from 'react-icons/fi';
 
 const CustomerManagement = () => {
@@ -37,6 +37,7 @@ const CustomerManagement = () => {
   const [showLimitEditor, setShowLimitEditor] = useState(false);
   const [limitInput, setLimitInput] = useState('');
   const [limitLoading, setLimitLoading] = useState(false);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -250,6 +251,24 @@ const CustomerManagement = () => {
     }
   };
 
+  const handleSendWhatsApp = async (type) => {
+    if (!selectedProfile) return;
+    setWhatsappLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await api.post(`/admin/customers/${selectedProfile.id}/send-whatsapp-reminder/`, {
+        message_type: type
+      });
+      setSuccessMsg(res.data.detail);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.detail || 'Failed to dispatch WhatsApp alert.');
+    } finally {
+      setWhatsappLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-y-auto bg-slate-50/50 text-[#111827] flex flex-col justify-start relative text-left">
       
@@ -430,6 +449,32 @@ const CustomerManagement = () => {
                   <span className="truncate font-semibold">{selectedProfile.email}</span>
                 </div>
               </div>
+
+              {/* WhatsApp Alerts */}
+              {selectedProfile.phone && (
+                <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 border border-slate-200/50 rounded-2xl">
+                  <div className="flex items-center space-x-2">
+                    <FiSend className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="text-[11px] font-bold text-secondary uppercase tracking-wider">WhatsApp Alerts</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleSendWhatsApp('PAYMENT_REMINDER')}
+                      disabled={whatsappLoading}
+                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 text-[10px] font-extrabold px-3 py-1.5 rounded-xl tracking-wider transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                    >
+                      {whatsappLoading ? 'Sending…' : 'Send Reminder'}
+                    </button>
+                    <button
+                      onClick={() => handleSendWhatsApp('STATEMENT')}
+                      disabled={whatsappLoading}
+                      className="bg-slate-100 hover:bg-slate-200 text-secondary border border-slate-200 text-[10px] font-extrabold px-3 py-1.5 rounded-xl tracking-wider transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+                    >
+                      {whatsappLoading ? 'Sending…' : 'Send Statement'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Balance metric tags */}
               <div className="grid grid-cols-3 gap-3">

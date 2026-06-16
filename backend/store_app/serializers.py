@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog
 
 User = get_user_model()
 
@@ -186,3 +186,12 @@ class PaymentRequestSerializer(serializers.ModelSerializer):
         model = PaymentRequest
         fields = '__all__'
         read_only_fields = ('id', 'razorpay_payment_link_id', 'razorpay_payment_link_url', 'status', 'razorpay_payment_id', 'razorpay_signature', 'created_at', 'updated_at', 'completed_at')
+
+
+class WhatsAppLogSerializer(serializers.ModelSerializer):
+    customer_username = serializers.CharField(source='khata_profile.user.username', read_only=True)
+    customer_name = serializers.CharField(source='khata_profile.user.first_name', read_only=True)
+
+    class Meta:
+        model = WhatsAppLog
+        fields = '__all__'

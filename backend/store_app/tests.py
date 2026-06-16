@@ -1,8 +1,8 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem, PaymentRequest
+from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog
 from decimal import Decimal
 
 User = get_user_model()
@@ -445,3 +445,103 @@ class StoreBackendTests(TestCase):
         self.assertEqual(payment_req.status, 'PENDING')
         profile.refresh_from_db()
         self.assertEqual(profile.current_balance, Decimal('0.00'))
+
+    def test_whatsapp_reminder_creation(self):
+        """Test that admin can successfully trigger WhatsApp reminder manually."""
+        self.customer.phone_number = '9876543210'
+        self.customer.save()
+
+        self.client.force_authenticate(user=self.admin)
+        profile = self.customer.khata_profile
+        
+        Transaction.objects.create(
+            khata_profile=profile,
+            transaction_type='CREDIT',
+            amount=Decimal('100.00'),
+            description='Test Reminder Groceries'
+        )
+        profile.refresh_from_db()
+
+        response = self.client.post(
+            f'/api/admin/customers/{profile.id}/send-whatsapp-reminder/',
+            {'message_type': 'PAYMENT_REMINDER'},
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("notification queued successfully", response.data['detail'])
+
+        log = WhatsAppLog.objects.filter(khata_profile=profile).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.message_type, 'PAYMENT_REMINDER')
+        self.assertEqual(log.phone_number, '9876543210')
+        self.assertEqual(log.status, 'SENT')
+        self.assertIn('friendly payment reminder', log.message_body)
+
+    def test_checkout_whatsapp_auto_trigger(self):
+        """Test that a customer checkout automatically dispatches a WhatsApp transaction alert."""
+        self.customer.phone_number = '9876543210'
+        self.customer.save()
+        
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        profile.save()
+
+        self.client.force_authenticate(user=self.customer)
+        payload = {
+            "items": [
+                {"product_id": self.product.id, "quantity": 2}
+            ]
+        }
+        
+        response = self.client.post('/api/checkout/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        log = WhatsAppLog.objects.filter(khata_profile=profile, message_type='TRANSACTION_ALERT').first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.phone_number, '9876543210')
+        self.assertEqual(log.status, 'SENT')
+        self.assertIn('Transaction: Checkout on Credit', log.message_body)
+        self.assertIn('Amount: ₹100.00', log.message_body)
+        self.assertIn('Checked out items', log.message_body)
+        self.assertIn('running outstanding balance is: ₹100.00', log.message_body)
+
+    def test_whatsapp_statement_request(self):
+        """Test that a customer can request ledger statement summary to WhatsApp."""
+        self.customer.phone_number = '9876543210'
+        self.customer.save()
+        
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        profile.save()
+
+        self.client.force_authenticate(user=self.customer)
+        
+        response = self.client.post('/api/khata/my-ledger/request-whatsapp-statement/', format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("requested and will be sent", response.data['detail'])
+
+        log = WhatsAppLog.objects.filter(khata_profile=profile, message_type='STATEMENT').first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.phone_number, '9876543210')
+        self.assertEqual(log.status, 'SENT')
+        self.assertIn('ledger statement summary', log.message_body)
+        self.assertIn('Outstanding Balance: ₹0.00', log.message_body)
+
+    @override_settings(TWILIO_ACCOUNT_SID='', TWILIO_AUTH_TOKEN='')
+    def test_whatsapp_sandbox_mock_execution(self):
+        """Verify that when Twilio credentials are blank, send_whatsapp_message executes mock sandbox logic."""
+        from store_app.utils.whatsapp_helpers import send_whatsapp_message
+        import io
+        from contextlib import redirect_stdout
+        
+        f = io.StringIO()
+        with redirect_stdout(f):
+            success, err = send_whatsapp_message("9876543210", "Hello from Sandbox Test!")
+            
+        self.assertTrue(success)
+        self.assertIsNone(err)
+        output = f.getvalue()
+        self.assertIn("[MOCK WHATSAPP SANDBOX]", output)
+        self.assertIn("To: +919876543210", output)
+        self.assertIn("Hello from Sandbox Test!", output)

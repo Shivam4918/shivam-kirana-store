@@ -6,7 +6,8 @@ from .views import (
     ExpenseViewSet, SupplierViewSet, PurchaseViewSet, NotificationViewSet,
     ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
     ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
-    PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet
+    PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
+    CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet
 )
 
 router = DefaultRouter()
@@ -18,11 +19,13 @@ router.register(r'purchases', PurchaseViewSet, basename='purchases')
 router.register(r'notifications', NotificationViewSet, basename='notifications')
 router.register(r'invoices', InvoiceViewSet, basename='invoices')
 router.register(r'admin/payments', AdminPaymentRequestViewSet, basename='admin-payments')
+router.register(r'admin/whatsapp-logs', WhatsAppLogViewSet, basename='admin-whatsapp-logs')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/profile/', UserProfileView.as_view(), name='profile'),
     path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
+    path('khata/my-ledger/request-whatsapp-statement/', CustomerRequestWhatsAppStatementView.as_view(), name='request-whatsapp-statement'),
     path('checkout/', CustomerCheckoutView.as_view(), name='checkout'),
     path('admin/analytics/', AdminDashboardAnalyticsView.as_view(), name='admin-analytics'),
     

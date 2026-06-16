@@ -6,7 +6,7 @@ import BarcodeScanner from '../components/BarcodeScanner';
 import { 
   FiSearch, FiLock, FiUnlock, FiCalendar, FiBookOpen, 
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
-  FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, FiStar, FiZap, FiRefreshCw
+  FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, FiStar, FiZap, FiRefreshCw, FiSend
 } from 'react-icons/fi';
 
 const CustomerDashboard = () => {
@@ -44,6 +44,20 @@ const CustomerDashboard = () => {
   const [settling, setSettling] = useState(false);
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [requestingStatement, setRequestingStatement] = useState(false);
+
+  const handleRequestWhatsAppStatement = async () => {
+    setRequestingStatement(true);
+    try {
+      const res = await api.post('/khata/my-ledger/request-whatsapp-statement/');
+      showToast(res.data.detail, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.detail || 'Failed to request statement on WhatsApp.', 'error');
+    } finally {
+      setRequestingStatement(false);
+    }
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -899,19 +913,30 @@ const CustomerDashboard = () => {
                       <span className="text-3xl font-poppins font-extrabold text-rose-600">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>
                       <p className="text-[10px] text-text-secondary mt-1 font-light leading-none">Unpaid outstanding store credit balance</p>
                     </div>
-                    {parseFloat(khataProfile.current_balance) > 0 && (
+                    <div className="flex flex-col space-y-2 mt-3.5">
+                      {parseFloat(khataProfile.current_balance) > 0 && (
+                        <button
+                          onClick={() => {
+                            setSettleAmount(parseFloat(khataProfile.current_balance).toFixed(2));
+                            setShowSettlementModal(true);
+                            setPaymentRequest(null);
+                          }}
+                          className="w-full bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-bold py-2.5 px-3 rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1"
+                        >
+                          <FiZap className="w-3.5 h-3.5 animate-pulse" />
+                          <span>Settle Balance Online</span>
+                        </button>
+                      )}
+                      
                       <button
-                        onClick={() => {
-                          setSettleAmount(parseFloat(khataProfile.current_balance).toFixed(2));
-                          setShowSettlementModal(true);
-                          setPaymentRequest(null);
-                        }}
-                        className="mt-3.5 w-full bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-bold py-2.5 px-3 rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1"
+                        onClick={handleRequestWhatsAppStatement}
+                        disabled={requestingStatement}
+                        className="w-full bg-slate-100/80 hover:bg-slate-200/80 text-secondary border border-slate-200/60 text-[10px] font-extrabold py-2 px-3 rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1 disabled:opacity-50"
                       >
-                        <FiZap className="w-3.5 h-3.5 animate-pulse" />
-                        <span>Settle Balance Online</span>
+                        <FiSend className="w-3 h-3 text-emerald-500" />
+                        <span>{requestingStatement ? 'Sending ledger statement…' : 'Send Ledger to WhatsApp'}</span>
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
 
