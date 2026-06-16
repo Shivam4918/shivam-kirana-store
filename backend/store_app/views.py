@@ -239,9 +239,9 @@ class CustomerCheckoutView(APIView):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Trigger WhatsApp notification asynchronously via Celery
-        from store_app.tasks import send_whatsapp_notification_task
-        send_whatsapp_notification_task.delay(
+        # Trigger WhatsApp notification (with fallback to synchronous if queue is down)
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
             profile.id,
             'TRANSACTION_ALERT',
             {
@@ -511,9 +511,9 @@ class AdminCustomerViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"detail": "An error occurred while creating the transaction."}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Trigger WhatsApp notification asynchronously via Celery
-        from store_app.tasks import send_whatsapp_notification_task
-        send_whatsapp_notification_task.delay(
+        # Trigger WhatsApp notification (with fallback to synchronous if queue is down)
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
             profile.id,
             'TRANSACTION_ALERT',
             {
@@ -540,9 +540,9 @@ class AdminCustomerViewSet(viewsets.ViewSet):
         if message_type not in ['PAYMENT_REMINDER', 'STATEMENT']:
             return Response({"detail": "Invalid message_type. Must be PAYMENT_REMINDER or STATEMENT."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Trigger Celery task
-        from store_app.tasks import send_whatsapp_notification_task
-        send_whatsapp_notification_task.delay(
+        # Trigger Celery task (with fallback to synchronous if queue is down)
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
             profile.id,
             message_type
         )
@@ -1566,11 +1566,11 @@ class PaymentWebhookView(APIView):
                             description=f"Settled via online payment (Link ID: {link_id})"
                         )
                         
-                        # Trigger WhatsApp notification asynchronously via Celery on commit
-                        from store_app.tasks import send_whatsapp_notification_task
+                        # Trigger WhatsApp notification asynchronously via Celery on commit (with fallback to synchronous if queue is down)
+                        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
                         profile_id = payment_req.khata_profile.id
                         amount_val = float(payment_req.amount)
-                        db_transaction.on_commit(lambda: send_whatsapp_notification_task.delay(
+                        db_transaction.on_commit(lambda: dispatch_whatsapp_task(
                             profile_id,
                             'TRANSACTION_ALERT',
                             {
@@ -1609,9 +1609,9 @@ class CustomerRequestWhatsAppStatementView(APIView):
         if not profile.is_accessible_by_customer:
             return Response({"detail": "Your Khata profile is locked."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Trigger background WhatsApp task
-        from store_app.tasks import send_whatsapp_notification_task
-        send_whatsapp_notification_task.delay(
+        # Trigger background WhatsApp task (with fallback to synchronous if queue is down)
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
             profile.id,
             'STATEMENT'
         )

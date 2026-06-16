@@ -157,7 +157,21 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 
 import sys
-if 'test' in sys.argv:
+import socket
+
+# Check if running tests or if Redis is offline
+redis_running = False
+if 'test' not in sys.argv:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.5)
+        s.connect(('127.0.0.1', 6379))
+        s.close()
+        redis_running = True
+    except Exception:
+        pass
+
+if 'test' in sys.argv or not redis_running:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
 

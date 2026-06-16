@@ -100,3 +100,29 @@ def send_whatsapp_message(to_phone, body):
         error_text = f"HTTP request to Twilio failed: {str(e)}"
         logger.exception("Error calling Twilio API")
         return False, error_text
+
+
+def dispatch_whatsapp_task(profile_id, message_type, context_data=None):
+    """
+    Attempts to dispatch the WhatsApp notification Celery task asynchronously.
+    If the Celery broker (Redis) is unavailable or throws a connection error,
+    it falls back to running the task synchronously to prevent 500 crashes and
+    ensure alerts still execute (in mock sandbox mode or otherwise) locally.
+    """
+    from store_app.tasks import send_whatsapp_notification_task
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        send_whatsapp_notification_task.delay(profile_id, message_type, context_data)
+        logger.info(f"Asynchronously queued WhatsApp task ({message_type}) for profile {profile_id}.")
+    except Exception as e:
+        logger.warning(
+            f"Celery queue connection failed ({str(e)}). "
+            f"Falling back to synchronous dispatch for WhatsApp task ({message_type}) for profile {profile_id}."
+        )
+        try:
+            send_whatsapp_notification_task(profile_id, message_type, context_data)
+        except Exception as sync_err:
+            logger.error(f"Synchronous fallback dispatch failed: {str(sync_err)}")
+
