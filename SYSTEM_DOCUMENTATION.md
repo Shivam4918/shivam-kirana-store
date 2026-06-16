@@ -53,12 +53,14 @@ The Admin panel provides a central dashboard for running the wholesale and retai
 *   **Stock Ledger Adjustments**: Real-time management of stock counts.
 *   **Pricing Control**: Set retail selling price alongside wholesale cost price (cost price is used to compute accurate net margins).
 *   **Low Stock Alerts**: Automatically highlights products falling below safety thresholds.
+*   **Camera Barcode Scanner**: Search and lookup products instantly via camera barcodes, or scan codes directly to register products in the inventory database.
 
 ### 3. Customer Directory & Khata Ledger
 *   **Shopper Accounts CRM**: Register new customers with name, phone, and optional email.
 *   **Manual Ledger Adjustment**: Directly log cash payments (debits/settlements) or manual credits.
 *   **Unread Notification Badges**: Identifies high-risk customer balances.
 *   **Account Locking**: Instantly lock/suspend a customer's credit privileges. Suspended accounts cannot place credit orders, and are greeted with a lock-screen warning.
+*   **Customizable Credit Limits**: Set per-customer maximum credit limits with dynamic utilization percentage audits and color-coded status progress indicators.
 
 ### 4. Expense Tracking Module
 *   **Operating Expense Logs**: Record operational and utility overheads.
@@ -88,7 +90,8 @@ Provides instant double-entry summaries:
     *   *Inventory Valuation*: Cost value of current warehouse stock (Units × Cost Price).
     *   *Accounts Receivable*: Unpaid credit outstanding from customers.
     *   *Accounts Payable*: Debts owed to wholesale suppliers.
-    *   *Owner's Equity*: Total Net Worth of the business.
+    *   **Owner's Equity**: Total Net Worth of the business.
+*   **GST Invoicing & Audits**: Sequential tax invoice generation showing HSN codes and CGST/SGST tax slabs breakdown, alongside monthly Excel report exports.
 *   **Cash Flow statement**: Tracks cash inflows (payments collected) vs outflows (supplier settlements + operating costs).
 
 ### 7. Executive Report Export Engine
@@ -108,6 +111,7 @@ The Customer portal provides a self-service center designed like a modern grocer
 *   **Dynamic Searching & Sorting**: Sort products alphabetically, or by price (low-to-high, high-to-low) with instant search filtering.
 *   **Category Tags**: Fast tab-based filtering (e.g. Staples, Dairy, Snacks).
 *   **Deals & Delivery Promotions**: Dynamic discount calculations and prompts for free delivery thresholds (e.g. Free above ₹200).
+*   **Scan-to-Add Cart**: Add items directly to checkout cart by scanning product barcodes using the device's camera.
 
 ### 2. Credit Shopping Cart & Checkout
 *   **Smart Quantity Limits**: Restricts additions to cart based on real-time stock levels.
@@ -121,6 +125,7 @@ The Customer portal provides a self-service center designed like a modern grocer
     *   Detailed item counts (e.g. "Checked out Milk x 4").
     *   Charged amount (+ for debt, - for payments).
     *   Running balance snapshot calculated at that specific timestamp.
+*   **UPI Settlement Integration**: Customers can settle outstanding balances online via dynamic Razorpay UPI payment links, featuring QR code mocks, checkout flow redirectors, polling status checks, and automated webhook database clearing.
 
 ### 4. Account Lock Warning Block
 *   If the admin suspends a customer's Khata, the storefront is disabled.
