@@ -143,6 +143,11 @@ SIMPLE_JWT = {
 CORS_ALLOW_ALL_ORIGINS = True  # In production, restrict to Vercel domains
 CORS_ALLOW_CREDENTIALS = True
 
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-razorpay-signature',
+]
+
 # Celery & Redis Configurations
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
