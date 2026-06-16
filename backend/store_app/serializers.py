@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch
 
 User = get_user_model()
 
@@ -195,3 +195,33 @@ class WhatsAppLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsAppLog
         fields = '__all__'
+
+
+class ExpiryBatchSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_category = serializers.CharField(source='product.category', read_only=True)
+    days_until_expiry = serializers.SerializerMethodField()
+    expiry_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExpiryBatch
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def get_days_until_expiry(self, obj):
+        from django.utils import timezone
+        today = timezone.now().date()
+        delta = (obj.expiry_date - today).days
+        return delta
+
+    def get_expiry_status(self, obj):
+        from django.utils import timezone
+        today = timezone.now().date()
+        delta = (obj.expiry_date - today).days
+        if delta < 0:
+            return 'EXPIRED'
+        elif delta <= 7:
+            return 'EXPIRING_SOON'
+        elif delta <= 30:
+            return 'EXPIRING_MONTH'
+        return 'OK'

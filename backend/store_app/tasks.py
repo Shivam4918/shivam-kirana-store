@@ -282,3 +282,127 @@ def send_whatsapp_notification_task(khata_profile_id, message_type, context_data
 
     log_entry.save()
     return success
+
+
+@shared_task
+def scan_and_alert_expiring_products_task():
+    """
+    Periodic Celery task that scans all products and expiry batches for items
+    that are expired or expiring within the next 7 days.
+    Creates EXPIRY_ALERT notifications for all admin users.
+    Can also be triggered manually via the admin API.
+    Returns a summary dict with counts.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from store_app.models import Product, ExpiryBatch, Notification, CustomUser
+
+    today = timezone.now().date()
+    alert_threshold = today + timedelta(days=7)
+
+    # --- Scan product-level expiry dates ---
+    expired_products = Product.objects.filter(
+        expiry_date__isnull=False,
+        expiry_date__lt=today
+    ).select_related()
+
+    expiring_soon_products = Product.objects.filter(
+        expiry_date__isnull=False,
+        expiry_date__gte=today,
+        expiry_date__lte=alert_threshold
+    ).select_related()
+
+    # --- Scan batch-level expiry dates ---
+    expired_batches = ExpiryBatch.objects.filter(
+        expiry_date__lt=today
+    ).select_related('product')
+
+    expiring_soon_batches = ExpiryBatch.objects.filter(
+        expiry_date__gte=today,
+        expiry_date__lte=alert_threshold
+    ).select_related('product')
+
+    # --- Build admin notification messages ---
+    admin_users = list(CustomUser.objects.filter(role='ADMIN'))
+    notifications_created = 0
+
+    # Product-level expired items
+    for product in expired_products:
+        days_ago = (today - product.expiry_date).days
+        message = (
+            f"⚠️ EXPIRED: {product.name} expired {days_ago} day(s) ago "
+            f"(Exp: {product.expiry_date.strftime('%d %b %Y')}). "
+            f"Stock: {product.stock_quantity} units. Please remove from shelves."
+        )
+        for admin in admin_users:
+            Notification.objects.get_or_create(
+                user=admin,
+                notification_type='EXPIRY_ALERT',
+                message=message,
+                defaults={'is_read': False}
+            )
+        notifications_created += len(admin_users)
+
+    # Product-level expiring soon
+    for product in expiring_soon_products:
+        days_left = (product.expiry_date - today).days
+        message = (
+            f"🟡 EXPIRING SOON: {product.name} expires in {days_left} day(s) "
+            f"(Exp: {product.expiry_date.strftime('%d %b %Y')}). "
+            f"Stock: {product.stock_quantity} units. Consider discounting or returning to supplier."
+        )
+        for admin in admin_users:
+            Notification.objects.get_or_create(
+                user=admin,
+                notification_type='EXPIRY_ALERT',
+                message=message,
+                defaults={'is_read': False}
+            )
+        notifications_created += len(admin_users)
+
+    # Batch-level expired items
+    for batch in expired_batches:
+        days_ago = (today - batch.expiry_date).days
+        batch_label = f"Batch {batch.batch_number}" if batch.batch_number else "Unnamed Batch"
+        message = (
+            f"⚠️ BATCH EXPIRED: {batch.product.name} — {batch_label} "
+            f"expired {days_ago} day(s) ago (Exp: {batch.expiry_date.strftime('%d %b %Y')}). "
+            f"Qty: {batch.quantity} units. Immediate action required."
+        )
+        for admin in admin_users:
+            Notification.objects.get_or_create(
+                user=admin,
+                notification_type='EXPIRY_ALERT',
+                message=message,
+                defaults={'is_read': False}
+            )
+        notifications_created += len(admin_users)
+
+    # Batch-level expiring soon
+    for batch in expiring_soon_batches:
+        days_left = (batch.expiry_date - today).days
+        batch_label = f"Batch {batch.batch_number}" if batch.batch_number else "Unnamed Batch"
+        message = (
+            f"🟡 BATCH EXPIRING SOON: {batch.product.name} — {batch_label} "
+            f"expires in {days_left} day(s) (Exp: {batch.expiry_date.strftime('%d %b %Y')}). "
+            f"Qty: {batch.quantity} units."
+        )
+        for admin in admin_users:
+            Notification.objects.get_or_create(
+                user=admin,
+                notification_type='EXPIRY_ALERT',
+                message=message,
+                defaults={'is_read': False}
+            )
+        notifications_created += len(admin_users)
+
+    summary = {
+        'expired_products': expired_products.count(),
+        'expiring_soon_products': expiring_soon_products.count(),
+        'expired_batches': expired_batches.count(),
+        'expiring_soon_batches': expiring_soon_batches.count(),
+        'notifications_created': notifications_created,
+        'scan_date': str(today),
+    }
+    logger.info(f"[EXPIRY SCAN] Completed: {summary}")
+    return summary

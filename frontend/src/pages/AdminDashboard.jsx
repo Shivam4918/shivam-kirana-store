@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { 
   FiTrendingUp, FiDollarSign, FiUsers, FiBox, 
-  FiCalendar, FiClock, FiRefreshCw
+  FiCalendar, FiClock, FiRefreshCw, FiAlertTriangle
 } from 'react-icons/fi';
 
 const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expiryData, setExpiryData] = useState(null);
+  const navigate = useNavigate();
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -21,8 +24,18 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchExpiryData = async () => {
+    try {
+      const res = await api.get('/admin/expiry-dashboard/');
+      setExpiryData(res.data);
+    } catch (err) {
+      console.error('Error fetching expiry data:', err);
+    }
+  };
+
   useEffect(() => {
     fetchAnalytics();
+    fetchExpiryData();
   }, []);
 
   if (loading) {
@@ -127,6 +140,39 @@ const AdminDashboard = () => {
         </div>
 
       </div>
+
+      {/* Expiry Alert Banner */}
+      {expiryData && ((expiryData.summary?.products?.expired ?? 0) + (expiryData.summary?.products?.expiring_soon ?? 0) + (expiryData.summary?.batches?.expired ?? 0) + (expiryData.summary?.batches?.expiring_soon ?? 0)) > 0 && (
+        <button
+          onClick={() => navigate('/admin/expiry')}
+          className="w-full bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-all cursor-pointer text-left group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-xl">
+              <FiAlertTriangle className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-bold text-amber-800 text-sm">Product Expiry Alert</p>
+              <p className="text-amber-600 text-xs mt-0.5">
+                {expiryData.summary?.products?.expired > 0 && (
+                  <span className="font-bold text-rose-600">{expiryData.summary.products.expired} expired product(s)</span>
+                )}
+                {expiryData.summary?.products?.expired > 0 && expiryData.summary?.products?.expiring_soon > 0 && ' · '}
+                {expiryData.summary?.products?.expiring_soon > 0 && (
+                  <span className="font-bold text-amber-700">{expiryData.summary.products.expiring_soon} expiring soon</span>
+                )}
+                {(expiryData.summary?.batches?.expired ?? 0) + (expiryData.summary?.batches?.expiring_soon ?? 0) > 0 && (
+                  <span className="text-amber-600"> · {(expiryData.summary.batches.expired ?? 0) + (expiryData.summary.batches.expiring_soon ?? 0)} batch issue(s)</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <span className="text-amber-600 text-xs font-bold group-hover:underline flex items-center gap-1">
+            <FiClock className="w-3.5 h-3.5" />
+            View Expiry Manager →
+          </span>
+        </button>
+      )}
 
       {/* Graphical Dashboard Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

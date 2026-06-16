@@ -9,11 +9,12 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
     ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
-    InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer, WhatsAppLogSerializer
+    InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer, WhatsAppLogSerializer,
+    ExpiryBatchSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
 from django.http import HttpResponse
@@ -1636,3 +1637,146 @@ class WhatsAppLogViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
+# ──────────────────────────────────────────────────────────────
+# GAP 6: PRODUCT EXPIRY TRACKING
+# ──────────────────────────────────────────────────────────────
+
+class ExpiryBatchViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for per-lot/batch expiry records.
+    Admin only. Supports filter by product_id, expiry_status.
+    """
+    queryset = ExpiryBatch.objects.all().select_related('product').order_by('expiry_date')
+    serializer_class = ExpiryBatchSerializer
+    permission_classes = [IsAdminUserRole]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        product_id = self.request.query_params.get('product_id')
+        status_filter = self.request.query_params.get('status')  # EXPIRED / EXPIRING_SOON / OK
+        today = timezone.now().date()
+        threshold = today + timedelta(days=7)
+
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+
+        if status_filter == 'EXPIRED':
+            qs = qs.filter(expiry_date__lt=today)
+        elif status_filter == 'EXPIRING_SOON':
+            qs = qs.filter(expiry_date__gte=today, expiry_date__lte=threshold)
+        elif status_filter == 'OK':
+            qs = qs.filter(expiry_date__gt=threshold)
+
+        return qs
+
+
+class ExpiryDashboardView(APIView):
+    """
+    Admin-only dashboard for expiry tracking.
+    Returns:
+      - Summary counts (expired, expiring_soon, expiring_month, ok, no_date)
+      - Expired products list
+      - Expiring soon products list
+      - All expiry batches with status labels
+    """
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        today = timezone.now().date()
+        threshold_week = today + timedelta(days=7)
+        threshold_month = today + timedelta(days=30)
+
+        # — Product-level expiry summary —
+        all_products = Product.objects.all()
+        no_expiry = all_products.filter(expiry_date__isnull=True).count()
+        expired_products = all_products.filter(expiry_date__lt=today)
+        expiring_week = all_products.filter(expiry_date__gte=today, expiry_date__lte=threshold_week)
+        expiring_month = all_products.filter(expiry_date__gt=threshold_week, expiry_date__lte=threshold_month)
+        ok_products = all_products.filter(expiry_date__gt=threshold_month)
+
+        # — Batch-level expiry summary —
+        all_batches = ExpiryBatch.objects.all()
+        expired_batches = all_batches.filter(expiry_date__lt=today)
+        expiring_soon_batches = all_batches.filter(expiry_date__gte=today, expiry_date__lte=threshold_week)
+        expiring_month_batches = all_batches.filter(expiry_date__gt=threshold_week, expiry_date__lte=threshold_month)
+        ok_batches = all_batches.filter(expiry_date__gt=threshold_month)
+
+        # — Serialize product detail lists —
+        def product_to_dict(p):
+            days = (p.expiry_date - today).days if p.expiry_date else None
+            if days is None:
+                expiry_status = 'NO_DATE'
+            elif days < 0:
+                expiry_status = 'EXPIRED'
+            elif days <= 7:
+                expiry_status = 'EXPIRING_SOON'
+            elif days <= 30:
+                expiry_status = 'EXPIRING_MONTH'
+            else:
+                expiry_status = 'OK'
+            return {
+                'id': p.id,
+                'name': p.name,
+                'category': p.category,
+                'stock_quantity': p.stock_quantity,
+                'expiry_date': str(p.expiry_date) if p.expiry_date else None,
+                'days_until_expiry': days,
+                'expiry_status': expiry_status,
+            }
+
+        expired_products_data = [product_to_dict(p) for p in expired_products]
+        expiring_soon_data = [product_to_dict(p) for p in expiring_week]
+
+        # — Serialize all batches —
+        all_batches_data = ExpiryBatchSerializer(
+            all_batches.select_related('product').order_by('expiry_date'),
+            many=True
+        ).data
+
+        return Response({
+            'summary': {
+                'products': {
+                    'expired': expired_products.count(),
+                    'expiring_soon': expiring_week.count(),
+                    'expiring_month': expiring_month.count(),
+                    'ok': ok_products.count(),
+                    'no_date': no_expiry,
+                },
+                'batches': {
+                    'expired': expired_batches.count(),
+                    'expiring_soon': expiring_soon_batches.count(),
+                    'expiring_month': expiring_month_batches.count(),
+                    'ok': ok_batches.count(),
+                },
+            },
+            'expired_products': expired_products_data,
+            'expiring_soon_products': expiring_soon_data,
+            'all_batches': all_batches_data,
+            'scan_date': str(today),
+        })
+
+
+class TriggerExpiryScanView(APIView):
+    """
+    Admin-only endpoint to manually trigger the expiry scan Celery task.
+    POST /api/admin/expiry-scan/
+    """
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request):
+        from store_app.tasks import scan_and_alert_expiring_products_task
+        # Run eagerly (synchronous) in environments without Celery worker;
+        # when Celery is running, .delay() will enqueue asynchronously.
+        try:
+            result = scan_and_alert_expiring_products_task.delay()
+            return Response({
+                'message': 'Expiry scan task queued successfully.',
+                'task_id': str(result.id),
+            }, status=status.HTTP_202_ACCEPTED)
+        except Exception:
+            # Fallback: run synchronously if Celery broker not available
+            summary = scan_and_alert_expiring_products_task()
+            return Response({
+                'message': 'Expiry scan completed synchronously (Celery not available).',
+                'summary': summary,
+            }, status=status.HTTP_200_OK)

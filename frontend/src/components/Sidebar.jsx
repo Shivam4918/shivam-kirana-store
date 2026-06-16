@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { FiTrendingUp, FiDatabase, FiUsers, FiShoppingBag, FiBookOpen, FiFileText, FiTruck, FiDollarSign } from 'react-icons/fi';
+import { FiTrendingUp, FiDatabase, FiUsers, FiShoppingBag, FiBookOpen, FiFileText, FiTruck, FiDollarSign, FiClock } from 'react-icons/fi';
 
 const Sidebar = () => {
   const { user } = useContext(AuthContext);
@@ -16,6 +16,7 @@ const Sidebar = () => {
     { to: '/admin/suppliers', label: 'Supplier & Purchase', icon: <FiTruck className="w-5 h-5" /> },
     { to: '/admin/finance', label: 'P&L & Cash Flow', icon: <FiTrendingUp className="w-5 h-5" /> },
     { to: '/admin/reports', label: 'Financial Reports', icon: <FiFileText className="w-5 h-5" /> },
+    { to: '/admin/expiry', label: 'Expiry Manager', icon: <FiClock className="w-5 h-5" /> },
   ];
 
 

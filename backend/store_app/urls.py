@@ -7,7 +7,8 @@ from .views import (
     ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
     ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
     PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
-    CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet
+    CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
+    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView
 )
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ router.register(r'notifications', NotificationViewSet, basename='notifications')
 router.register(r'invoices', InvoiceViewSet, basename='invoices')
 router.register(r'admin/payments', AdminPaymentRequestViewSet, basename='admin-payments')
 router.register(r'admin/whatsapp-logs', WhatsAppLogViewSet, basename='admin-whatsapp-logs')
+router.register(r'admin/expiry-batches', ExpiryBatchViewSet, basename='admin-expiry-batches')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -44,7 +46,11 @@ urlpatterns = [
     # PDF & Excel Exports
     path('exports/pdf/', ExportPDFView.as_view(), name='export-pdf'),
     path('exports/excel/', ExportExcelView.as_view(), name='export-excel'),
-    
+
+    # Expiry Tracking (Gap 6)
+    path('admin/expiry-dashboard/', ExpiryDashboardView.as_view(), name='expiry-dashboard'),
+    path('admin/expiry-scan/', TriggerExpiryScanView.as_view(), name='expiry-scan'),
+
     path('', include(router.urls)),
 ]
 

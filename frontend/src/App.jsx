@@ -15,6 +15,7 @@ import ExpenseManagement from './pages/ExpenseManagement';
 import SupplierManagement from './pages/SupplierManagement';
 import FinancialReports from './pages/FinancialReports';
 import AdvancedReports from './pages/AdvancedReports';
+import ExpiryManager from './pages/ExpiryManager';
 
 const AppLayout = () => {
   return (
@@ -56,6 +57,7 @@ function App() {
             <Route path="suppliers" element={<SupplierManagement />} />
             <Route path="finance" element={<FinancialReports />} />
             <Route path="reports" element={<AdvancedReports />} />
+            <Route path="expiry" element={<ExpiryManager />} />
           </Route>
 
 

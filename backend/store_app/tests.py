@@ -2,7 +2,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog
+from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, Notification
 from decimal import Decimal
 
 User = get_user_model()
@@ -545,3 +545,113 @@ class StoreBackendTests(TestCase):
         self.assertIn("[MOCK WHATSAPP SANDBOX]", output)
         self.assertIn("To: +919876543210", output)
         self.assertIn("Hello from Sandbox Test!", output)
+
+    # ────────────────────────────────────────────────────────
+    # GAP 6: PRODUCT EXPIRY TRACKING TESTS
+    # ────────────────────────────────────────────────────────
+
+    def test_expiry_batch_creation(self):
+        """Verify that an ExpiryBatch record can be created for a product and stored correctly."""
+        from datetime import date, timedelta
+        expiry_date = date.today() + timedelta(days=30)
+        batch = ExpiryBatch.objects.create(
+            product=self.product,
+            batch_number='LOT-001',
+            manufacture_date=date.today() - timedelta(days=60),
+            expiry_date=expiry_date,
+            quantity=50,
+            notes='Test batch for milk'
+        )
+        self.assertEqual(batch.product, self.product)
+        self.assertEqual(batch.batch_number, 'LOT-001')
+        self.assertEqual(batch.quantity, 50)
+        self.assertEqual(batch.expiry_date, expiry_date)
+        # Verify it appears in the product's related manager
+        self.assertEqual(self.product.expiry_batches.count(), 1)
+
+    def test_expiry_dashboard_expired_items(self):
+        """Verify that expired products appear correctly in the expiry dashboard API."""
+        from datetime import date, timedelta
+        # Set a past expiry date on the product
+        self.product.expiry_date = date.today() - timedelta(days=5)
+        self.product.save()
+        
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get('/api/admin/expiry-dashboard/')
+        
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        data = res.json()
+        self.assertIn('summary', data)
+        self.assertGreaterEqual(data['summary']['products']['expired'], 1)
+        # Check that the expired product appears in the detail list
+        expired_ids = [p['id'] for p in data['expired_products']]
+        self.assertIn(self.product.id, expired_ids)
+        # Verify the expiry_status label is EXPIRED
+        expired_entry = next(p for p in data['expired_products'] if p['id'] == self.product.id)
+        self.assertEqual(expired_entry['expiry_status'], 'EXPIRED')
+        # Reset
+        self.product.expiry_date = None
+        self.product.save()
+
+    def test_expiry_dashboard_expiring_soon(self):
+        """Verify that products expiring within 7 days appear in the expiring soon list."""
+        from datetime import date, timedelta
+        self.product.expiry_date = date.today() + timedelta(days=3)
+        self.product.save()
+        
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get('/api/admin/expiry-dashboard/')
+        
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        data = res.json()
+        self.assertGreaterEqual(data['summary']['products']['expiring_soon'], 1)
+        expiring_ids = [p['id'] for p in data['expiring_soon_products']]
+        self.assertIn(self.product.id, expiring_ids)
+        expiring_entry = next(p for p in data['expiring_soon_products'] if p['id'] == self.product.id)
+        self.assertEqual(expiring_entry['expiry_status'], 'EXPIRING_SOON')
+        self.assertLessEqual(expiring_entry['days_until_expiry'], 7)
+        # Reset
+        self.product.expiry_date = None
+        self.product.save()
+
+    def test_expiry_scan_task_creates_notifications(self):
+        """Verify that the expiry scan task creates EXPIRY_ALERT notifications for admin users."""
+        from datetime import date, timedelta
+        from store_app.tasks import scan_and_alert_expiring_products_task
+        
+        # Create an expired product
+        expired_product = Product.objects.create(
+            name='Expired Milk',
+            price=Decimal('25.00'),
+            cost_price=Decimal('20.00'),
+            stock_quantity=10,
+            expiry_date=date.today() - timedelta(days=2)
+        )
+        # Create a soon-expiring batch
+        ExpiryBatch.objects.create(
+            product=self.product,
+            batch_number='LOT-SOON',
+            expiry_date=date.today() + timedelta(days=4),
+            quantity=20
+        )
+        
+        initial_notification_count = Notification.objects.filter(
+            notification_type='EXPIRY_ALERT'
+        ).count()
+        
+        # Run the task synchronously in tests
+        summary = scan_and_alert_expiring_products_task()
+        
+        self.assertIn('expired_products', summary)
+        self.assertIn('expiring_soon_batches', summary)
+        self.assertGreaterEqual(summary['expired_products'], 1)
+        self.assertGreaterEqual(summary['expiring_soon_batches'], 1)
+        
+        # Verify notifications were created
+        final_notification_count = Notification.objects.filter(
+            notification_type='EXPIRY_ALERT'
+        ).count()
+        self.assertGreater(final_notification_count, initial_notification_count)
+        
+        # Cleanup
+        expired_product.delete()

@@ -28,6 +28,7 @@ class Product(models.Model):
     gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     hsn_code = models.CharField(max_length=15, blank=True, null=True)
     barcode = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    expiry_date = models.DateField(blank=True, null=True, help_text="Product-level expiry date (optional). Use ExpiryBatch for per-lot tracking.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -222,6 +223,7 @@ class Notification(models.Model):
         ('SUPPLIER_DUE', 'Supplier Payment Due'),
         ('CLOSING_REMINDER', 'Daily Closing Reminder'),
         ('REPORT_READY', 'Monthly Report Ready'),
+        ('EXPIRY_ALERT', 'Product Expiry Alert'),
     )
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     message = models.TextField()
@@ -303,4 +305,26 @@ class WhatsAppLog(models.Model):
 
     def __str__(self):
         return f"{self.message_type} to {self.phone_number} ({self.status})"
+
+
+class ExpiryBatch(models.Model):
+    """
+    Tracks per-lot/batch expiry for products. A product can have multiple batches
+    with different manufacture and expiry dates (e.g. two deliveries of the same milk).
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='expiry_batches')
+    batch_number = models.CharField(max_length=100, blank=True, null=True, help_text="Batch/Lot number printed on packaging")
+    manufacture_date = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(help_text="Expiry date for this batch")
+    quantity = models.IntegerField(default=0, help_text="Number of units in this batch")
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['expiry_date']
+
+    def __str__(self):
+        batch_label = f"Batch {self.batch_number}" if self.batch_number else "Unnamed Batch"
+        return f"{batch_label} — {self.product.name} (Exp: {self.expiry_date})"
 

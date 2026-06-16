@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import BarcodeScanner from '../components/BarcodeScanner';
-import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiBox, FiX, FiCheckCircle, FiAlertCircle, FiZap, FiCamera } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiBox, FiX, FiCheckCircle, FiAlertCircle, FiZap, FiCamera, FiClock } from 'react-icons/fi';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -23,6 +23,7 @@ const ProductManagement = () => {
   const [gstRate, setGstRate] = useState('0.00');
   const [hsnCode, setHsnCode] = useState('');
   const [barcode, setBarcode] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
 
   // Barcode scanner states
   const [showScanner, setShowScanner] = useState(false);
@@ -60,6 +61,7 @@ const ProductManagement = () => {
     setGstRate('0.00');
     setHsnCode('');
     setBarcode('');
+    setExpiryDate('');
     setErrorMsg('');
     setShowModal(true);
   };
@@ -76,6 +78,7 @@ const ProductManagement = () => {
     setGstRate(p.gst_rate !== undefined ? p.gst_rate.toString() : '0.00');
     setHsnCode(p.hsn_code || '');
     setBarcode(p.barcode || '');
+    setExpiryDate(p.expiry_date || '');
     setErrorMsg('');
     setShowModal(true);
   };
@@ -107,6 +110,7 @@ const ProductManagement = () => {
       gst_rate: parseFloat(gstRate),
       hsn_code: hsnCode,
       barcode: barcode.trim() || null,
+      expiry_date: expiryDate || null,
       image: image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80'
     };
 
@@ -256,6 +260,7 @@ const ProductManagement = () => {
                   <th className="py-4 px-6">Item Details</th>
                   <th className="py-4 px-6">Category</th>
                   <th className="py-4 px-6">Barcode</th>
+                  <th className="py-4 px-6">Expiry</th>
                   <th className="py-4 px-6 text-right">Price per unit</th>
                   <th className="py-4 px-6 text-right">Stock Level</th>
                   <th className="py-4 px-6 text-center">Actions</th>
@@ -300,6 +305,33 @@ const ProductManagement = () => {
                       ) : (
                         <span className="text-[10px] text-slate-400 italic">No barcode</span>
                       )}
+                    </td>
+                    <td className="py-4 px-6">
+                      {(() => {
+                        if (!p.expiry_date) return (
+                          <span className="text-[10px] text-slate-400 italic flex items-center gap-1"><FiClock className="w-3 h-3" />No date</span>
+                        );
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const exp = new Date(p.expiry_date);
+                        const daysLeft = Math.round((exp - today) / 86400000);
+                        if (daysLeft < 0) return (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-1 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>EXPIRED
+                          </span>
+                        );
+                        if (daysLeft <= 7) return (
+                          <div>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>Expires in {daysLeft}d
+                            </span>
+                          </div>
+                        );
+                        return (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>{p.expiry_date}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-4 px-6 font-extrabold text-secondary text-right">₹{parseFloat(p.price).toFixed(2)}</td>
                     <td className="py-4 px-6 text-right">
@@ -485,6 +517,26 @@ const ProductManagement = () => {
                   className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all resize-none"
                   placeholder="Describe grocery unit, features, or weight details..."
                 ></textarea>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+                  <span className="flex items-center gap-1.5"><FiClock className="w-3.5 h-3.5" />Expiry Date <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span></span>
+                </label>
+                <input
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                />
+                {expiryDate && (() => {
+                  const today = new Date(); today.setHours(0,0,0,0);
+                  const exp = new Date(expiryDate);
+                  const daysLeft = Math.round((exp - today) / 86400000);
+                  if (daysLeft < 0) return <p className="mt-1 text-[11px] text-rose-500 font-semibold">⚠️ This date is already in the past (expired {Math.abs(daysLeft)} day(s) ago)</p>;
+                  if (daysLeft <= 7) return <p className="mt-1 text-[11px] text-amber-500 font-semibold">⚠️ Expires in {daysLeft} day(s) — consider discounting</p>;
+                  return <p className="mt-1 text-[11px] text-emerald-500 font-semibold">✓ Expires in {daysLeft} day(s)</p>;
+                })()}
               </div>
 
               {errorMsg && (
