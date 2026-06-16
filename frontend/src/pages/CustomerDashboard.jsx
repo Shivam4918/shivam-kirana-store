@@ -6,7 +6,7 @@ import BarcodeScanner from '../components/BarcodeScanner';
 import { 
   FiSearch, FiLock, FiUnlock, FiCalendar, FiBookOpen, 
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
-  FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, FiStar, FiZap
+  FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, FiStar, FiZap, FiRefreshCw
 } from 'react-icons/fi';
 
 const CustomerDashboard = () => {
@@ -37,6 +37,13 @@ const CustomerDashboard = () => {
 
   // Barcode scanner state
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+
+  // Payment states
+  const [showSettlementModal, setShowSettlementModal] = useState(false);
+  const [settleAmount, setSettleAmount] = useState('');
+  const [settling, setSettling] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -130,6 +137,94 @@ const CustomerDashboard = () => {
       } else {
         showToast('Barcode lookup failed. Please try again.', 'error');
       }
+    }
+  };
+
+  // Poll or auto-complete mock payment link callback
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const mockLinkId = searchParams.get('mock_payment_link_id');
+    const amount = searchParams.get('amount');
+    
+    if (mockLinkId && amount) {
+      const triggerMockPayment = async () => {
+        try {
+          // Send simulated webhook payload to our backend (using debug bypass signature)
+          await api.post('/payments/webhook/', {
+            event: 'payment_link.paid',
+            payload: {
+              payment_link: {
+                entity: {
+                  id: mockLinkId,
+                  payments: [{ payment_id: 'pay_mock_' + Math.floor(Math.random() * 1000000) }]
+                }
+              }
+            }
+          }, {
+            headers: {
+              'X-Razorpay-Signature': 'test_bypass_sig'
+            }
+          });
+          
+          showToast(`Mock payment of ₹${amount} succeeded! 🎯`, 'success');
+          // Clear query params
+          window.history.replaceState({}, document.title, window.location.pathname);
+          fetchKhataLedger();
+        } catch (err) {
+          console.error('Mock payment webhook execution failed:', err);
+          showToast('Failed to complete mock payment.', 'error');
+        }
+      };
+      
+      triggerMockPayment();
+    }
+  }, [location.search]);
+
+  const handleCreatePaymentLink = async (e) => {
+    e.preventDefault();
+    if (!settleAmount || parseFloat(settleAmount) <= 0) {
+      showToast('Please enter a valid positive amount.', 'error');
+      return;
+    }
+    if (parseFloat(settleAmount) > khataProfile.current_balance) {
+      showToast('Amount cannot exceed your total debt liability.', 'error');
+      return;
+    }
+    setSettling(true);
+    try {
+      const res = await api.post('/payments/create-link/', { amount: parseFloat(settleAmount) });
+      setPaymentRequest(res.data);
+      showToast('Payment link generated! ⚡', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.detail || 'Failed to create payment link.', 'error');
+    } finally {
+      setSettling(false);
+    }
+  };
+
+  const handleCheckPaymentStatus = async () => {
+    if (!paymentRequest) return;
+    setCheckingStatus(true);
+    try {
+      const res = await api.get(`/payments/${paymentRequest.id}/status/`);
+      setPaymentRequest(res.data);
+      if (res.data.status === 'PAID') {
+        showToast('Payment confirmed! Ledger updated. 🎯', 'success');
+        setTimeout(() => {
+          setShowSettlementModal(false);
+          setPaymentRequest(null);
+          setSettleAmount('');
+          fetchKhataLedger();
+        }, 1500);
+      } else {
+        showToast('Payment status is still pending.', 'info');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to check status.', 'error');
+    } finally {
+      setCheckingStatus(false);
     }
   };
 
@@ -799,9 +894,24 @@ const CustomerDashboard = () => {
                       <FiLock className="w-4 h-4" />
                     </span>
                   </div>
-                  <div className="mt-4">
-                    <span className="text-3xl font-poppins font-extrabold text-rose-600">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>
-                    <p className="text-[10px] text-text-secondary mt-1 font-light leading-none">Unpaid outstanding store credit balance</p>
+                  <div className="mt-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <span className="text-3xl font-poppins font-extrabold text-rose-600">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>
+                      <p className="text-[10px] text-text-secondary mt-1 font-light leading-none">Unpaid outstanding store credit balance</p>
+                    </div>
+                    {parseFloat(khataProfile.current_balance) > 0 && (
+                      <button
+                        onClick={() => {
+                          setSettleAmount(parseFloat(khataProfile.current_balance).toFixed(2));
+                          setShowSettlementModal(true);
+                          setPaymentRequest(null);
+                        }}
+                        className="mt-3.5 w-full bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-bold py-2.5 px-3 rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1"
+                      >
+                        <FiZap className="w-3.5 h-3.5 animate-pulse" />
+                        <span>Settle Balance Online</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -979,6 +1089,134 @@ const CustomerDashboard = () => {
           onScan={handleBarcodeScanToCart}
           onClose={() => setShowBarcodeScanner(false)}
         />
+      )}
+
+      {showSettlementModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-premium-lg relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowSettlementModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-secondary p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-full transition-all cursor-pointer"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-2.5 mb-5">
+              <div className="bg-rose-50 text-rose-500 p-2.5 rounded-xl border border-rose-100">
+                <FiZap className="w-5 h-5" />
+              </div>
+              <h3 className="text-base sm:text-lg font-poppins font-extrabold text-secondary leading-none">
+                Settle Balance Online
+              </h3>
+            </div>
+
+            {!paymentRequest ? (
+              <form onSubmit={handleCreatePaymentLink} className="space-y-5 text-left">
+                <div className="bg-slate-50 border border-slate-150 p-4 rounded-2xl">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-text-secondary block">
+                    Outstanding Debt Liability
+                  </span>
+                  <span className="text-2xl font-poppins font-extrabold text-rose-600 block mt-1">
+                    ₹{parseFloat(khataProfile.current_balance).toFixed(2)}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+                    Settlement Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    max={parseFloat(khataProfile.current_balance)}
+                    value={settleAmount}
+                    onChange={(e) => setSettleAmount(e.target.value)}
+                    className="w-full bg-white border border-slate-250 focus:border-primary rounded-xl py-3 px-4 text-sm font-semibold text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    placeholder="Enter amount to pay"
+                    required
+                  />
+                  <span className="text-[10px] text-text-secondary mt-1 block">
+                    Must be greater than ₹0 and not exceed your total debt.
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={settling}
+                  className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all cursor-pointer text-sm"
+                >
+                  {settling ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <FiZap className="w-4 h-4" />
+                      <span>Generate Payment Link</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-6 text-center">
+                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-left">
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary">
+                    <span>Payment ID</span>
+                    <span className="font-mono text-secondary font-semibold">{paymentRequest.razorpay_payment_link_id}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary mt-2">
+                    <span>Amount</span>
+                    <span className="text-secondary font-bold">₹{parseFloat(paymentRequest.amount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-medium text-text-secondary mt-2">
+                    <span>Status</span>
+                    <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
+                      {paymentRequest.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="py-2 flex flex-col items-center justify-center space-y-3">
+                  <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-4 rounded-2xl flex items-center justify-center w-40 h-40 relative">
+                    <div className="text-center text-[#6B7280]">
+                      <FiZap className="w-10 h-10 mx-auto text-emerald-500 animate-bounce mb-2" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider block">Scan to Pay</span>
+                      <span className="text-[8px] mt-1 block">UPI QR Generated</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-text-secondary max-w-xs leading-normal">
+                    Redirect to Razorpay hosted checkout to pay securely via PhonePe, GPay, Paytm, or UPI.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-2.5">
+                  <a
+                    href={paymentRequest.razorpay_payment_link_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-[0.98] cursor-pointer text-sm"
+                  >
+                    <span>Proceed to Pay (UPI/Web)</span>
+                  </a>
+
+                  <button
+                    onClick={handleCheckPaymentStatus}
+                    disabled={checkingStatus}
+                    className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-secondary font-bold py-3 px-4 rounded-2xl flex items-center justify-center space-x-2 transition-all active:scale-[0.98] cursor-pointer text-xs"
+                  >
+                    {checkingStatus ? (
+                      <div className="w-4 h-4 border-2 border-secondary border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <FiRefreshCw className="w-3.5 h-3.5" />
+                        <span>Check Payment Confirmation</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

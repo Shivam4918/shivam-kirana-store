@@ -9,16 +9,17 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
     ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
-    InvoiceSerializer, InvoiceItemSerializer
+    InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
 from django.http import HttpResponse
 from .utils.pdf_generator import generate_pdf_response, generate_invoice_pdf
 from .utils.excel_generator import generate_excel_response
+from .utils.payment_helpers import verify_razorpay_signature, create_razorpay_payment_link
 
 User = get_user_model()
 
@@ -1403,5 +1404,149 @@ class GSTSummaryView(APIView):
             },
             'slabs_breakdown': slabs_breakdown
         })
+
+
+class PaymentLinkCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            profile = request.user.khata_profile
+        except AttributeError:
+            return Response({"detail": "User has no active Khata ledger profile."}, status=status.HTTP_400_BAD_REQUEST)
+
+        amount = request.data.get('amount')
+        if not amount:
+            return Response({"detail": "amount field is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            amount_decimal = Decimal(str(amount))
+            if amount_decimal <= 0:
+                raise ValueError()
+        except Exception:
+            return Response({"detail": "amount must be a valid positive number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if profile.current_balance <= 0:
+            return Response({"detail": "No outstanding balance to settle."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount_decimal > profile.current_balance:
+            return Response({"detail": f"Amount exceeds your outstanding balance of ₹{profile.current_balance}."}, status=status.HTTP_400_BAD_REQUEST)
+
+        callback_url = "http://localhost:5174/dashboard/khata"
+        try:
+            link_data = create_razorpay_payment_link(
+                amount_decimal=amount_decimal,
+                customer_name=request.user.username,
+                customer_email=request.user.email,
+                customer_phone=request.user.phone_number,
+                callback_url=callback_url
+            )
+        except Exception as e:
+            return Response({"detail": "Failed to create payment link: " + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        payment_req = PaymentRequest.objects.create(
+            khata_profile=profile,
+            amount=amount_decimal,
+            razorpay_payment_link_id=link_data.get('id'),
+            razorpay_payment_link_url=link_data.get('short_url'),
+            status='PENDING'
+        )
+
+        serializer = PaymentRequestSerializer(payment_req)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class PaymentRequestStatusView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk=None):
+        try:
+            payment_req = PaymentRequest.objects.get(pk=pk)
+        except PaymentRequest.DoesNotExist:
+            return Response({"detail": "Payment request not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user.role != 'ADMIN' and payment_req.khata_profile.user != request.user:
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = PaymentRequestSerializer(payment_req)
+        return Response(serializer.data)
+
+
+class PaymentWebhookView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        payload_bytes = request.body
+        signature = request.headers.get('X-Razorpay-Signature')
+
+        from django.conf import settings
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Verify signature (allow test_bypass_sig in debug mode)
+        if settings.DEBUG and signature == 'test_bypass_sig':
+            pass
+        elif not verify_razorpay_signature(payload_bytes, signature):
+            logger.warning("Invalid Razorpay webhook signature detected.")
+            return Response({"detail": "Invalid signature."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            import json
+            event_data = json.loads(payload_bytes.decode('utf-8'))
+        except Exception:
+            return Response({"detail": "Invalid json payload."}, status=status.HTTP_400_BAD_REQUEST)
+
+        event_type = event_data.get('event')
+        
+        if event_type == 'payment_link.paid':
+            payload = event_data.get('payload', {})
+            payment_link = payload.get('payment_link', {}).get('entity', {})
+            link_id = payment_link.get('id')
+            
+            try:
+                with db_transaction.atomic():
+                    payment_req = PaymentRequest.objects.select_for_update().get(razorpay_payment_link_id=link_id)
+                    
+                    if payment_req.status == 'PENDING':
+                        payment_req.status = 'PAID'
+                        payments = payment_link.get('payments', [])
+                        if payments:
+                            payment_req.razorpay_payment_id = payments[0].get('payment_id')
+                        payment_req.razorpay_signature = signature or 'bypassed'
+                        payment_req.completed_at = timezone.now()
+                        payment_req.save()
+                        
+                        Transaction.objects.create(
+                            khata_profile=payment_req.khata_profile,
+                            transaction_type='DEBIT',
+                            amount=payment_req.amount,
+                            description=f"Settled via online payment (Link ID: {link_id})"
+                        )
+            except PaymentRequest.DoesNotExist:
+                logger.error(f"PaymentRequest not found for Razorpay Link ID: {link_id}")
+                return Response({"detail": "Payment request not found."}, status=status.HTTP_200_OK)
+            except Exception as e:
+                logger.exception("Error processing webhook transaction.")
+                return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+
+class AdminPaymentRequestViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PaymentRequest.objects.all().order_by('-created_at')
+    serializer_class = PaymentRequestSerializer
+    permission_classes = [IsAdminUserRole]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_param = self.request.query_params.get('status')
+        customer_id = self.request.query_params.get('customer_id')
+        
+        if status_param:
+            qs = qs.filter(status=status_param)
+        if customer_id:
+            qs = qs.filter(khata_profile_id=customer_id)
+            
+        return qs
 
 

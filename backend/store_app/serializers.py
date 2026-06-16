@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest
 
 User = get_user_model()
 
@@ -177,3 +177,12 @@ class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = '__all__'
+
+
+class PaymentRequestSerializer(serializers.ModelSerializer):
+    customer_username = serializers.CharField(source='khata_profile.user.username', read_only=True)
+
+    class Meta:
+        model = PaymentRequest
+        fields = '__all__'
+        read_only_fields = ('id', 'razorpay_payment_link_id', 'razorpay_payment_link_url', 'status', 'razorpay_payment_id', 'razorpay_signature', 'created_at', 'updated_at', 'completed_at')

@@ -5,7 +5,8 @@ from .views import (
     CustomerKhataView, CustomerCheckoutView, AdminDashboardAnalyticsView, AdminCustomerViewSet,
     ExpenseViewSet, SupplierViewSet, PurchaseViewSet, NotificationViewSet,
     ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
-    ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView
+    ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
+    PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet
 )
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register(r'suppliers', SupplierViewSet, basename='suppliers')
 router.register(r'purchases', PurchaseViewSet, basename='purchases')
 router.register(r'notifications', NotificationViewSet, basename='notifications')
 router.register(r'invoices', InvoiceViewSet, basename='invoices')
+router.register(r'admin/payments', AdminPaymentRequestViewSet, basename='admin-payments')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -23,6 +25,11 @@ urlpatterns = [
     path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
     path('checkout/', CustomerCheckoutView.as_view(), name='checkout'),
     path('admin/analytics/', AdminDashboardAnalyticsView.as_view(), name='admin-analytics'),
+    
+    # Online Payments
+    path('payments/create-link/', PaymentLinkCreateView.as_view(), name='payment-create-link'),
+    path('payments/<int:pk>/status/', PaymentRequestStatusView.as_view(), name='payment-status'),
+    path('payments/webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
     
     # Financial Analytics
     path('admin/analytics/pl/', ProfitLossAnalyticsView.as_view(), name='analytics-pl'),

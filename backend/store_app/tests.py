@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem
+from .models import Product, KhataProfile, Transaction, Invoice, InvoiceItem, PaymentRequest
 from decimal import Decimal
 
 User = get_user_model()
@@ -324,3 +324,124 @@ class StoreBackendTests(TestCase):
         self.client.force_authenticate(user=self.customer)
         response = self.client.get('/api/products/by-barcode/', {'barcode': '9999999999999'})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_create_payment_link(self):
+        """Test that customer can create a payment link to settle outstanding balance."""
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        Transaction.objects.create(
+            khata_profile=profile,
+            transaction_type='CREDIT',
+            amount=Decimal('500.00'),
+            description='Bought groceries'
+        )
+        profile.refresh_from_db()
+        self.assertEqual(profile.current_balance, Decimal('500.00'))
+
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.post('/api/payments/create-link/', {'amount': 300.00}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('razorpay_payment_link_id', response.data)
+        self.assertIn('razorpay_payment_link_url', response.data)
+        self.assertEqual(response.data['status'], 'PENDING')
+        
+        self.assertTrue(PaymentRequest.objects.filter(razorpay_payment_link_id=response.data['razorpay_payment_link_id']).exists())
+
+    def test_webhook_payment_verification(self):
+        """Test that webhook dynamically updates payment status and customer ledger on payment success."""
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        Transaction.objects.create(
+            khata_profile=profile,
+            transaction_type='CREDIT',
+            amount=Decimal('500.00'),
+            description='Bought groceries'
+        )
+        profile.refresh_from_db()
+
+        payment_req = PaymentRequest.objects.create(
+            khata_profile=profile,
+            amount=Decimal('300.00'),
+            razorpay_payment_link_id='plink_test123',
+            razorpay_payment_link_url='http://mockurl.com/plink_test123',
+            status='PENDING'
+        )
+
+        payload = {
+            'event': 'payment_link.paid',
+            'payload': {
+                'payment_link': {
+                    'entity': {
+                        'id': 'plink_test123',
+                        'status': 'paid',
+                        'payments': [{'payment_id': 'pay_999999'}]
+                    }
+                }
+            }
+        }
+        
+        import json
+        payload_bytes = json.dumps(payload).encode('utf-8')
+        
+        import hmac, hashlib
+        from django.conf import settings
+        computed_sig = hmac.new(
+            settings.RAZORPAY_WEBHOOK_SECRET.encode('utf-8'),
+            payload_bytes,
+            hashlib.sha256
+        ).hexdigest()
+
+        response = self.client.post(
+            '/api/payments/webhook/',
+            data=payload_bytes,
+            content_type='application/json',
+            HTTP_X_RAZORPAY_SIGNATURE=computed_sig
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        payment_req.refresh_from_db()
+        self.assertEqual(payment_req.status, 'PAID')
+        self.assertEqual(payment_req.razorpay_payment_id, 'pay_999999')
+        
+        profile.refresh_from_db()
+        self.assertEqual(profile.current_balance, Decimal('200.00'))
+        self.assertEqual(profile.total_paid, Decimal('300.00'))
+
+    def test_webhook_signature_failure(self):
+        """Test that webhook rejects payload with invalid signature and does not modify database."""
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        
+        payment_req = PaymentRequest.objects.create(
+            khata_profile=profile,
+            amount=Decimal('100.00'),
+            razorpay_payment_link_id='plink_test456',
+            status='PENDING'
+        )
+
+        payload = {
+            'event': 'payment_link.paid',
+            'payload': {
+                'payment_link': {
+                    'entity': {
+                        'id': 'plink_test456',
+                        'status': 'paid'
+                    }
+                }
+            }
+        }
+
+        response = self.client.post(
+            '/api/payments/webhook/',
+            payload,
+            format='json',
+            HTTP_X_RAZORPAY_SIGNATURE='invalid_signature_mocked'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        payment_req.refresh_from_db()
+        self.assertEqual(payment_req.status, 'PENDING')
+        profile.refresh_from_db()
+        self.assertEqual(profile.current_balance, Decimal('0.00'))
