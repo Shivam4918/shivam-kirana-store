@@ -33,7 +33,13 @@ const BarcodeScanner = ({ onScan, onClose, title = 'Scan Barcode' }) => {
 
   // Load available cameras
   useEffect(() => {
-    BrowserMultiFormatReader.listVideoInputDevices()
+    if (typeof window !== 'undefined' && (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices)) {
+      setError('Camera APIs are blocked by your browser because this is a non-secure context (HTTP). Please access the app using HTTPS or "localhost" to use the barcode scanner, or enable browser permissions.');
+      return;
+    }
+
+    const tempReader = new BrowserMultiFormatReader();
+    tempReader.listVideoInputDevices()
       .then((devices) => {
         setCameras(devices);
         if (devices.length > 0) {
@@ -49,7 +55,10 @@ const BarcodeScanner = ({ onScan, onClose, title = 'Scan Barcode' }) => {
           setError('No cameras found on this device.');
         }
       })
-      .catch(() => setError('Camera access was denied. Please allow camera permissions and try again.'));
+      .catch((err) => {
+        console.error('Error listing cameras:', err);
+        setError('Camera access was denied. Please allow camera permissions and try again.');
+      });
   }, []);
 
   // Start/stop scanning when camera changes
