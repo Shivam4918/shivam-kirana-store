@@ -1,12 +1,5 @@
-services:
-  # 1. Main Web API Service (Django)
-  - type: web
-    name: shivam-kirana-backend
-    env: python
-    rootDir: backend
-    buildCommand: bash build.sh
-    startCommand: gunicorn store_backend.wsgi:application --workers 3 --threads 2 --timeout 120
-    healthCheckPath: /api/health/
+envVarGroups:
+  - name: shivam-kirana-shared-env
     envVars:
       - key: DEBUG
         value: "false"
@@ -17,21 +10,11 @@ services:
       - key: ALLOWED_HOSTS
         value: "*" # Can restrict to specific domains later
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://your-frontend-vercel.vercel.app" # Replace with actual Vercel domain
+        value: "https://frontend-woad-eta-27.vercel.app" # Default to our deployed frontend
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.vercel.app"
       - key: CONN_MAX_AGE
         value: "600"
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: shivam-kirana-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: redis
-          name: shivam-kirana-redis
-          property: connectionString
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
@@ -45,26 +28,17 @@ services:
       - key: TWILIO_WHATSAPP_NUMBER
         value: "whatsapp:+14155238886"
 
-  # 2. Background Celery Worker Service
-  - type: worker
-    name: shivam-kirana-worker
+services:
+  # 1. Main Web API Service (Django)
+  - type: web
+    name: shivam-kirana-backend
     env: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A store_backend worker --loglevel=info
+    buildCommand: bash build.sh
+    startCommand: gunicorn store_backend.wsgi:application --workers 3 --threads 2 --timeout 120
+    healthCheckPath: /api/health/
     envVars:
-      - key: DEBUG
-        value: "false"
-      - key: SECRET_KEY
-        fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/SECRET_KEY
-      - key: DATABASE_URL
-        fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/DATABASE_URL
+      - fromGroup: shivam-kirana-shared-env
       - key: CELERY_BROKER_URL
         fromService:
           type: redis
@@ -75,31 +49,26 @@ services:
           type: redis
           name: shivam-kirana-redis
           property: connectionString
-      - key: RAZORPAY_KEY_ID
+
+  # 2. Background Celery Worker Service
+  - type: worker
+    name: shivam-kirana-worker
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A store_backend worker --loglevel=info
+    envVars:
+      - fromGroup: shivam-kirana-shared-env
+      - key: CELERY_BROKER_URL
         fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/RAZORPAY_KEY_ID
-      - key: RAZORPAY_KEY_SECRET
+          type: redis
+          name: shivam-kirana-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
         fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/RAZORPAY_KEY_SECRET
-      - key: TWILIO_ACCOUNT_SID
-        fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/TWILIO_ACCOUNT_SID
-      - key: TWILIO_AUTH_TOKEN
-        fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/TWILIO_AUTH_TOKEN
-      - key: TWILIO_WHATSAPP_NUMBER
-        fromService:
-          type: web
-          name: shivam-kirana-backend
-          property: envVar/TWILIO_WHATSAPP_NUMBER
+          type: redis
+          name: shivam-kirana-redis
+          property: connectionString
 
   # 3. Redis Message Broker Service
   - type: redis
