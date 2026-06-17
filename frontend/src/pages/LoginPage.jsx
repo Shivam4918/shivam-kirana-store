@@ -5,6 +5,7 @@ import {
   FiMail, FiLock, FiUser, FiPhone, FiArrowRight, 
   FiShoppingBag, FiHome, FiCheckCircle 
 } from 'react-icons/fi';
+import api from '../services/api';
 
 const LoginPage = ({ defaultTab = 'login' }) => {
   const { login, register, isAuthenticated, user } = useContext(AuthContext);
@@ -36,6 +37,18 @@ const LoginPage = ({ defaultTab = 'login' }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // OTP and Field Validation States
+  const [valErrors, setValErrors] = useState({});
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
+  const [regUserEmailOrUsername, setRegUserEmailOrUsername] = useState('');
+  const [otpValue, setOtpValue] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSuccess, setOtpSuccess] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
+  // Auto-redirect if authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === 'ADMIN') {
@@ -46,10 +59,74 @@ const LoginPage = ({ defaultTab = 'login' }) => {
     }
   }, [isAuthenticated, user, navigate]);
 
+  // Real-time inline field validations
+  useEffect(() => {
+    if (activeTab !== 'register') return;
+
+    const errors = {};
+    
+    // Username validation
+    if (regUsername) {
+      if (regUsername.length < 4 || regUsername.length > 20) {
+        errors.username = 'Username must be between 4 and 20 characters.';
+      } else if (!/^[a-zA-Z]/.test(regUsername)) {
+        errors.username = 'Username must start with a letter.';
+      } else if (!/^[a-zA-Z0-9_]+$/.test(regUsername)) {
+        errors.username = 'Username can only contain letters, numbers, and underscores.';
+      }
+    }
+
+    // Email validation
+    if (regEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(regEmail)) {
+        errors.email = 'Please enter a valid email address.';
+      }
+    }
+
+    // Phone validation
+    if (regPhone) {
+      if (!/^[6-9]\d{9}$/.test(regPhone)) {
+        errors.phone = 'Phone number must be a valid 10-digit Indian number (starts with 6-9).';
+      }
+    }
+
+    // Password validation
+    if (regPassword) {
+      if (regPassword.length < 8) {
+        errors.password = 'Password must be at least 8 characters long.';
+      } else if (!/[A-Z]/.test(regPassword)) {
+        errors.password = 'Password must contain at least one uppercase letter.';
+      } else if (!/[a-z]/.test(regPassword)) {
+        errors.password = 'Password must contain at least one lowercase letter.';
+      } else if (!/[0-9]/.test(regPassword)) {
+        errors.password = 'Password must contain at least one number.';
+      } else if (!/[@$!%*?&#]/.test(regPassword)) {
+        errors.password = 'Password must contain at least one special character.';
+      }
+    }
+
+    // Confirm password validation
+    if (regConfirmPassword && regPassword !== regConfirmPassword) {
+      errors.confirmPassword = 'Passwords do not match.';
+    }
+
+    setValErrors(errors);
+  }, [regUsername, regEmail, regPhone, regPassword, regConfirmPassword, activeTab]);
+
+  // OTP Cooldown timer
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+    setShowVerifyPrompt(false);
     if (!loginEmailOrUsername || !loginPassword) {
       setErrorMsg('Please enter all credentials.');
       return;
@@ -63,6 +140,9 @@ const LoginPage = ({ defaultTab = 'login' }) => {
       setSuccessMsg('Successfully signed in!');
     } else {
       setErrorMsg(result.error);
+      if (result.error && result.error.includes('verify your email')) {
+        setShowVerifyPrompt(true);
+      }
     }
   };
 
@@ -86,17 +166,15 @@ const LoginPage = ({ defaultTab = 'login' }) => {
     setIsLoading(false);
 
     if (result.success) {
-      setSuccessMsg('Registration successful! A verification link has been sent to your email. Please check your inbox (and spam folder) and verify your email before logging in.');
+      setRegUserEmailOrUsername(regUsername);
+      setSuccessMsg('Registration successful! Please enter the 6-digit OTP code sent to your email.');
       setRegUsername('');
       setRegEmail('');
       setRegPhone('');
       setRegPassword('');
       setRegConfirmPassword('');
-      
-      // Auto-toggle to login tab after 4 seconds to allow reading
-      setTimeout(() => {
-        setActiveTab('login');
-      }, 4000);
+      setShowOtpModal(true);
+      setOtpCooldown(30);
     } else {
       let errorText = 'Registration failed.';
       if (typeof result.error === 'object') {
@@ -107,6 +185,58 @@ const LoginPage = ({ defaultTab = 'login' }) => {
         errorText = result.error.detail;
       }
       setErrorMsg(errorText);
+    }
+  };
+
+  const handleVerifyOtpSubmit = async (e) => {
+    e.preventDefault();
+    setOtpError('');
+    setOtpSuccess('');
+
+    if (!otpValue || otpValue.length !== 6) {
+      setOtpError('Please enter a 6-digit OTP code.');
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const res = await api.post('/auth/verify-otp/', {
+        username: regUserEmailOrUsername,
+        otp: otpValue
+      });
+      setOtpSuccess(res.data.detail || 'Email verified successfully! You can now log in.');
+      setOtpValue('');
+      
+      // Auto-hide modal and transition to login after 3 seconds
+      setTimeout(() => {
+        setShowOtpModal(false);
+        setActiveTab('login');
+        setSuccessMsg('Email verified successfully! Please sign in.');
+      }, 3000);
+    } catch (err) {
+      console.error(err);
+      setOtpError(err.response?.data?.detail || 'Invalid verification code. Please try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpError('');
+    setOtpSuccess('');
+    setOtpLoading(true);
+
+    try {
+      const res = await api.post('/auth/resend-otp/', {
+        username: regUserEmailOrUsername
+      });
+      setOtpSuccess(res.data.detail || 'A new verification code has been sent.');
+      setOtpCooldown(30);
+    } catch (err) {
+      console.error(err);
+      setOtpError(err.response?.data?.detail || 'Failed to resend code. Please try again.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
