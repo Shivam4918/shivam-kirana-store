@@ -14,9 +14,12 @@ User = get_user_model()
 
 def seed():
     print("Seeding database...")
+    # Clean up old default admin users if they exist for security
+    User.objects.filter(username__in=['admin', 'testuser']).delete()
+
     # 1. Create Admin
     admin_user, created = User.objects.get_or_create(
-        username='admin',
+        username='shivam1121@',
         email='admin@shivam.com',
         defaults={
             'phone_number': '9876543210',
@@ -25,8 +28,8 @@ def seed():
             'is_superuser': True,
         }
     )
-    if created or not admin_user.check_password('admin123') or not admin_user.is_staff or not admin_user.is_superuser:
-        admin_user.set_password('admin123')
+    if created or not admin_user.check_password('Prajapatiadmin2005#$@') or not admin_user.is_staff or not admin_user.is_superuser:
+        admin_user.set_password('Prajapatiadmin2005#$@')
         admin_user.is_staff = True
         admin_user.is_superuser = True
         admin_user.save()

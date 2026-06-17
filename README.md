@@ -118,8 +118,8 @@ Ensure you have **Python 3.10+** and **Node.js 18+** installed on your workstati
 ## 🔑 Default Accounts (Seeded)
 
 - **Admin User (Shop Owner)**:
-  - **Username/Email**: `admin` or `admin@shivam.com`
-  - **Password**: `admin123`
+  - **Username/Email**: `shivam1121@` or `admin@shivam.com`
+  - **Password**: `Prajapatiadmin2005#$@`
   - **Role**: `ADMIN` (Access to inventory CRUD, customer ledgers, access toggles, and analytics)
 
 - **Customer User (Shyam)**:
