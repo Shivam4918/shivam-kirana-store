@@ -111,7 +111,7 @@ const ProductManagement = () => {
       hsn_code: hsnCode,
       barcode: barcode.trim() || null,
       expiry_date: expiryDate || null,
-      image: image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80'
+      image: image || ''
     };
 
     try {
@@ -498,14 +498,65 @@ const ProductManagement = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Image URL</label>
-                <input
-                  type="url"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
-                  placeholder="https://images.unsplash.com/..."
-                />
+                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Product Image</label>
+                {/* Image preview */}
+                {image ? (
+                  <div className="relative mb-2 group">
+                    <div className="w-full h-40 rounded-xl border-2 border-emerald-200 bg-emerald-50/30 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={image}
+                        alt="Product preview"
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '';
+                          e.target.alt = 'Failed to load';
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setImage('')}
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-rose-50 text-slate-400 hover:text-rose-500 p-1.5 rounded-full border border-slate-200 hover:border-rose-200 shadow-sm transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                      title="Remove image"
+                    >
+                      <FiX className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : null}
+                {/* Upload button */}
+                <label
+                  className="flex flex-col items-center justify-center gap-2 w-full py-4 px-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-primary bg-white hover:bg-emerald-50/30 cursor-pointer transition-all group"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 5 * 1024 * 1024) {
+                        setErrorMsg('Image must be less than 5 MB.');
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        setImage(ev.target.result);
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }}
+                  />
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                    <FiCamera className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-secondary group-hover:text-primary transition-colors">
+                      {image ? 'Change Image' : 'Add from Gallery'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP — max 5 MB</p>
+                  </div>
+                </label>
               </div>
 
               <div>
