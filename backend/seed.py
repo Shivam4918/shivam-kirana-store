@@ -20,11 +20,15 @@ def seed():
         email='admin@shivam.com',
         defaults={
             'phone_number': '9876543210',
-            'role': 'ADMIN'
+            'role': 'ADMIN',
+            'is_staff': True,
+            'is_superuser': True,
         }
     )
-    if created or not admin_user.check_password('admin123'):
+    if created or not admin_user.check_password('admin123') or not admin_user.is_staff or not admin_user.is_superuser:
         admin_user.set_password('admin123')
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
         admin_user.save()
         print("Admin user created/updated.")
 
