@@ -3,7 +3,7 @@ services:
   - type: web
     name: shivam-kirana-backend
     env: python
-    rootDirectory: backend
+    rootDir: backend
     buildCommand: bash build.sh
     startCommand: gunicorn store_backend.wsgi:application --workers 3 --threads 2 --timeout 120
     healthCheckPath: /api/health/
@@ -49,7 +49,7 @@ services:
   - type: worker
     name: shivam-kirana-worker
     env: python
-    rootDirectory: backend
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A store_backend worker --loglevel=info
     envVars:
