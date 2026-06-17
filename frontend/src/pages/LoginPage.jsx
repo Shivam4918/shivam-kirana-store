@@ -139,8 +139,10 @@ const LoginPage = ({ defaultTab = 'login' }) => {
     if (result.success) {
       setSuccessMsg('Successfully signed in!');
     } else {
-      setErrorMsg(result.error);
-      if (result.error && result.error.includes('verify your email')) {
+      // result.error is a string (from AuthContext login)
+      const errStr = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+      setErrorMsg(errStr);
+      if (errStr && (errStr.toLowerCase().includes('verify') || errStr.toLowerCase().includes('not active'))) {
         setShowVerifyPrompt(true);
       }
     }
@@ -176,15 +178,28 @@ const LoginPage = ({ defaultTab = 'login' }) => {
       setShowOtpModal(true);
       setOtpCooldown(30);
     } else {
-      let errorText = 'Registration failed.';
-      if (typeof result.error === 'object') {
-        errorText = Object.entries(result.error)
-          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(' ') : val}`)
-          .join('\n');
-      } else if (result.error?.detail) {
-        errorText = result.error.detail;
+      // Build a clean list of error messages from backend response
+      let errorLines = [];
+      if (result.error && typeof result.error === 'object') {
+        Object.entries(result.error).forEach(([key, val]) => {
+          const msgs = Array.isArray(val) ? val : [val];
+          msgs.forEach(msg => {
+            // Skip the key prefix for 'detail' — just show the message
+            if (key === 'detail') {
+              errorLines.push(String(msg));
+            } else {
+              // Capitalize field name nicely
+              const fieldLabel = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+              errorLines.push(`${fieldLabel}: ${msg}`);
+            }
+          });
+        });
+      } else if (typeof result.error === 'string') {
+        errorLines.push(result.error);
+      } else {
+        errorLines.push('Registration failed. Please try again.');
       }
-      setErrorMsg(errorText);
+      setErrorMsg(errorLines.join('\n'));
     }
   };
 
@@ -293,8 +308,13 @@ const LoginPage = ({ defaultTab = 'login' }) => {
 
         {/* Notifications */}
         {errorMsg && (
-          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-600 p-3.5 rounded-2xl text-xs font-medium flex flex-col space-y-2">
-            <span>{errorMsg}</span>
+          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-600 p-3.5 rounded-2xl text-xs font-medium flex flex-col space-y-1.5">
+            {errorMsg.split('\n').map((line, i) => (
+              <span key={i} className="flex items-start gap-1.5">
+                {errorMsg.includes('\n') && <span className="mt-0.5 shrink-0">•</span>}
+                <span>{line}</span>
+              </span>
+            ))}
             {showVerifyPrompt && (
               <button
                 type="button"
