@@ -17,7 +17,7 @@ services:
       - key: ALLOWED_HOSTS
         value: "*" # Can restrict to specific domains later
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://frontend-woad-eta-27.vercel.app" # Default to our deployed Vercel frontend
+        value: "https://shivamkiranastore.vercel.app,https://frontend-woad-eta-27.vercel.app" # Whitelist both domains
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.vercel.app"
       - key: CONN_MAX_AGE
