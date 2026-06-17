@@ -1,5 +1,12 @@
-envVarGroups:
-  - name: shivam-kirana-shared-env
+services:
+  # 1. Main Web API Service (Django) - Free Tier
+  - type: web
+    name: shivam-kirana-backend
+    env: python
+    rootDir: backend
+    buildCommand: bash build.sh
+    startCommand: gunicorn store_backend.wsgi:application --workers 2 --threads 2 --timeout 120
+    healthCheckPath: /api/health/
     envVars:
       - key: DEBUG
         value: "false"
@@ -10,7 +17,7 @@ envVarGroups:
       - key: ALLOWED_HOSTS
         value: "*" # Can restrict to specific domains later
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://frontend-woad-eta-27.vercel.app" # Default to our deployed frontend
+        value: "https://frontend-woad-eta-27.vercel.app" # Default to our deployed Vercel frontend
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.vercel.app"
       - key: CONN_MAX_AGE
@@ -27,50 +34,3 @@ envVarGroups:
         sync: false
       - key: TWILIO_WHATSAPP_NUMBER
         value: "whatsapp:+14155238886"
-
-services:
-  # 1. Main Web API Service (Django)
-  - type: web
-    name: shivam-kirana-backend
-    env: python
-    rootDir: backend
-    buildCommand: bash build.sh
-    startCommand: gunicorn store_backend.wsgi:application --workers 3 --threads 2 --timeout 120
-    healthCheckPath: /api/health/
-    envVars:
-      - fromGroup: shivam-kirana-shared-env
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: shivam-kirana-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: redis
-          name: shivam-kirana-redis
-          property: connectionString
-
-  # 2. Background Celery Worker Service
-  - type: worker
-    name: shivam-kirana-worker
-    env: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A store_backend worker --loglevel=info
-    envVars:
-      - fromGroup: shivam-kirana-shared-env
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: shivam-kirana-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          type: redis
-          name: shivam-kirana-redis
-          property: connectionString
-
-  # 3. Redis Message Broker Service
-  - type: redis
-    name: shivam-kirana-redis
-    ipAllowList: [] # Deny all public access, local communication only
