@@ -8,7 +8,7 @@ from .views import (
     ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
     PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
-    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView
+    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView
 )
 
 router = DefaultRouter()
@@ -50,6 +50,9 @@ urlpatterns = [
     # Expiry Tracking (Gap 6)
     path('admin/expiry-dashboard/', ExpiryDashboardView.as_view(), name='expiry-dashboard'),
     path('admin/expiry-scan/', TriggerExpiryScanView.as_view(), name='expiry-scan'),
+
+    # Health Check
+    path('health/', HealthCheckView.as_view(), name='health-check'),
 
     path('', include(router.urls)),
 ]

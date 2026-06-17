@@ -1780,3 +1780,28 @@ class TriggerExpiryScanView(APIView):
                 'message': 'Expiry scan completed synchronously (Celery not available).',
                 'summary': summary,
             }, status=status.HTTP_200_OK)
+
+
+class HealthCheckView(APIView):
+    """
+    Health check endpoint for Render to monitor application status and db connection.
+    GET /api/health/
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.db import connections
+        from django.db.utils import OperationalError
+
+        db_conn = connections['default']
+        try:
+            db_conn.cursor()
+            db_status = "connected"
+        except OperationalError:
+            db_status = "disconnected"
+
+        status_code = status.HTTP_200_OK if db_status == "connected" else status.HTTP_500_INTERNAL_SERVER_ERROR
+        return Response({
+            "status": "healthy" if db_status == "connected" else "unhealthy",
+            "database": db_status
+        }, status=status_code)
