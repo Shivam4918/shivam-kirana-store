@@ -86,18 +86,17 @@ const LoginPage = ({ defaultTab = 'login' }) => {
     setIsLoading(false);
 
     if (result.success) {
-      setSuccessMsg('Registration successful! Please login with your credentials.');
+      setSuccessMsg('Registration successful! A verification link has been sent to your email. Please check your inbox (and spam folder) and verify your email before logging in.');
       setRegUsername('');
       setRegEmail('');
       setRegPhone('');
       setRegPassword('');
       setRegConfirmPassword('');
       
-      // Auto-toggle to login tab
+      // Auto-toggle to login tab after 4 seconds to allow reading
       setTimeout(() => {
         setActiveTab('login');
-        setSuccessMsg('Please log in with your registered credentials.');
-      }, 1500);
+      }, 4000);
     } else {
       let errorText = 'Registration failed.';
       if (typeof result.error === 'object') {

@@ -406,3 +406,62 @@ def scan_and_alert_expiring_products_task():
     }
     logger.info(f"[EXPIRY SCAN] Completed: {summary}")
     return summary
+
+
+@shared_task
+def send_verification_email_task(user_id, frontend_url):
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+    from django.contrib.auth.tokens import default_token_generator
+    from django.conf import settings
+    from store_app.models import CustomUser
+
+    try:
+        user = CustomUser.objects.get(id=user_id)
+    except CustomUser.DoesNotExist:
+        logger.error(f"User with ID {user_id} not found for verification email.")
+        return False
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    verification_link = f"{frontend_url}/verify-email?uid={uid}&token={token}"
+
+    subject = "Verify your email - Shivam Kirana Store"
+
+    context = {
+        'user': user,
+        'verification_link': verification_link
+    }
+
+    try:
+        html_message = render_to_string('emails/verify_email.html', context)
+    except Exception as e:
+        logger.error(f"Error rendering email template: {str(e)}")
+        html_message = None
+
+    plain_message = (
+        f"Namaste {user.username}!\n\n"
+        f"Thank you for registering at Shivam Kirana Store.\n"
+        f"Please verify your email address by clicking on the link below:\n"
+        f"{verification_link}\n\n"
+        f"If you did not create this account, please ignore this email.\n"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+        logger.info(f"Verification email sent successfully to {user.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email to {user.email}: {str(e)}")
+        return False
+

@@ -32,12 +32,15 @@ class UserSerializer(serializers.ModelSerializer):
         if not User.objects.exists():
             role = 'ADMIN'
             
+        is_active = (role == 'ADMIN')
+        
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             phone_number=validated_data.get('phone_number', ''),
             role=role,
-            password=validated_data['password']
+            password=validated_data['password'],
+            is_active=is_active
         )
         return user
 
@@ -89,12 +92,28 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         # Support logging in with email
         username_or_email = attrs.get('username')
-        if username_or_email and '@' in username_or_email:
-            try:
-                user_obj = User.objects.get(email=username_or_email)
-                attrs['username'] = user_obj.username
-            except User.DoesNotExist:
-                pass
+        password = attrs.get('password')
+        
+        user_obj = None
+        if username_or_email:
+            if '@' in username_or_email:
+                try:
+                    user_obj = User.objects.get(email=username_or_email)
+                    attrs['username'] = user_obj.username
+                except User.DoesNotExist:
+                    pass
+            else:
+                try:
+                    user_obj = User.objects.get(username=username_or_email)
+                except User.DoesNotExist:
+                    pass
+
+        # If user exists and password is correct but inactive, throw verification warning
+        if user_obj and user_obj.check_password(password):
+            if not user_obj.is_active:
+                raise serializers.ValidationError({
+                    "detail": "Please verify your email address before logging in."
+                })
 
         data = super().validate(attrs)
         data['user'] = {

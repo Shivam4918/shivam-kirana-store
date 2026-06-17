@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import VerifyEmail from './pages/VerifyEmail';
 import AdminDashboard from './pages/AdminDashboard';
 import ProductManagement from './pages/ProductManagement';
 import CustomerManagement from './pages/CustomerManagement';
@@ -40,6 +41,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage defaultTab="login" />} />
           <Route path="/register" element={<LoginPage defaultTab="register" />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Admin Protected Routes */}
           <Route 

@@ -30,9 +30,46 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
+            if user.role == 'CUSTOMER':
+                from django.conf import settings
+                from store_app.tasks import send_verification_email_task
+                try:
+                    send_verification_email_task.delay(user.id, settings.FRONTEND_URL)
+                except Exception:
+                    send_verification_email_task(user.id, settings.FRONTEND_URL)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VerifyEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        uidb64 = request.data.get('uid')
+        token = request.data.get('token')
+        
+        if not uidb64 or not token:
+            return Response({"detail": "Verification UID and Token are required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            from django.utils.http import urlsafe_base64_decode
+            from django.utils.encoding import force_str
+            from django.contrib.auth.tokens import default_token_generator
+            
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"detail": "Invalid verification link parameters."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if default_token_generator.check_token(user, token):
+            if not user.is_active:
+                user.is_active = True
+                user.save()
+                return Response({"detail": "Email verified successfully! You can now log in."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"detail": "Email is already verified."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"detail": "Verification token is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

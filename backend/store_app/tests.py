@@ -655,3 +655,88 @@ class StoreBackendTests(TestCase):
         
         # Cleanup
         expired_product.delete()
+
+    def test_customer_registration_inactive(self):
+        """Verify new registered customers are set as inactive by default."""
+        payload = {
+            'username': 'inactive_tester',
+            'email': 'inactive_tester@test.com',
+            'password': 'password123',
+            'confirm_password': 'password123',
+            'phone_number': '1234567890',
+            'role': 'CUSTOMER'
+        }
+        response = self.client.post('/api/auth/register/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Check database is_active is False
+        user = User.objects.get(username='inactive_tester')
+        self.assertFalse(user.is_active)
+
+    def test_login_inactive_user(self):
+        """Verify correct login attempt for an inactive user returns verification validation error."""
+        inactive_user = User.objects.create_user(
+            username='inactive_login_test',
+            email='inactive_login_test@test.com',
+            password='password123',
+            role='CUSTOMER',
+            is_active=False
+        )
+        payload = {
+            'username': 'inactive_login_test',
+            'password': 'password123'
+        }
+        response = self.client.post('/api/auth/login/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Please verify your email address before logging in.", response.data['detail'][0])
+
+    def test_verify_email_success(self):
+        """Verify email verification endpoint succeeds and activates user."""
+        inactive_user = User.objects.create_user(
+            username='verify_success_test',
+            email='verify_success_test@test.com',
+            password='password123',
+            role='CUSTOMER',
+            is_active=False
+        )
+        from django.utils.http import urlsafe_base64_encode
+        from django.utils.encoding import force_bytes
+        from django.contrib.auth.tokens import default_token_generator
+        
+        uid = urlsafe_base64_encode(force_bytes(inactive_user.pk))
+        token = default_token_generator.make_token(inactive_user)
+        
+        payload = {
+            'uid': uid,
+            'token': token
+        }
+        response = self.client.post('/api/auth/verify-email/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("verified successfully", response.data['detail'])
+        
+        # Verify user is active in DB
+        inactive_user.refresh_from_db()
+        self.assertTrue(inactive_user.is_active)
+
+    def test_verify_email_invalid_token(self):
+        """Verify email verification fails when token is invalid."""
+        inactive_user = User.objects.create_user(
+            username='verify_failed_test',
+            email='verify_failed_test@test.com',
+            password='password123',
+            role='CUSTOMER',
+            is_active=False
+        )
+        from django.utils.http import urlsafe_base64_encode
+        from django.utils.encoding import force_bytes
+        
+        uid = urlsafe_base64_encode(force_bytes(inactive_user.pk))
+        token = "invalid-token"
+        
+        payload = {
+            'uid': uid,
+            'token': token
+        }
+        response = self.client.post('/api/auth/verify-email/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("invalid or has expired", response.data['detail'])
