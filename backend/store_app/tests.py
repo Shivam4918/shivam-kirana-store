@@ -657,13 +657,13 @@ class StoreBackendTests(TestCase):
         expired_product.delete()
 
     def test_customer_registration_inactive(self):
-        """Verify new registered customers are set as inactive by default."""
+        """Verify new registered customers are set as inactive by default and have an OTP generated."""
         payload = {
             'username': 'inactive_tester',
             'email': 'inactive_tester@test.com',
-            'password': 'password123',
-            'confirm_password': 'password123',
-            'phone_number': '1234567890',
+            'password': 'Prajapatiadmin2005#$@',
+            'confirm_password': 'Prajapatiadmin2005#$@',
+            'phone_number': '9876543210',
             'role': 'CUSTOMER'
         }
         response = self.client.post('/api/auth/register/', payload, format='json')
@@ -672,71 +672,83 @@ class StoreBackendTests(TestCase):
         # Check database is_active is False
         user = User.objects.get(username='inactive_tester')
         self.assertFalse(user.is_active)
+        self.assertIsNotNone(user.otp_code)
+        self.assertEqual(len(user.otp_code), 6)
 
     def test_login_inactive_user(self):
         """Verify correct login attempt for an inactive user returns verification validation error."""
         inactive_user = User.objects.create_user(
             username='inactive_login_test',
             email='inactive_login_test@test.com',
-            password='password123',
+            password='Prajapatiadmin2005#$@',
             role='CUSTOMER',
             is_active=False
         )
         payload = {
             'username': 'inactive_login_test',
-            'password': 'password123'
+            'password': 'Prajapatiadmin2005#$@'
         }
         response = self.client.post('/api/auth/login/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Please verify your email address before logging in.", response.data['detail'][0])
 
-    def test_verify_email_success(self):
-        """Verify email verification endpoint succeeds and activates user."""
+    def test_verify_otp_success(self):
+        """Verify OTP verification endpoint succeeds and activates user."""
         inactive_user = User.objects.create_user(
             username='verify_success_test',
             email='verify_success_test@test.com',
-            password='password123',
+            password='Prajapatiadmin2005#$@',
             role='CUSTOMER',
-            is_active=False
+            is_active=False,
+            otp_code='123456'
         )
-        from django.utils.http import urlsafe_base64_encode
-        from django.utils.encoding import force_bytes
-        from django.contrib.auth.tokens import default_token_generator
-        
-        uid = urlsafe_base64_encode(force_bytes(inactive_user.pk))
-        token = default_token_generator.make_token(inactive_user)
-        
         payload = {
-            'uid': uid,
-            'token': token
+            'username': 'verify_success_test',
+            'otp': '123456'
         }
-        response = self.client.post('/api/auth/verify-email/', payload, format='json')
+        response = self.client.post('/api/auth/verify-otp/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("verified successfully", response.data['detail'])
         
         # Verify user is active in DB
         inactive_user.refresh_from_db()
         self.assertTrue(inactive_user.is_active)
+        self.assertIsNone(inactive_user.otp_code)
 
-    def test_verify_email_invalid_token(self):
-        """Verify email verification fails when token is invalid."""
+    def test_verify_otp_invalid(self):
+        """Verify OTP verification fails when OTP is invalid."""
         inactive_user = User.objects.create_user(
             username='verify_failed_test',
             email='verify_failed_test@test.com',
-            password='password123',
+            password='Prajapatiadmin2005#$@',
             role='CUSTOMER',
-            is_active=False
+            is_active=False,
+            otp_code='123456'
         )
-        from django.utils.http import urlsafe_base64_encode
-        from django.utils.encoding import force_bytes
-        
-        uid = urlsafe_base64_encode(force_bytes(inactive_user.pk))
-        token = "invalid-token"
-        
         payload = {
-            'uid': uid,
-            'token': token
+            'username': 'verify_failed_test',
+            'otp': '654321'
         }
-        response = self.client.post('/api/auth/verify-email/', payload, format='json')
+        response = self.client.post('/api/auth/verify-otp/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("invalid or has expired", response.data['detail'])
+        self.assertIn("Invalid verification code", response.data['detail'])
+
+    def test_resend_otp(self):
+        """Verify resending OTP generates a new OTP code."""
+        inactive_user = User.objects.create_user(
+            username='resend_otp_test',
+            email='resend_otp_test@test.com',
+            password='Prajapatiadmin2005#$@',
+            role='CUSTOMER',
+            is_active=False,
+            otp_code='111111'
+        )
+        payload = {
+            'username': 'resend_otp_test'
+        }
+        response = self.client.post('/api/auth/resend-otp/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        inactive_user.refresh_from_db()
+        self.assertNotEqual(inactive_user.otp_code, '111111')
+        self.assertEqual(len(inactive_user.otp_code), 6)

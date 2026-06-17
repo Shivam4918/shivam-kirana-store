@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    RegisterView, VerifyEmailView, UserProfileView, ProductViewSet,
+    RegisterView, VerifyOTPView, ResendOTPView, UserProfileView, ProductViewSet,
     CustomerKhataView, CustomerCheckoutView, AdminDashboardAnalyticsView, AdminCustomerViewSet,
     ExpenseViewSet, SupplierViewSet, PurchaseViewSet, NotificationViewSet,
     ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
@@ -25,7 +25,8 @@ router.register(r'admin/expiry-batches', ExpiryBatchViewSet, basename='admin-exp
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
-    path('auth/verify-email/', VerifyEmailView.as_view(), name='verify-email'),
+    path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
+    path('auth/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('auth/profile/', UserProfileView.as_view(), name='profile'),
     path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
     path('khata/my-ledger/request-whatsapp-statement/', CustomerRequestWhatsAppStatementView.as_view(), name='request-whatsapp-statement'),

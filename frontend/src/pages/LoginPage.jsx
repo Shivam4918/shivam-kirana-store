@@ -163,8 +163,35 @@ const LoginPage = ({ defaultTab = 'login' }) => {
 
         {/* Notifications */}
         {errorMsg && (
-          <div className="mb-4 bg-rose-50 border border-rose-250 text-rose-600 p-3.5 rounded-2xl text-xs font-medium">
-            {errorMsg}
+          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-600 p-3.5 rounded-2xl text-xs font-medium flex flex-col space-y-2">
+            <span>{errorMsg}</span>
+            {showVerifyPrompt && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setRegUserEmailOrUsername(loginEmailOrUsername);
+                  setErrorMsg('');
+                  setShowVerifyPrompt(false);
+                  setShowOtpModal(true);
+                  
+                  // Trigger resend OTP automatically
+                  setOtpLoading(true);
+                  try {
+                    await api.post('/auth/resend-otp/', {
+                      username: loginEmailOrUsername
+                    });
+                    setOtpSuccess('Verification code sent to your email.');
+                  } catch (err) {
+                    setOtpError('Failed to send verification code. Please request a resend.');
+                  } finally {
+                    setOtpLoading(false);
+                  }
+                }}
+                className="text-left text-rose-800 underline font-bold mt-1 hover:text-rose-950 cursor-pointer"
+              >
+                Click here to verify your email now
+              </button>
+            )}
           </div>
         )}
         {successMsg && (
@@ -246,11 +273,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="text"
                   value={regUsername}
                   onChange={(e) => setRegUsername(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className={`w-full bg-white border ${valErrors.username ? 'border-rose-350 focus:border-rose-450 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="e.g. shyam"
                   required
                 />
               </div>
+              {valErrors.username && (
+                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.username}</p>
+              )}
             </div>
 
             <div>
@@ -265,11 +295,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="email"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className={`w-full bg-white border ${valErrors.email ? 'border-rose-305 focus:border-rose-450 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="e.g. shyam@gmail.com"
                   required
                 />
               </div>
+              {valErrors.email && (
+                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -284,10 +317,13 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="tel"
                   value={regPhone}
                   onChange={(e) => setRegPhone(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className={`w-full bg-white border ${valErrors.phone ? 'border-rose-305 focus:border-rose-450 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="e.g. 9988776655"
                 />
               </div>
+              {valErrors.phone && (
+                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.phone}</p>
+              )}
             </div>
 
             <div>
@@ -302,11 +338,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="password"
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className={`w-full bg-white border ${valErrors.password ? 'border-rose-305 focus:border-rose-450 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="Min. 8 characters"
                   required
                 />
               </div>
+              {valErrors.password && (
+                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.password}</p>
+              )}
             </div>
 
             <div>
@@ -321,16 +360,19 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="password"
                   value={regConfirmPassword}
                   onChange={(e) => setRegConfirmPassword(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className={`w-full bg-white border ${valErrors.confirmPassword ? 'border-rose-305 focus:border-rose-450 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="Retype password"
                   required
                 />
               </div>
+              {valErrors.confirmPassword && (
+                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.confirmPassword}</p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || Object.keys(valErrors).length > 0 || !regUsername || !regEmail || !regPassword || !regConfirmPassword}
               className="w-full mt-6 bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
             >
               {isLoading ? (
@@ -346,6 +388,80 @@ const LoginPage = ({ defaultTab = 'login' }) => {
         )}
 
       </div>
+
+      {/* OTP Verification Modal Overlay */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-slate-200/60 rounded-3xl p-6 sm:p-8 shadow-premium-2xl text-center">
+            <div className="bg-emerald-50 text-emerald-500 p-4 rounded-full inline-block mb-4">
+              <FiCheckCircle className="w-12 h-12" />
+            </div>
+            <h3 className="font-poppins font-extrabold text-xl text-secondary mb-2">Verify your account</h3>
+            <p className="text-text-secondary text-sm mb-6">
+              Please enter the 6-digit verification code sent to <strong className="text-secondary">{regUserEmailOrUsername}</strong>.
+            </p>
+
+            {otpError && (
+              <div className="mb-4 bg-rose-50 border border-rose-250 text-rose-600 p-3.5 rounded-2xl text-xs font-medium text-left">
+                {otpError}
+              </div>
+            )}
+            {otpSuccess && (
+              <div className="mb-4 bg-emerald-55 border border-emerald-250 text-emerald-600 p-3.5 rounded-2xl text-xs font-medium text-left">
+                {otpSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ''))}
+                  className="w-full tracking-[10px] text-center font-mono font-extrabold text-2xl bg-slate-50 border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-2xl py-4 pr-1 text-text-primary placeholder-slate-300 transition-all outline-none"
+                  placeholder="000000"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={otpLoading}
+                className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              >
+                {otpLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <span>Verify Code</span>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 flex justify-between items-center text-sm">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={otpCooldown > 0 || otpLoading}
+                className="text-primary hover:underline font-semibold disabled:text-slate-400 disabled:no-underline cursor-pointer"
+              >
+                {otpCooldown > 0 ? `Resend Code in ${otpCooldown}s` : 'Resend Code'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOtpModal(false);
+                  setSuccessMsg('Account is pending verification. Please verify before signing in.');
+                }}
+                className="text-text-secondary hover:text-secondary font-medium cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

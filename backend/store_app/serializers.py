@@ -14,13 +14,50 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
 
     def validate(self, attrs):
-        if attrs.get('password') != attrs.get('confirm_password'):
+        import re
+        # 1. Password Matching
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
+        if password != confirm_password:
             raise serializers.ValidationError({"password": "Passwords must match."})
         
-        # Ensure email is unique
+        # 2. Username Validation
+        username = attrs.get('username')
+        if not username:
+            raise serializers.ValidationError({"username": "Username is required."})
+        if len(username) < 4 or len(username) > 20:
+            raise serializers.ValidationError({"username": "Username must be between 4 and 20 characters."})
+        if not username[0].isalpha():
+            raise serializers.ValidationError({"username": "Username must start with a letter."})
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            raise serializers.ValidationError({"username": "Username can only contain letters, numbers, and underscores."})
+
+        # 3. Email Validation
         email = attrs.get('email')
+        if not email:
+            raise serializers.ValidationError({"email": "Email is required."})
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            raise serializers.ValidationError({"email": "Please enter a valid email address."})
         if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({"email": "A user with this email already exists."})
+
+        # 4. Phone Number Validation (Optional)
+        phone = attrs.get('phone_number')
+        if phone:
+            if not re.match(r'^[6-9]\d{9}$', phone):
+                raise serializers.ValidationError({"phone_number": "Please enter a valid 10-digit Indian mobile number."})
+
+        # 5. Password Complexity Validation
+        if len(password) < 8:
+            raise serializers.ValidationError({"password": "Password must be at least 8 characters long."})
+        if not re.search(r'[A-Z]', password):
+            raise serializers.ValidationError({"password": "Password must contain at least one uppercase letter."})
+        if not re.search(r'[a-z]', password):
+            raise serializers.ValidationError({"password": "Password must contain at least one lowercase letter."})
+        if not re.search(r'\d', password):
+            raise serializers.ValidationError({"password": "Password must contain at least one number."})
+        if not re.search(r'[@$!%*?&#]', password):
+            raise serializers.ValidationError({"password": "Password must contain at least one special character."})
             
         return attrs
 

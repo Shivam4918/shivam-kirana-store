@@ -32,44 +32,128 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             if user.role == 'CUSTOMER':
-                from django.conf import settings
-                from store_app.tasks import send_verification_email_task
+                import random
+                from django.utils import timezone
+                from store_app.tasks import send_otp_email_task
+                
+                # Generate 6-digit OTP
+                otp = f"{random.randint(100000, 999999)}"
+                user.otp_code = otp
+                user.otp_created_at = timezone.now()
+                user.save()
+
+                # Dispatch OTP email task (fail-safe)
                 try:
-                    send_verification_email_task.delay(user.id, settings.FRONTEND_URL)
-                except Exception:
-                    send_verification_email_task(user.id, settings.FRONTEND_URL)
+                    send_otp_email_task.delay(user.id)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to queue OTP task: {str(e)}")
+                    try:
+                        send_otp_email_task(user.id)
+                    except Exception as mail_err:
+                        logger.error(f"Failed to send OTP email synchronously: {str(mail_err)}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class VerifyEmailView(APIView):
+class VerifyOTPView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        uidb64 = request.data.get('uid')
-        token = request.data.get('token')
-        
-        if not uidb64 or not token:
-            return Response({"detail": "Verification UID and Token are required."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            from django.utils.http import urlsafe_base64_decode
-            from django.utils.encoding import force_str
-            from django.contrib.auth.tokens import default_token_generator
-            
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return Response({"detail": "Invalid verification link parameters."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        if default_token_generator.check_token(user, token):
-            if not user.is_active:
-                user.is_active = True
-                user.save()
-                return Response({"detail": "Email verified successfully! You can now log in."}, status=status.HTTP_200_OK)
-            else:
-                return Response({"detail": "Email is already verified."}, status=status.HTTP_200_OK)
+        email_or_username = request.data.get('username')
+        otp_code = request.data.get('otp')
+
+        if not email_or_username or not otp_code:
+            return Response({"detail": "Username/Email and OTP code are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve user by username or email
+        user = None
+        if '@' in email_or_username:
+            try:
+                user = User.objects.get(email=email_or_username)
+            except User.DoesNotExist:
+                pass
         else:
-            return Response({"detail": "Verification token is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user = User.objects.get(username=email_or_username)
+            except User.DoesNotExist:
+                pass
+
+        if not user:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_active:
+            return Response({"detail": "Account is already verified and active."}, status=status.HTTP_200_OK)
+
+        if not user.otp_code or user.otp_code != otp_code:
+            return Response({"detail": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check expiration (10 minutes)
+        if user.otp_created_at:
+            from django.utils import timezone
+            from datetime import timedelta
+            elapsed = timezone.now() - user.otp_created_at
+            if elapsed > timedelta(minutes=10):
+                return Response({"detail": "Verification code has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Activate user
+        user.is_active = True
+        user.otp_code = None
+        user.otp_created_at = None
+        user.save()
+
+        return Response({"detail": "Email verified successfully! You can now log in."}, status=status.HTTP_200_OK)
+
+class ResendOTPView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email_or_username = request.data.get('username')
+
+        if not email_or_username:
+            return Response({"detail": "Username or Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = None
+        if '@' in email_or_username:
+            try:
+                user = User.objects.get(email=email_or_username)
+            except User.DoesNotExist:
+                pass
+        else:
+            try:
+                user = User.objects.get(username=email_or_username)
+            except User.DoesNotExist:
+                pass
+
+        if not user:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_active:
+            return Response({"detail": "Account is already active."}, status=status.HTTP_200_OK)
+
+        # Generate a new 6-digit OTP
+        import random
+        from django.utils import timezone
+        from store_app.tasks import send_otp_email_task
+        
+        otp = f"{random.randint(100000, 999999)}"
+        user.otp_code = otp
+        user.otp_created_at = timezone.now()
+        user.save()
+
+        # Send OTP email (fail-safe)
+        try:
+            send_otp_email_task.delay(user.id)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to queue OTP resend task: {str(e)}")
+            try:
+                send_otp_email_task(user.id)
+            except Exception as mail_err:
+                logger.error(f"Failed to resend OTP email synchronously: {str(mail_err)}")
+
+        return Response({"detail": "A new verification code has been sent to your email."}, status=status.HTTP_200_OK)
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

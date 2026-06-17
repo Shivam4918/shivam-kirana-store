@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verification Code - Shivam Kirana Store</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #F8FAFC;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #F8FAFC;
+      padding: 40px 0;
+    }
+    .container {
+      max-width: 580px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+    .header {
+      background-color: #10B981;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 {
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .content {
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .content p {
+      color: #334155;
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0 0 20px 0;
+      text-align: left;
+    }
+    .otp-container {
+      margin: 30px auto;
+      display: inline-block;
+      background-color: #ECFDF5;
+      border: 2px dashed #10B981;
+      padding: 16px 36px;
+      border-radius: 16px;
+    }
+    .otp-code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 32px;
+      font-weight: 800;
+      color: #047857;
+      letter-spacing: 6px;
+    }
+    .cooldown-text {
+      color: #64748B;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    .footer {
+      background-color: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+      padding: 24px 30px;
+      text-align: center;
+    }
+    .footer p {
+      color: #64748B;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>Shivam Kirana Store</h1>
+      </div>
+      <div class="content">
+        <p>Namaste {{ user.username }},</p>
+        <p>Thank you for registering at Shivam Kirana Store. Please enter the following 6-digit verification code in the application to activate your account and access your ledger khata profile:</p>
+        
+        <div class="otp-container">
+          <span class="otp-code">{{ otp_code }}</span>
+        </div>
+        
+        <p class="cooldown-text">This code is valid for 10 minutes. Please do not share this code with anyone.</p>
+      </div>
+      <div class="footer">
+        <p>&copy; 2026 Shivam Kirana Store. All rights reserved.</p>
+        <p>Smart Groceries & Ledger Khata Management</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
