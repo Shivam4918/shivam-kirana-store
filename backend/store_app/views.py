@@ -1999,12 +1999,18 @@ class TestEmailView(APIView):
         smtp_test = {"success": False, "error": None}
         try:
             context = ssl.create_default_context()
-            with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15) as smtp_conn:
-                smtp_conn.ehlo()
-                smtp_conn.starttls(context=context)
-                smtp_conn.ehlo()
-                smtp_conn.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
-                smtp_test = {"success": True, "error": None, "message": "SMTP login successful!"}
+            if getattr(settings, 'EMAIL_USE_SSL', False):
+                with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15, context=context) as smtp_conn:
+                    smtp_conn.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                    smtp_test = {"success": True, "error": None, "message": "SMTP (SSL/465) login successful!"}
+            else:
+                with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15) as smtp_conn:
+                    smtp_conn.ehlo()
+                    if getattr(settings, 'EMAIL_USE_TLS', True):
+                        smtp_conn.starttls(context=context)
+                        smtp_conn.ehlo()
+                    smtp_conn.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                    smtp_test = {"success": True, "error": None, "message": "SMTP (TLS/587/2525) login successful!"}
         except smtplib.SMTPAuthenticationError as e:
             smtp_test = {
                 "success": False,

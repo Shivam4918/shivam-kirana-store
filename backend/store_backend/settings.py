@@ -287,7 +287,21 @@ else:
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', _default_backend)
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+
+# Dynamically set TLS and SSL settings based on the port if not explicitly set
+_use_ssl_env = os.environ.get('EMAIL_USE_SSL')
+_use_tls_env = os.environ.get('EMAIL_USE_TLS')
+
+if _use_ssl_env is not None:
+    EMAIL_USE_SSL = _use_ssl_env.lower() == 'true'
+else:
+    EMAIL_USE_SSL = (EMAIL_PORT == 465)
+
+if _use_tls_env is not None:
+    EMAIL_USE_TLS = _use_tls_env.lower() == 'true'
+else:
+    EMAIL_USE_TLS = (EMAIL_PORT != 465)
+
 EMAIL_HOST_USER = _smtp_user
 EMAIL_HOST_PASSWORD = _smtp_password
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'Shivam Kirana Store <{_smtp_user or "no-reply@shivamkiranastore.com"}>')
