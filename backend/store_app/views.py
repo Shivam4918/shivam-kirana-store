@@ -2029,28 +2029,28 @@ class TestEmailView(APIView):
         # Step 2: Actually send the email
         try:
             send_mail(
-                subject="✅ Test Email — Shivam Kirana Store SMTP",
+                subject="[OK] Test Email - Shivam Kirana Store SMTP",
                 message=(
                     "This is a test email from Shivam Kirana Store.\n\n"
                     f"Email Backend: {settings.EMAIL_BACKEND}\n"
                     f"SMTP Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}\n"
                     f"From: {settings.DEFAULT_FROM_EMAIL}\n\n"
-                    "If you received this, your email configuration is working correctly! 🎉\n"
+                    "If you received this, your email configuration is working correctly!\n"
                     "OTP emails will now be delivered to users."
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[recipient],
                 fail_silently=False
             )
-            logger.info(f"[TEST EMAIL] ✅ Test email sent to {recipient}")
+            logger.info(f"[TEST EMAIL] SUCCESS: Test email sent to {recipient}")
             return Response({
                 "success": True,
-                "message": f"✅ Test email sent to {recipient}! Check your inbox (and spam folder).",
+                "message": f"SUCCESS: Test email sent to {recipient}! Check your inbox (and spam folder).",
                 "smtp_test": smtp_test,
                 "email_config": email_config,
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"[TEST EMAIL] ❌ send_mail failed: {str(e)}\n{traceback.format_exc()}")
+            logger.error(f"[TEST EMAIL] FAILED: send_mail failed: {str(e)}\n{traceback.format_exc()}")
             return Response({
                 "success": False,
                 "error": str(e),

@@ -330,7 +330,7 @@ def scan_and_alert_expiring_products_task():
     for product in expired_products:
         days_ago = (today - product.expiry_date).days
         message = (
-            f"⚠️ EXPIRED: {product.name} expired {days_ago} day(s) ago "
+            f"[EXPIRED] {product.name} expired {days_ago} day(s) ago "
             f"(Exp: {product.expiry_date.strftime('%d %b %Y')}). "
             f"Stock: {product.stock_quantity} units. Please remove from shelves."
         )
@@ -347,7 +347,7 @@ def scan_and_alert_expiring_products_task():
     for product in expiring_soon_products:
         days_left = (product.expiry_date - today).days
         message = (
-            f"🟡 EXPIRING SOON: {product.name} expires in {days_left} day(s) "
+            f"[EXPIRING SOON] {product.name} expires in {days_left} day(s) "
             f"(Exp: {product.expiry_date.strftime('%d %b %Y')}). "
             f"Stock: {product.stock_quantity} units. Consider discounting or returning to supplier."
         )
@@ -365,7 +365,7 @@ def scan_and_alert_expiring_products_task():
         days_ago = (today - batch.expiry_date).days
         batch_label = f"Batch {batch.batch_number}" if batch.batch_number else "Unnamed Batch"
         message = (
-            f"⚠️ BATCH EXPIRED: {batch.product.name} — {batch_label} "
+            f"[BATCH EXPIRED] {batch.product.name} -- {batch_label} "
             f"expired {days_ago} day(s) ago (Exp: {batch.expiry_date.strftime('%d %b %Y')}). "
             f"Qty: {batch.quantity} units. Immediate action required."
         )
@@ -383,7 +383,7 @@ def scan_and_alert_expiring_products_task():
         days_left = (batch.expiry_date - today).days
         batch_label = f"Batch {batch.batch_number}" if batch.batch_number else "Unnamed Batch"
         message = (
-            f"🟡 BATCH EXPIRING SOON: {batch.product.name} — {batch_label} "
+            f"[BATCH EXPIRING SOON] {batch.product.name} -- {batch_label} "
             f"expires in {days_left} day(s) (Exp: {batch.expiry_date.strftime('%d %b %Y')}). "
             f"Qty: {batch.quantity} units."
         )
@@ -465,11 +465,11 @@ def send_otp_email_task(user_id):
             html_message=html_message,
             fail_silently=False
         )
-        logger.info(f"[OTP EMAIL] ✅ OTP email sent successfully to {user.email}")
+        logger.info(f"[OTP EMAIL] SUCCESS: OTP email sent successfully to {user.email}")
         return True
     except Exception as e:
         logger.error(
-            f"[OTP EMAIL] ❌ Failed to send OTP email to {user.email}.\n"
+            f"[OTP EMAIL] FAILED: Failed to send OTP email to {user.email}.\n"
             f"Error type: {type(e).__name__}\n"
             f"Error detail: {str(e)}\n"
             f"Traceback:\n{traceback.format_exc()}"
