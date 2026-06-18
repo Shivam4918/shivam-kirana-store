@@ -458,7 +458,7 @@ class AdminCustomerViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminUserRole]
 
     def list(self, request):
-        queryset = KhataProfile.objects.select_related('user').all()
+        queryset = KhataProfile.objects.select_related('user').filter(user__is_active=True)
         
         search_query = request.query_params.get('search', None)
         if search_query:

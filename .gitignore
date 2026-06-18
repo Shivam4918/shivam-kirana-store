@@ -44,3 +44,6 @@ backend/store_backend/__pycache__/
 *.njsproj
 *.sln
 *.sw?
+
+# Whitelist .env templates
+!backend/.env.example
