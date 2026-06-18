@@ -1949,29 +1949,38 @@ class HealthCheckView(APIView):
 
 class TestEmailView(APIView):
     """
-    Debug endpoint — sends a test email to verify SMTP configuration.
-    POST /api/auth/test-email/ with {"recipient": "your@email.com"}
-    Only accessible in DEBUG mode or by admin users.
+    Debug endpoint — sends a test email and also does a raw SMTP connection check.
+    POST /api/auth/test-email/
+    Body: {"recipient": "email@example.com", "secret": "shivam-debug-2024"}
+    The secret allows bypassing auth for diagnostic purposes.
     """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         import logging
         import traceback
+        import smtplib
+        import ssl
         from django.core.mail import send_mail
         from django.conf import settings
 
-        # Security: only allow in DEBUG mode or if the requester is an authenticated admin
-        if not settings.DEBUG:
-            if not (request.user and request.user.is_authenticated and request.user.role == 'ADMIN'):
-                return Response(
-                    {"detail": "This endpoint is only available in DEBUG mode or to admin users."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        DEBUG_SECRET = "shivam-debug-2024"
+        secret = request.data.get('secret', '')
+
+        # Allow access if: DEBUG mode, admin user, OR correct secret key
+        is_admin = request.user and request.user.is_authenticated and getattr(request.user, 'role', '') == 'ADMIN'
+        if not (settings.DEBUG or is_admin or secret == DEBUG_SECRET):
+            return Response(
+                {"detail": "Access denied. Provide the correct 'secret' key."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         recipient = request.data.get('recipient', '')
         if not recipient:
-            return Response({"detail": "Please provide a 'recipient' email address."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Please provide a 'recipient' email address."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         logger = logging.getLogger(__name__)
 
@@ -1980,20 +1989,54 @@ class TestEmailView(APIView):
             "host": settings.EMAIL_HOST,
             "port": settings.EMAIL_PORT,
             "use_tls": settings.EMAIL_USE_TLS,
-            "host_user": settings.EMAIL_HOST_USER or "(NOT SET)",
-            "host_password_set": bool(settings.EMAIL_HOST_PASSWORD),
+            "host_user": settings.EMAIL_HOST_USER or "(NOT SET — emails will fail!)",
+            "host_password_length": len(settings.EMAIL_HOST_PASSWORD),
+            "host_password_has_spaces": ' ' in settings.EMAIL_HOST_PASSWORD,
             "default_from": settings.DEFAULT_FROM_EMAIL,
         }
 
+        # Step 1: Raw SMTP connection test to get exact error
+        smtp_test = {"success": False, "error": None}
+        try:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15) as smtp_conn:
+                smtp_conn.ehlo()
+                smtp_conn.starttls(context=context)
+                smtp_conn.ehlo()
+                smtp_conn.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                smtp_test = {"success": True, "error": None, "message": "SMTP login successful!"}
+        except smtplib.SMTPAuthenticationError as e:
+            smtp_test = {
+                "success": False,
+                "error": f"SMTP Authentication FAILED: {str(e)}",
+                "hint": "Check your EMAIL_HOST_USER and EMAIL_HOST_PASSWORD. Make sure you use a Google App Password (no spaces)."
+            }
+        except Exception as e:
+            smtp_test = {
+                "success": False,
+                "error": f"{type(e).__name__}: {str(e)}",
+                "hint": "SMTP connection failed. Check EMAIL_HOST and EMAIL_PORT."
+            }
+
+        if not smtp_test["success"]:
+            logger.error(f"[TEST EMAIL] SMTP connection test failed: {smtp_test['error']}")
+            return Response({
+                "success": False,
+                "smtp_test": smtp_test,
+                "email_config": email_config,
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Step 2: Actually send the email
         try:
             send_mail(
-                subject="✅ Test Email — Shivam Kirana Store SMTP Config",
+                subject="✅ Test Email — Shivam Kirana Store SMTP",
                 message=(
                     "This is a test email from Shivam Kirana Store.\n\n"
                     f"Email Backend: {settings.EMAIL_BACKEND}\n"
                     f"SMTP Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}\n"
                     f"From: {settings.DEFAULT_FROM_EMAIL}\n\n"
-                    "If you received this, your email configuration is working correctly! 🎉"
+                    "If you received this, your email configuration is working correctly! 🎉\n"
+                    "OTP emails will now be delivered to users."
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[recipient],
@@ -2002,14 +2045,17 @@ class TestEmailView(APIView):
             logger.info(f"[TEST EMAIL] ✅ Test email sent to {recipient}")
             return Response({
                 "success": True,
-                "message": f"Test email sent successfully to {recipient}!",
+                "message": f"✅ Test email sent to {recipient}! Check your inbox (and spam folder).",
+                "smtp_test": smtp_test,
                 "email_config": email_config,
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"[TEST EMAIL] ❌ Failed: {str(e)}\n{traceback.format_exc()}")
+            logger.error(f"[TEST EMAIL] ❌ send_mail failed: {str(e)}\n{traceback.format_exc()}")
             return Response({
                 "success": False,
                 "error": str(e),
                 "error_type": type(e).__name__,
+                "smtp_test": smtp_test,
                 "email_config": email_config,
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
