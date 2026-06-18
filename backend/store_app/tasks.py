@@ -437,9 +437,14 @@ def send_otp_email_task(user_id):
 
     subject = f"Verification Code: {user.otp_code} - Shivam Kirana Store"
 
+    from datetime import datetime
     context = {
         'user': user,
-        'otp_code': user.otp_code
+        'customer_name': user.username,
+        'otp_code': user.otp_code,
+        'expiry_minutes': 10,
+        'support_email': getattr(settings, 'EMAIL_HOST_USER', 'shivamkiranastoreofficial@gmail.com'),
+        'current_year': datetime.now().year
     }
 
     try:

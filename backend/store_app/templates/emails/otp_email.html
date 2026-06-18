@@ -1,109 +1,245 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verification Code - Shivam Kirana Store</title>
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Verify Your Email - Shivam Kirana Store</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    /* Perfect CSS reset for multiple clients */
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #F8FAFC;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: #F9FAFB;
       margin: 0;
       padding: 0;
+      width: 100% !important;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    .wrapper {
-      width: 100%;
-      background-color: #F8FAFC;
-      padding: 40px 0;
+    table {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
     }
-    .container {
-      max-width: 580px;
-      margin: 0 auto;
-      background-color: #ffffff;
-      border: 1px solid #E2E8F0;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
     }
-    .header {
-      background-color: #10B981;
-      padding: 30px;
-      text-align: center;
-    }
-    .header h1 {
-      color: #ffffff;
-      font-size: 24px;
-      font-weight: 800;
-      margin: 0;
-      letter-spacing: -0.5px;
-    }
-    .content {
-      padding: 40px 30px;
-      text-align: center;
-    }
-    .content p {
-      color: #334155;
-      font-size: 16px;
-      line-height: 1.6;
-      margin: 0 0 20px 0;
-      text-align: left;
-    }
-    .otp-container {
-      margin: 30px auto;
-      display: inline-block;
-      background-color: #ECFDF5;
-      border: 2px dashed #10B981;
-      padding: 16px 36px;
-      border-radius: 16px;
-    }
-    .otp-code {
-      font-family: "Courier New", Courier, monospace;
-      font-size: 32px;
-      font-weight: 800;
-      color: #047857;
-      letter-spacing: 6px;
-    }
-    .cooldown-text {
-      color: #64748B;
-      font-size: 13px;
-      margin-top: 10px;
-    }
-    .footer {
-      background-color: #F8FAFC;
-      border-top: 1px solid #E2E8F0;
-      padding: 24px 30px;
-      text-align: center;
-    }
-    .footer p {
-      color: #64748B;
-      font-size: 13px;
-      line-height: 1.5;
-      margin: 0;
+    
+    /* Responsive Styling */
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .content-padding {
+        padding: 24px !important;
+      }
+      .otp-text {
+        font-size: 32px !important;
+        letter-spacing: 6px !important;
+      }
+      .feature-item {
+        width: 100% !important;
+        display: block !important;
+        margin-bottom: 12px !important;
+      }
     }
   </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <div class="header">
-        <h1>Shivam Kirana Store</h1>
-      </div>
-      <div class="content">
-        <p>Namaste {{ user.username }},</p>
-        <p>Thank you for registering at Shivam Kirana Store. Please enter the following 6-digit verification code in the application to activate your account and access your ledger khata profile:</p>
-        
-        <div class="otp-container">
-          <span class="otp-code">{{ otp_code }}</span>
-        </div>
-        
-        <p class="cooldown-text">This code is valid for 10 minutes. Please do not share this code with anyone.</p>
-      </div>
-      <div class="footer">
-        <p>&copy; 2026 Shivam Kirana Store. All rights reserved.</p>
-        <p>Smart Groceries & Ledger Khata Management</p>
-      </div>
-    </div>
-  </div>
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #F9FAFB; margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased;">
+  <!-- Main Wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F9FAFB; width: 100%;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <!-- Email Shell (600px max width) -->
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="width: 600px; max-width: 600px; background-color: #ffffff; border: 1px solid #E5E7EB; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.03);">
+          
+          <!-- Header (Modern Green Gradient Overlay styling) -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 40px 30px; text-align: center;">
+              <!-- Logo Container -->
+              <table align="center" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color: rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 10px 16px; color: #ffffff; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    🏪 SKS
+                  </td>
+                </tr>
+              </table>
+              <h1 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 20px 0 6px 0; letter-spacing: -0.5px;">
+                Shivam Kirana Store
+              </h1>
+              <p style="color: #ECFDF5; font-size: 13px; font-weight: 500; margin: 0; letter-spacing: 0.5px; text-transform: uppercase;">
+                Smart Grocery & Digital Khata Management
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content Body -->
+          <tr>
+            <td class="content-padding" style="padding: 40px 40px 30px 40px; background-color: #ffffff;">
+              <!-- Greeting -->
+              <p style="color: #111827; font-size: 18px; font-weight: 700; margin: 0 0 16px 0;">
+                Welcome to Shivam Kirana Store, {{customer_name}}!
+              </p>
+              
+              <p style="color: #6B7280; font-size: 15px; line-height: 24px; margin: 0 0 32px 0;">
+                Thank you for signing up for an account. Please verify your email address to active your ledger khata profile and explore our smart grocery tools.
+              </p>
+
+              <!-- OTP Premium Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 16px; margin-bottom: 32px; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);">
+                <tr>
+                  <td style="padding: 28px; text-align: center;">
+                    <p style="color: #6B7280; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px 0;">
+                      Your Verification Code
+                    </p>
+                    
+                    <!-- Highly Visible OTP Code -->
+                    <table align="center" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td class="otp-text" style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; color: #059669; letter-spacing: 8px; background-color: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 12px; padding: 12px 28px 12px 36px; display: inline-block;">
+                          {{otp_code}}
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <p style="color: #9CA3AF; font-size: 12px; margin: 16px 0 0 0;">
+                      Double-click to select and copy the code.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Security Warning Banner -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; border-radius: 4px; margin-bottom: 32px;">
+                <tr>
+                  <td style="padding: 16px 20px; text-align: left;">
+                    <p style="color: #92400E; font-size: 13px; line-height: 20px; font-weight: 500; margin: 0;">
+                      <strong>⚠️ Security Notice:</strong> This code will expire in <strong>{{expiry_minutes}} minutes</strong>. Never share this code with anyone. Shivam Kirana Store staff will never ask for your verification code.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-top: 1px solid #E5E7EB; padding-bottom: 28px;"></td>
+                </tr>
+              </table>
+
+              <!-- Benefits Section -->
+              <p style="color: #111827; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 16px 0;">
+                What you can do next
+              </p>
+              
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 12px;">
+                <tr>
+                  <!-- Feature column 1 -->
+                  <td class="feature-item" width="50%" valign="top" style="padding-bottom: 16px; padding-right: 10px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="top" style="color: #10B981; font-size: 16px; font-weight: bold; padding-right: 8px;">✓</td>
+                        <td style="color: #4B5563; font-size: 14px; line-height: 20px;">
+                          <strong>Digital Khata:</strong> Access your ledger balance anytime.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <!-- Feature column 2 -->
+                  <td class="feature-item" width="50%" valign="top" style="padding-bottom: 16px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="top" style="color: #10B981; font-size: 16px; font-weight: bold; padding-right: 8px;">✓</td>
+                        <td style="color: #4B5563; font-size: 14px; line-height: 20px;">
+                          <strong>Credit Tracking:</strong> Get real-time updates on outstanding dues.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <!-- Feature column 3 -->
+                  <td class="feature-item" width="50%" valign="top" style="padding-bottom: 16px; padding-right: 10px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="top" style="color: #10B981; font-size: 16px; font-weight: bold; padding-right: 8px;">✓</td>
+                        <td style="color: #4B5563; font-size: 14px; line-height: 20px;">
+                          <strong>Payment History:</strong> View digital bills & receipts instantly.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <!-- Feature column 4 -->
+                  <td class="feature-item" width="50%" valign="top" style="padding-bottom: 16px;">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="top" style="color: #10B981; font-size: 16px; font-weight: bold; padding-right: 8px;">✓</td>
+                        <td style="color: #4B5563; font-size: 14px; line-height: 20px;">
+                          <strong>Smart Groceries:</strong> Order & scan barcodes from home.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Support Section -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F3F4F6; border-radius: 12px; margin-top: 16px;">
+                <tr>
+                  <td style="padding: 20px; text-align: left;">
+                    <p style="color: #111827; font-size: 14px; font-weight: 700; margin: 0 0 6px 0;">
+                      Need Help?
+                    </p>
+                    <p style="color: #4B5563; font-size: 13px; line-height: 18px; margin: 0;">
+                      If you did not request this code or need assistance with your account setup, please reach out directly to our support team at <a href="mailto:{{support_email}}" style="color: #059669; text-decoration: none; font-weight: 600;">{{support_email}}</a>. We are here to help!
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F9FAFB; border-top: 1px solid #E5E7EB; padding: 40px 30px; text-align: center;">
+              <!-- Social Icons Placeholder styling -->
+              <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 0 8px;">
+                    <a href="#" style="color: #9CA3AF; text-decoration: none; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Website</a>
+                  </td>
+                  <td style="color: #D1D5DB;">&bull;</td>
+                  <td style="padding: 0 8px;">
+                    <a href="#" style="color: #9CA3AF; text-decoration: none; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Support</a>
+                  </td>
+                  <td style="color: #D1D5DB;">&bull;</td>
+                  <td style="padding: 0 8px;">
+                    <a href="#" style="color: #9CA3AF; text-decoration: none; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Privacy</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color: #9CA3AF; font-size: 12px; line-height: 18px; margin: 0 0 8px 0;">
+                &copy; {{current_year}} Shivam Kirana Store. All rights reserved.
+              </p>
+              <p style="color: #9CA3AF; font-size: 11px; line-height: 16px; margin: 0;">
+                Shivam Kirana Store, Main Bazaar, City Center Mall, India.<br>
+                This email was sent to you because you registered an account on our platform.
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
