@@ -252,7 +252,10 @@ if 'test' not in sys.argv:
 
 if 'test' in sys.argv or not redis_running:
     CELERY_TASK_ALWAYS_EAGER = True
-    CELERY_TASK_EAGER_PROPAGATES = True
+    # Note: Do NOT set CELERY_TASK_EAGER_PROPAGATES = True in production-like environments.
+    # When email tasks fail due to missing SMTP credentials, we do NOT want that to propagate
+    # and cause a 500 error in the registration view. Let tasks fail silently and log the error.
+    CELERY_TASK_EAGER_PROPAGATES = False
 
 
 # Razorpay API Credentials
@@ -268,13 +271,21 @@ TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+141
 
 
 # Email Configuration
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
+# If EMAIL_HOST_USER is not set, fall back to console backend to avoid 500 errors on SMTP connect
+_smtp_user = os.environ.get('EMAIL_HOST_USER', '')
+_default_backend = (
+    'django.core.mail.backends.console.EmailBackend'
+    if (DEBUG or not _smtp_user)
+    else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', _default_backend)
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_USER = _smtp_user
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Shivam Kirana Store <no-reply@shivamkiranastore.com>')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))  # 10s timeout prevents request hangs
 
 # Frontend URL for Verification Links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
