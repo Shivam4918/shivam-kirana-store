@@ -410,6 +410,7 @@ def scan_and_alert_expiring_products_task():
 
 @shared_task
 def send_otp_email_task(user_id):
+    import traceback
     from django.core.mail import send_mail
     from django.template.loader import render_to_string
     from django.conf import settings
@@ -418,12 +419,21 @@ def send_otp_email_task(user_id):
     try:
         user = CustomUser.objects.get(id=user_id)
     except CustomUser.DoesNotExist:
-        logger.error(f"User with ID {user_id} not found for OTP email.")
+        logger.error(f"[OTP EMAIL] User with ID {user_id} not found for OTP email.")
         return False
 
     if not user.otp_code:
-        logger.error(f"User {user.username} does not have an active OTP code generated.")
+        logger.error(f"[OTP EMAIL] User {user.username} does not have an active OTP code generated.")
         return False
+
+    # Log the email backend so we can diagnose config issues on Render
+    logger.info(
+        f"[OTP EMAIL] Preparing to send OTP to {user.email} | "
+        f"Backend={settings.EMAIL_BACKEND} | "
+        f"Host={settings.EMAIL_HOST}:{settings.EMAIL_PORT} | "
+        f"From={settings.DEFAULT_FROM_EMAIL} | "
+        f"User={settings.EMAIL_HOST_USER or '(NOT SET)'}"
+    )
 
     subject = f"Verification Code: {user.otp_code} - Shivam Kirana Store"
 
@@ -435,14 +445,15 @@ def send_otp_email_task(user_id):
     try:
         html_message = render_to_string('emails/otp_email.html', context)
     except Exception as e:
-        logger.error(f"Error rendering OTP email template: {str(e)}")
+        logger.warning(f"[OTP EMAIL] Could not render HTML template: {str(e)}. Falling back to plain text.")
         html_message = None
 
     plain_message = (
         f"Namaste {user.username}!\n\n"
         f"Thank you for registering at Shivam Kirana Store.\n"
         f"Your 6-digit verification code is: {user.otp_code}\n\n"
-        f"This code is valid for 10 minutes. If you did not register this account, please ignore this email.\n"
+        f"This code is valid for 10 minutes.\n"
+        f"If you did not register this account, please ignore this email.\n"
     )
 
     try:
@@ -454,10 +465,13 @@ def send_otp_email_task(user_id):
             html_message=html_message,
             fail_silently=False
         )
-        logger.info(f"OTP verification email sent successfully to {user.email}")
+        logger.info(f"[OTP EMAIL] ✅ OTP email sent successfully to {user.email}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send OTP email to {user.email}: {str(e)}")
+        logger.error(
+            f"[OTP EMAIL] ❌ Failed to send OTP email to {user.email}.\n"
+            f"Error type: {type(e).__name__}\n"
+            f"Error detail: {str(e)}\n"
+            f"Traceback:\n{traceback.format_exc()}"
+        )
         return False
-
-

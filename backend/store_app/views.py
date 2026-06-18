@@ -1919,6 +1919,7 @@ class HealthCheckView(APIView):
     def get(self, request):
         from django.db import connections
         from django.db.utils import OperationalError
+        from django.conf import settings
 
         db_conn = connections['default']
         try:
@@ -1927,8 +1928,88 @@ class HealthCheckView(APIView):
         except OperationalError:
             db_status = "disconnected"
 
+        # Email config check (no password exposure)
+        email_config = {
+            "backend": settings.EMAIL_BACKEND,
+            "host": settings.EMAIL_HOST,
+            "port": settings.EMAIL_PORT,
+            "use_tls": settings.EMAIL_USE_TLS,
+            "host_user_set": bool(settings.EMAIL_HOST_USER),
+            "host_password_set": bool(settings.EMAIL_HOST_PASSWORD),
+            "default_from": settings.DEFAULT_FROM_EMAIL,
+        }
+
         status_code = status.HTTP_200_OK if db_status == "connected" else status.HTTP_500_INTERNAL_SERVER_ERROR
         return Response({
             "status": "healthy" if db_status == "connected" else "unhealthy",
-            "database": db_status
+            "database": db_status,
+            "email": email_config,
         }, status=status_code)
+
+
+class TestEmailView(APIView):
+    """
+    Debug endpoint — sends a test email to verify SMTP configuration.
+    POST /api/auth/test-email/ with {"recipient": "your@email.com"}
+    Only accessible in DEBUG mode or by admin users.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        import logging
+        import traceback
+        from django.core.mail import send_mail
+        from django.conf import settings
+
+        # Security: only allow in DEBUG mode or if the requester is an authenticated admin
+        if not settings.DEBUG:
+            if not (request.user and request.user.is_authenticated and request.user.role == 'ADMIN'):
+                return Response(
+                    {"detail": "This endpoint is only available in DEBUG mode or to admin users."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        recipient = request.data.get('recipient', '')
+        if not recipient:
+            return Response({"detail": "Please provide a 'recipient' email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+        logger = logging.getLogger(__name__)
+
+        email_config = {
+            "backend": settings.EMAIL_BACKEND,
+            "host": settings.EMAIL_HOST,
+            "port": settings.EMAIL_PORT,
+            "use_tls": settings.EMAIL_USE_TLS,
+            "host_user": settings.EMAIL_HOST_USER or "(NOT SET)",
+            "host_password_set": bool(settings.EMAIL_HOST_PASSWORD),
+            "default_from": settings.DEFAULT_FROM_EMAIL,
+        }
+
+        try:
+            send_mail(
+                subject="✅ Test Email — Shivam Kirana Store SMTP Config",
+                message=(
+                    "This is a test email from Shivam Kirana Store.\n\n"
+                    f"Email Backend: {settings.EMAIL_BACKEND}\n"
+                    f"SMTP Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}\n"
+                    f"From: {settings.DEFAULT_FROM_EMAIL}\n\n"
+                    "If you received this, your email configuration is working correctly! 🎉"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[recipient],
+                fail_silently=False
+            )
+            logger.info(f"[TEST EMAIL] ✅ Test email sent to {recipient}")
+            return Response({
+                "success": True,
+                "message": f"Test email sent successfully to {recipient}!",
+                "email_config": email_config,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"[TEST EMAIL] ❌ Failed: {str(e)}\n{traceback.format_exc()}")
+            return Response({
+                "success": False,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "email_config": email_config,
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

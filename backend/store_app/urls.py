@@ -8,7 +8,7 @@ from .views import (
     ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
     PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
-    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView
+    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView
 )
 
 router = DefaultRouter()
@@ -55,6 +55,7 @@ urlpatterns = [
 
     # Health Check
     path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('auth/test-email/', TestEmailView.as_view(), name='test-email'),
 
     path('', include(router.urls)),
 ]

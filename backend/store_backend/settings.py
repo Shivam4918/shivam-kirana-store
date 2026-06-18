@@ -271,21 +271,27 @@ TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+141
 
 
 # Email Configuration
-# If EMAIL_HOST_USER is not set, fall back to console backend to avoid 500 errors on SMTP connect
+# Use SMTP whenever EMAIL_HOST_USER is provided (both dev and production).
+# Fall back to console backend ONLY if no SMTP credentials are configured.
 _smtp_user = os.environ.get('EMAIL_HOST_USER', '')
-_default_backend = (
-    'django.core.mail.backends.console.EmailBackend'
-    if (DEBUG or not _smtp_user)
-    else 'django.core.mail.backends.smtp.EmailBackend'
-)
+_smtp_password = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+# Determine the default backend:
+# - If EMAIL_BACKEND is explicitly set in env, respect it.
+# - Else: use SMTP if credentials exist, console if not.
+if _smtp_user and _smtp_password:
+    _default_backend = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    _default_backend = 'django.core.mail.backends.console.EmailBackend'
+
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', _default_backend)
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = _smtp_user
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Shivam Kirana Store <no-reply@shivamkiranastore.com>')
-EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 10))  # 10s timeout prevents request hangs
+EMAIL_HOST_PASSWORD = _smtp_password
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'Shivam Kirana Store <{_smtp_user or "no-reply@shivamkiranastore.com"}>')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 15))  # 15s timeout
 
 # Frontend URL for Verification Links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')

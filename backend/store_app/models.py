@@ -110,7 +110,18 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender=CustomUser)
 def create_user_khata_profile(sender, instance, created, **kwargs):
-    if created:
+    """
+    Create KhataProfile when:
+    1. A new user is created AND is immediately active (e.g. Admin users), OR
+    2. An existing user transitions to is_active=True (OTP email verification completes).
+    
+    This prevents unverified CUSTOMER registrations from polluting the DB.
+    """
+    if created and instance.is_active:
+        # New active user (admin or first user) — create profile immediately
+        KhataProfile.objects.get_or_create(user=instance)
+    elif not created and instance.is_active:
+        # Existing user just became active (email verified) — ensure profile exists
         KhataProfile.objects.get_or_create(user=instance)
 
 class Expense(models.Model):
