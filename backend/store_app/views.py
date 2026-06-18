@@ -28,6 +28,16 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        # Clean up any existing inactive/unverified users with the same username or email
+        # to prevent "already exists" errors when users re-register with corrected/new info
+        username = request.data.get('username')
+        email = request.data.get('email')
+        if username or email:
+            from django.db.models import Q
+            inactive_users = User.objects.filter(Q(username=username) | Q(email=email), is_active=False)
+            if inactive_users.exists():
+                inactive_users.delete()
+
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
