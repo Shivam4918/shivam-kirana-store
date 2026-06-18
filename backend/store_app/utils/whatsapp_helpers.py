@@ -113,14 +113,13 @@ def dispatch_whatsapp_task(profile_id, message_type, context_data=None):
     import logging
     logger = logging.getLogger(__name__)
     
+    # Run WhatsApp task via run_task_async_or_sync helper
+    from store_app.utils.task_helpers import run_task_async_or_sync
     try:
-        send_whatsapp_notification_task.delay(profile_id, message_type, context_data)
-        logger.info(f"Asynchronously queued WhatsApp task ({message_type}) for profile {profile_id}.")
-    except Exception as e:
-        logger.warning(
-            f"Celery queue connection failed ({str(e)}). "
-            f"Falling back to synchronous dispatch for WhatsApp task ({message_type}) for profile {profile_id}."
-        )
+        run_task_async_or_sync(send_whatsapp_notification_task, profile_id, message_type, context_data)
+        logger.info(f"Dispatched WhatsApp task ({message_type}) for profile {profile_id}.")
+    except Exception as dispatch_err:
+        logger.error(f"Failed to dispatch WhatsApp task: {str(dispatch_err)}")
         try:
             send_whatsapp_notification_task(profile_id, message_type, context_data)
         except Exception as sync_err:

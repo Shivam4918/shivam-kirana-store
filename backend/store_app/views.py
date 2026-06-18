@@ -42,17 +42,15 @@ class RegisterView(APIView):
                 user.otp_created_at = timezone.now()
                 user.save()
 
-                # Dispatch OTP email task (fail-safe)
+                # Dispatch OTP email task via run_task_async_or_sync helper
+                from store_app.utils.task_helpers import run_task_async_or_sync
+                import logging
+                logger = logging.getLogger(__name__)
                 try:
-                    send_otp_email_task.delay(user.id)
-                except Exception as e:
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.error(f"Failed to queue OTP task: {str(e)}")
-                    try:
-                        send_otp_email_task(user.id)
-                    except Exception as mail_err:
-                        logger.error(f"Failed to send OTP email synchronously: {str(mail_err)}")
+                    run_task_async_or_sync(send_otp_email_task, user.id)
+                    logger.info(f"Dispatched OTP email task for user {user.id}")
+                except Exception as dispatch_err:
+                    logger.error(f"Failed to dispatch OTP email: {str(dispatch_err)}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -141,17 +139,15 @@ class ResendOTPView(APIView):
         user.otp_created_at = timezone.now()
         user.save()
 
-        # Send OTP email (fail-safe)
+        # Send OTP email via run_task_async_or_sync helper
+        from store_app.utils.task_helpers import run_task_async_or_sync
+        import logging
+        logger = logging.getLogger(__name__)
         try:
-            send_otp_email_task.delay(user.id)
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to queue OTP resend task: {str(e)}")
-            try:
-                send_otp_email_task(user.id)
-            except Exception as mail_err:
-                logger.error(f"Failed to resend OTP email synchronously: {str(mail_err)}")
+            run_task_async_or_sync(send_otp_email_task, user.id)
+            logger.info(f"Dispatched OTP email resend task for user {user.id}")
+        except Exception as dispatch_err:
+            logger.error(f"Failed to dispatch OTP email resend: {str(dispatch_err)}")
 
         return Response({"detail": "A new verification code has been sent to your email."}, status=status.HTTP_200_OK)
 

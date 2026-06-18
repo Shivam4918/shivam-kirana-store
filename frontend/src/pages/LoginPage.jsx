@@ -168,7 +168,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
     setIsLoading(false);
 
     if (result.success) {
-      setRegUserEmailOrUsername(regUsername);
+      setRegUserEmailOrUsername(regEmail || regUsername);
       setSuccessMsg('Registration successful! Please enter the 6-digit OTP code sent to your email.');
       setRegUsername('');
       setRegEmail('');
