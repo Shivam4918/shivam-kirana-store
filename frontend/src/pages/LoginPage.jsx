@@ -640,7 +640,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   value={loginEmailOrUsername}
                   onChange={(e) => setLoginEmailOrUsername(e.target.value)}
                   className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
-                  placeholder="e.g. shyam"
+                  placeholder="e.g. shivam"
                   required
                 />
               </div>
@@ -712,7 +712,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                       ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100'
                       : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'
                   } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
-                  placeholder="e.g. shyam"
+                  placeholder="e.g. shivam"
                   required
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -753,7 +753,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                       ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100'
                       : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'
                   } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
-                  placeholder="e.g. shyam@gmail.com"
+                  placeholder="e.g. shivam@gmail.com"
                   required
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
