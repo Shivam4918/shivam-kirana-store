@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
-  FiTrendingUp, FiDollarSign, FiBookOpen, FiActivity, FiRefreshCw, FiCheckCircle, FiLock, FiAlertTriangle,
+  FiRefreshCw, FiCheckCircle, FiAlertTriangle,
   FiFileText, FiDownload, FiCalendar, FiPercent
 } from 'react-icons/fi';
 

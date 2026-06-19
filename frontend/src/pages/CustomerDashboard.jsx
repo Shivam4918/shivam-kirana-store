@@ -310,7 +310,7 @@ const CustomerDashboard = () => {
         quantity: item.quantity
       }));
 
-      const res = await api.post('/checkout/', { items: checkoutItems });
+      await api.post('/checkout/', { items: checkoutItems });
       
       // Update Khata status
       showToast(`Success! Charged ₹${getCartTotal().toFixed(2)} to your Khata ledger.`, 'success');

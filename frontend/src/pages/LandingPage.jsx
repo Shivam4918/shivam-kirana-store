@@ -1,12 +1,12 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { motion, useInView, useAnimation, AnimatePresence } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
-  FiShoppingBag, FiStar, FiArrowRight, FiShield, FiTrendingUp,
+  FiShoppingBag, FiStar, FiArrowRight, FiTrendingUp,
   FiBook, FiPackage, FiUsers, FiBarChart2, FiZap, FiCheck,
   FiChevronLeft, FiChevronRight, FiMapPin, FiPhone, FiMail,
-  FiClock, FiLayers, FiActivity, FiCreditCard, FiLock, FiGlobe
+  FiClock, FiActivity, FiLock
 } from 'react-icons/fi';
 
 // ─── Animated Counter Hook ───────────────────────────────────────────────────

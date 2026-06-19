@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { 
   FiMail, FiLock, FiUser, FiPhone, FiArrowRight, 
@@ -10,34 +10,19 @@ import api from '../services/api';
 const LoginPage = ({ defaultTab = 'login' }) => {
   const { login, register, isAuthenticated, user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const location = useLocation();
 
+  // State hooks declared first (to avoid TDZ issues)
   const [activeTab, setActiveTab] = useState(defaultTab);
-
-  // Sync tab state when routes switch
-  useEffect(() => {
-    setActiveTab(defaultTab);
-    setErrorMsg('');
-    setSuccessMsg('');
-  }, [defaultTab]);
-
-  // Registration states
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
-
-  // Login states
   const [loginEmailOrUsername, setLoginEmailOrUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-
-  // UI state
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // OTP and Field Validation States
   const [valErrors, setValErrors] = useState({});
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
@@ -47,6 +32,13 @@ const LoginPage = ({ defaultTab = 'login' }) => {
   const [otpSuccess, setOtpSuccess] = useState('');
   const [otpError, setOtpError] = useState('');
   const [otpCooldown, setOtpCooldown] = useState(0);
+
+  // Sync tab state when routes switch
+  useEffect(() => {
+    setActiveTab(defaultTab);
+    setErrorMsg('');
+    setSuccessMsg('');
+  }, [defaultTab]);
 
   // Auto-redirect if authenticated
   useEffect(() => {
@@ -331,7 +323,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                       username: loginEmailOrUsername
                     });
                     setOtpSuccess('Verification code sent to your email.');
-                  } catch (err) {
+                  } catch {
                     setOtpError('Failed to send verification code. Please request a resend.');
                   } finally {
                     setOtpLoading(false);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
-  FiFileText, FiDownload, FiUsers, FiBox, FiTrendingUp, FiCreditCard, FiDollarSign, FiCalendar, FiMessageSquare, FiClock 
+  FiFileText, FiDownload, FiUsers, FiBox, FiTrendingUp, FiCreditCard, FiDollarSign, FiCalendar, FiMessageSquare
 } from 'react-icons/fi';
 
 const AdvancedReports = () => {

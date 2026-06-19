@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { 
-  FiSearch, FiUser, FiPhone, FiMail, FiMapPin, FiPercent, FiPlus, FiCalendar, FiX, 
-  FiArrowUpRight, FiArrowDownLeft, FiBookOpen, FiAlertCircle, FiCheckCircle, FiEdit2, FiTrash2, FiBox 
+  FiSearch, FiUser, FiPhone, FiMail, FiMapPin, FiPlus, FiCalendar, FiX, 
+  FiArrowDownLeft, FiBookOpen, FiAlertCircle, FiCheckCircle, FiEdit2, FiTrash2, FiBox 
 } from 'react-icons/fi';
 
 const SupplierManagement = () => {
