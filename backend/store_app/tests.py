@@ -673,7 +673,7 @@ class StoreBackendTests(TestCase):
         user = User.objects.get(username='inactive_tester')
         self.assertFalse(user.is_active)
         self.assertIsNotNone(user.otp_code)
-        self.assertEqual(len(user.otp_code), 6)
+        self.assertEqual(len(user.otp_code), 64)
 
     def test_login_inactive_user(self):
         """Verify correct login attempt for an inactive user returns verification validation error."""
@@ -694,13 +694,15 @@ class StoreBackendTests(TestCase):
 
     def test_verify_otp_success(self):
         """Verify OTP verification endpoint succeeds and activates user."""
+        import hashlib
+        hashed = hashlib.sha256('123456'.encode()).hexdigest()
         inactive_user = User.objects.create_user(
             username='verify_success_test',
             email='verify_success_test@test.com',
             password='Prajapatiadmin2005#$@',
             role='CUSTOMER',
             is_active=False,
-            otp_code='123456'
+            otp_code=hashed
         )
         payload = {
             'username': 'verify_success_test',
@@ -717,13 +719,15 @@ class StoreBackendTests(TestCase):
 
     def test_verify_otp_invalid(self):
         """Verify OTP verification fails when OTP is invalid."""
+        import hashlib
+        hashed = hashlib.sha256('123456'.encode()).hexdigest()
         inactive_user = User.objects.create_user(
             username='verify_failed_test',
             email='verify_failed_test@test.com',
             password='Prajapatiadmin2005#$@',
             role='CUSTOMER',
             is_active=False,
-            otp_code='123456'
+            otp_code=hashed
         )
         payload = {
             'username': 'verify_failed_test',
@@ -735,13 +739,15 @@ class StoreBackendTests(TestCase):
 
     def test_resend_otp(self):
         """Verify resending OTP generates a new OTP code."""
+        import hashlib
+        hashed = hashlib.sha256('111111'.encode()).hexdigest()
         inactive_user = User.objects.create_user(
             username='resend_otp_test',
             email='resend_otp_test@test.com',
             password='Prajapatiadmin2005#$@',
             role='CUSTOMER',
             is_active=False,
-            otp_code='111111'
+            otp_code=hashed
         )
         payload = {
             'username': 'resend_otp_test'
@@ -750,5 +756,5 @@ class StoreBackendTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         inactive_user.refresh_from_db()
-        self.assertNotEqual(inactive_user.otp_code, '111111')
-        self.assertEqual(len(inactive_user.otp_code), 6)
+        self.assertNotEqual(inactive_user.otp_code, hashed)
+        self.assertEqual(len(inactive_user.otp_code), 64)

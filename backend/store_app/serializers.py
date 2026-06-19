@@ -15,6 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         import re
+        import socket
+        
         # 1. Password Matching
         password = attrs.get('password')
         confirm_password = attrs.get('confirm_password')
@@ -22,42 +24,131 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords must match."})
         
         # 2. Username Validation
-        username = attrs.get('username')
+        username = attrs.get('username', '')
+        if username:
+            username = re.sub(r'\s+', '', username.strip())
+            attrs['username'] = username
+            
         if not username:
             raise serializers.ValidationError({"username": "Username is required."})
-        if len(username) < 4 or len(username) > 20:
-            raise serializers.ValidationError({"username": "Username must be between 4 and 20 characters."})
+            
+        if len(username) < 3 or len(username) > 30:
+            raise serializers.ValidationError({"username": "Username must be between 3 and 30 characters."})
+            
         if not username[0].isalpha():
             raise serializers.ValidationError({"username": "Username must start with a letter."})
+            
         if not re.match(r'^[a-zA-Z0-9_]+$', username):
             raise serializers.ValidationError({"username": "Username can only contain letters, numbers, and underscores."})
+            
+        if '__' in username:
+            raise serializers.ValidationError({"username": "Username cannot contain consecutive underscores."})
+            
+        if username.endswith('_'):
+            raise serializers.ValidationError({"username": "Username cannot end with an underscore."})
+            
+        reserved = {'admin', 'administrator', 'root', 'superadmin', 'support', 'help', 'owner', 'system', 'test', 'guest', 'api', 'staff', 'null', 'undefined'}
+        if username.lower() in reserved:
+            raise serializers.ValidationError({"username": "This username is reserved and cannot be used."})
+            
+        existing_user_query = User.objects.filter(username__iexact=username)
+        if self.instance:
+            existing_user_query = existing_user_query.exclude(pk=self.instance.pk)
+        if existing_user_query.exists():
+            raise serializers.ValidationError({"username": "A user with this username already exists."})
 
         # 3. Email Validation
-        email = attrs.get('email')
+        email = attrs.get('email', '')
+        if email:
+            email = email.strip().lower()
+            attrs['email'] = email
+            
         if not email:
             raise serializers.ValidationError({"email": "Email is required."})
-        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
-            raise serializers.ValidationError({"email": "Please enter a valid email address."})
-        if User.objects.filter(email=email).exists():
+            
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email) or '..' in email:
+            raise serializers.ValidationError({"email": "Please enter a valid email address format."})
+            
+        # Check disposable domain
+        domain = email.split('@')[1] if '@' in email else ''
+        disposable_domains = {
+            'tempmail.com', 'mailinator.com', '10minutemail.com', 'yopmail.com', 
+            'guerrillamail.com', 'dispostable.com', 'getairmail.com', 'sharklasers.com',
+            'temp-mail.org', 'tempmailaddress.com', 'boun.cr', 'trashmail.com'
+        }
+        if domain in disposable_domains:
+            raise serializers.ValidationError({"email": "Disposable or temporary email domains are blocked."})
+            
+        # DNS domain validation
+        import sys
+        if 'test' not in sys.argv:
+            try:
+                socket.getaddrinfo(domain, None)
+            except socket.gaierror:
+                raise serializers.ValidationError({"email": "Invalid email domain or no active DNS record found."})
+            
+        existing_email_query = User.objects.filter(email__iexact=email)
+        if self.instance:
+            existing_email_query = existing_email_query.exclude(pk=self.instance.pk)
+        if existing_email_query.exists():
             raise serializers.ValidationError({"email": "A user with this email already exists."})
 
-        # 4. Phone Number Validation (Optional)
-        phone = attrs.get('phone_number')
+        # 4. Phone Number Validation
+        phone = attrs.get('phone_number', '')
         if phone:
-            if not re.match(r'^[6-9]\d{9}$', phone):
-                raise serializers.ValidationError({"phone_number": "Please enter a valid 10-digit Indian mobile number."})
+            phone = phone.strip().replace(' ', '')
+            attrs['phone_number'] = phone
+            
+        if not phone:
+            raise serializers.ValidationError({"phone_number": "Phone number is required."})
+            
+        if not re.match(r'^[6-9]\d{9}$', phone):
+            raise serializers.ValidationError({"phone_number": "Phone number must start with 6-9 and contain exactly 10 digits."})
+            
+        existing_phone_query = User.objects.filter(phone_number=phone)
+        if self.instance:
+            existing_phone_query = existing_phone_query.exclude(pk=self.instance.pk)
+        if existing_phone_query.exists():
+            raise serializers.ValidationError({"phone_number": "A user with this phone number already exists."})
 
         # 5. Password Complexity Validation
-        if len(password) < 8:
-            raise serializers.ValidationError({"password": "Password must be at least 8 characters long."})
+        if not password:
+            raise serializers.ValidationError({"password": "Password is required."})
+            
+        if len(password) < 8 or len(password) > 128:
+            raise serializers.ValidationError({"password": "Password must be between 8 and 128 characters long."})
+            
         if not re.search(r'[A-Z]', password):
             raise serializers.ValidationError({"password": "Password must contain at least one uppercase letter."})
+            
         if not re.search(r'[a-z]', password):
             raise serializers.ValidationError({"password": "Password must contain at least one lowercase letter."})
+            
         if not re.search(r'\d', password):
             raise serializers.ValidationError({"password": "Password must contain at least one number."})
+            
         if not re.search(r'[@$!%*?&#]', password):
             raise serializers.ValidationError({"password": "Password must contain at least one special character."})
+            
+        # Cannot contain username, email name, or phone number
+        if username and username.lower() in password.lower():
+            raise serializers.ValidationError({"password": "Password cannot contain your username."})
+            
+        email_name = email.split('@')[0] if email else ''
+        if email_name and email_name.lower() in password.lower():
+            raise serializers.ValidationError({"password": "Password cannot contain your email name."})
+            
+        if phone and phone in password:
+            raise serializers.ValidationError({"password": "Password cannot contain your phone number."})
+            
+        # Prevent weak dictionary/common passwords
+        common_passwords = {
+            'password', '12345678', 'qwerty', '123456789', 'password123', 'admin123', 
+            'letmein1', 'admin', 'administrator', 'guest', 'root', 'user123', 'pass123', 
+            'welcome', 'welcome123', 'shivam123', 'kirana123', 'kirana', 'shivam'
+        }
+        if password.lower() in common_passwords:
+            raise serializers.ValidationError({"password": "This password is too common and weak. Please choose a stronger password."})
             
         return attrs
 

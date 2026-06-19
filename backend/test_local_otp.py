@@ -45,24 +45,25 @@ def run_test():
         print("[-] Connection failed. Is the Django development server running on http://localhost:8000?")
         return False
 
-    # 2. Query Database directly to get the generated OTP
+    # 2. Query Database directly to set a known OTP hash for testing
     time.sleep(1)  # Brief pause to ensure DB write is finalized
     try:
         user = User.objects.get(username=username)
-        otp = user.otp_code
-        print(f"[+] Retrieved generated OTP from Database: {otp}")
-        if not otp:
-            print("[-] Error: OTP was not generated in the database!")
-            return False
+        raw_otp = "123456"
+        import hashlib
+        hashed_otp = hashlib.sha256(raw_otp.encode()).hexdigest()
+        user.otp_code = hashed_otp
+        user.save()
+        print(f"[+] Overrode DB OTP with hash of: {raw_otp}")
     except User.DoesNotExist:
         print(f"[-] Error: User {username} was not found in the database!")
         return False
-
+ 
     # 3. Submit OTP to verification endpoint
     verify_url = f"{BASE_URL}/auth/verify-otp/"
     verify_data = {
         "username": username,
-        "otp": otp
+        "otp": raw_otp
     }
 
     print(f"[+] Submitting OTP verification for user...")

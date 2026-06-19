@@ -9,12 +9,19 @@ class CustomUser(AbstractUser):
         ('CUSTOMER', 'Customer'),
     )
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True, db_index=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='CUSTOMER')
-    otp_code = models.CharField(max_length=6, blank=True, null=True)
+    otp_code = models.CharField(max_length=128, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
+    otp_failed_attempts = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Normalize empty string phone numbers to None to avoid unique index violation for multiple empty inputs
+        if self.phone_number == '':
+            self.phone_number = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.username} ({self.role})"

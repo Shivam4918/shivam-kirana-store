@@ -28,8 +28,6 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # Clean up any existing inactive/unverified users with the same username or email
-        # to prevent "already exists" errors when users re-register with corrected/new info
         username = request.data.get('username')
         email = request.data.get('email')
         if username or email:
@@ -42,14 +40,18 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             if user.role == 'CUSTOMER':
-                import random
+                import secrets
+                import hashlib
                 from django.utils import timezone
                 from store_app.tasks import send_otp_email_task
                 
-                # Generate 6-digit OTP
-                otp = f"{random.randint(100000, 999999)}"
-                user.otp_code = otp
+                # Generate cryptographically secure 6-digit OTP
+                otp = f"{secrets.randbelow(900000) + 100000}"
+                hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
+                
+                user.otp_code = hashed_otp
                 user.otp_created_at = timezone.now()
+                user.otp_failed_attempts = 0
                 user.save()
 
                 # Dispatch OTP email task via run_task_async_or_sync helper
@@ -57,7 +59,7 @@ class RegisterView(APIView):
                 import logging
                 logger = logging.getLogger(__name__)
                 try:
-                    run_task_async_or_sync(send_otp_email_task, user.id)
+                    run_task_async_or_sync(send_otp_email_task, user.id, raw_otp=otp)
                     logger.info(f"Dispatched OTP email task for user {user.id}")
                 except Exception as dispatch_err:
                     logger.error(f"Failed to dispatch OTP email: {str(dispatch_err)}")
@@ -78,12 +80,12 @@ class VerifyOTPView(APIView):
         user = None
         if '@' in email_or_username:
             try:
-                user = User.objects.get(email=email_or_username)
+                user = User.objects.get(email__iexact=email_or_username)
             except User.DoesNotExist:
                 pass
         else:
             try:
-                user = User.objects.get(username=email_or_username)
+                user = User.objects.get(username__iexact=email_or_username)
             except User.DoesNotExist:
                 pass
 
@@ -93,8 +95,12 @@ class VerifyOTPView(APIView):
         if user.is_active:
             return Response({"detail": "Account is already verified and active."}, status=status.HTTP_200_OK)
 
-        if not user.otp_code or user.otp_code != otp_code:
-            return Response({"detail": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST)
+        # Locked out check
+        if user.otp_failed_attempts >= 5:
+            return Response(
+                {"detail": "Verification blocked due to too many failed attempts. Please request a new verification code."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Check expiration (10 minutes)
         if user.otp_created_at:
@@ -104,10 +110,28 @@ class VerifyOTPView(APIView):
             if elapsed > timedelta(minutes=10):
                 return Response({"detail": "Verification code has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
+        import hashlib
+        incoming_hashed = hashlib.sha256(otp_code.encode()).hexdigest()
+
+        if not user.otp_code or user.otp_code != incoming_hashed:
+            user.otp_failed_attempts += 1
+            user.save()
+            attempts_left = max(0, 5 - user.otp_failed_attempts)
+            if attempts_left == 0:
+                return Response(
+                    {"detail": "Too many failed attempts. This verification code has been locked. Please request a new code."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                {"detail": f"Invalid verification code. {attempts_left} attempts remaining."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Activate user
         user.is_active = True
         user.otp_code = None
         user.otp_created_at = None
+        user.otp_failed_attempts = 0
         user.save()
 
         return Response({"detail": "Email verified successfully! You can now log in."}, status=status.HTTP_200_OK)
@@ -124,12 +148,12 @@ class ResendOTPView(APIView):
         user = None
         if '@' in email_or_username:
             try:
-                user = User.objects.get(email=email_or_username)
+                user = User.objects.get(email__iexact=email_or_username)
             except User.DoesNotExist:
                 pass
         else:
             try:
-                user = User.objects.get(username=email_or_username)
+                user = User.objects.get(username__iexact=email_or_username)
             except User.DoesNotExist:
                 pass
 
@@ -139,27 +163,132 @@ class ResendOTPView(APIView):
         if user.is_active:
             return Response({"detail": "Account is already active."}, status=status.HTTP_200_OK)
 
-        # Generate a new 6-digit OTP
-        import random
+        # Resend rate limiting (max 5 resends per hour)
+        from django.core.cache import cache
         from django.utils import timezone
+        
+        cache_key = f"otp_resend_{user.id}"
+        now_ts = timezone.now().timestamp()
+        resends = cache.get(cache_key, [])
+        resends = [r for r in resends if now_ts - r < 3600]
+        
+        if len(resends) >= 5:
+            return Response(
+                {"detail": "Maximum of 5 resends per hour allowed. Please try again later."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        # Cooldown check (60 seconds)
+        if user.otp_created_at:
+            elapsed = timezone.now() - user.otp_created_at
+            if elapsed.total_seconds() < 60:
+                seconds_left = int(60 - elapsed.total_seconds())
+                return Response(
+                    {"detail": f"Please wait {seconds_left} seconds before requesting a new code."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        import secrets
+        import hashlib
         from store_app.tasks import send_otp_email_task
         
-        otp = f"{random.randint(100000, 999999)}"
-        user.otp_code = otp
+        otp = f"{secrets.randbelow(900000) + 100000}"
+        hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
+        
+        user.otp_code = hashed_otp
         user.otp_created_at = timezone.now()
+        user.otp_failed_attempts = 0
         user.save()
+
+        # Update resend cache
+        resends.append(now_ts)
+        cache.set(cache_key, resends, 3600)
 
         # Send OTP email via run_task_async_or_sync helper
         from store_app.utils.task_helpers import run_task_async_or_sync
         import logging
         logger = logging.getLogger(__name__)
         try:
-            run_task_async_or_sync(send_otp_email_task, user.id)
+            run_task_async_or_sync(send_otp_email_task, user.id, raw_otp=otp)
             logger.info(f"Dispatched OTP email resend task for user {user.id}")
         except Exception as dispatch_err:
             logger.error(f"Failed to dispatch OTP email resend: {str(dispatch_err)}")
 
         return Response({"detail": "A new verification code has been sent to your email."}, status=status.HTTP_200_OK)
+
+class CheckUsernameView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username', '').strip()
+        if not username:
+            return Response({"available": False, "detail": "Username is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(username) < 3 or len(username) > 30:
+            return Response({"available": False, "detail": "Username must be between 3 and 30 characters."})
+        if not username[0].isalpha():
+            return Response({"available": False, "detail": "Username must start with a letter."})
+        import re
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            return Response({"available": False, "detail": "Username can only contain letters, numbers, and underscores."})
+        if '__' in username:
+            return Response({"available": False, "detail": "Username cannot contain consecutive underscores."})
+        if username.endswith('_'):
+            return Response({"available": False, "detail": "Username cannot end with an underscore."})
+
+        reserved = {'admin', 'administrator', 'root', 'superadmin', 'support', 'help', 'owner', 'system', 'test', 'guest', 'api', 'staff', 'null', 'undefined'}
+        if username.lower() in reserved:
+            return Response({"available": False, "detail": "This username is reserved and cannot be used."})
+
+        exists = User.objects.filter(username__iexact=username).exists()
+        return Response({"available": not exists})
+
+class CheckEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        if not email:
+            return Response({"available": False, "detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        import re
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email) or '..' in email:
+            return Response({"available": False, "detail": "Invalid email address format."})
+
+        domain = email.split('@')[1] if '@' in email else ''
+        disposable_domains = {
+            'tempmail.com', 'mailinator.com', '10minutemail.com', 'yopmail.com', 
+            'guerrillamail.com', 'dispostable.com', 'getairmail.com', 'sharklasers.com',
+            'temp-mail.org', 'tempmailaddress.com', 'boun.cr', 'trashmail.com'
+        }
+        if domain in disposable_domains:
+            return Response({"available": False, "detail": "Disposable/temporary email domains are blocked."})
+
+        import socket
+        import sys
+        if 'test' not in sys.argv:
+            try:
+                socket.getaddrinfo(domain, None)
+            except socket.gaierror:
+                return Response({"available": False, "detail": "Invalid email domain or no active DNS record found."})
+
+        exists = User.objects.filter(email__iexact=email).exists()
+        return Response({"available": not exists})
+
+class CheckPhoneView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone_number = request.data.get('phone_number', '').strip().replace(' ', '')
+        if not phone_number:
+            return Response({"available": False, "detail": "Phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        import re
+        if not re.match(r'^[6-9]\d{9}$', phone_number):
+            return Response({"available": False, "detail": "Phone number must start with 6-9 and contain exactly 10 digits."})
+
+        exists = User.objects.filter(phone_number=phone_number).exists()
+        return Response({"available": not exists})
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

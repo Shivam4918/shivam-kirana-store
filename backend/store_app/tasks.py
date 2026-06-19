@@ -409,7 +409,7 @@ def scan_and_alert_expiring_products_task():
 
 
 @shared_task
-def send_otp_email_task(user_id):
+def send_otp_email_task(user_id, raw_otp):
     import traceback
     from django.core.mail import send_mail
     from django.template.loader import render_to_string
@@ -422,10 +422,6 @@ def send_otp_email_task(user_id):
         logger.error(f"[OTP EMAIL] User with ID {user_id} not found for OTP email.")
         return False
 
-    if not user.otp_code:
-        logger.error(f"[OTP EMAIL] User {user.username} does not have an active OTP code generated.")
-        return False
-
     # Log the email backend so we can diagnose config issues on Render
     logger.info(
         f"[OTP EMAIL] Preparing to send OTP to {user.email} | "
@@ -435,13 +431,13 @@ def send_otp_email_task(user_id):
         f"User={settings.EMAIL_HOST_USER or '(NOT SET)'}"
     )
 
-    subject = f"Verification Code: {user.otp_code} - Shivam Kirana Store"
+    subject = f"Verification Code: {raw_otp} - Shivam Kirana Store"
 
     from datetime import datetime
     context = {
         'user': user,
         'customer_name': user.username,
-        'otp_code': user.otp_code,
+        'otp_code': raw_otp,
         'expiry_minutes': 10,
         'support_email': getattr(settings, 'EMAIL_HOST_USER', 'shivamkiranastoreofficial@gmail.com'),
         'current_year': datetime.now().year
@@ -456,7 +452,7 @@ def send_otp_email_task(user_id):
     plain_message = (
         f"Namaste {user.username}!\n\n"
         f"Thank you for registering at Shivam Kirana Store.\n"
-        f"Your 6-digit verification code is: {user.otp_code}\n\n"
+        f"Your 6-digit verification code is: {raw_otp}\n\n"
         f"This code is valid for 10 minutes.\n"
         f"If you did not register this account, please ignore this email.\n"
     )

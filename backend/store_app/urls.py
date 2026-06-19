@@ -8,7 +8,8 @@ from .views import (
     ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
     PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
-    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView
+    ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
+    CheckUsernameView, CheckEmailView, CheckPhoneView
 )
 
 router = DefaultRouter()
@@ -27,6 +28,9 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('auth/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    path('auth/check-username/', CheckUsernameView.as_view(), name='check-username'),
+    path('auth/check-email/', CheckEmailView.as_view(), name='check-email'),
+    path('auth/check-phone/', CheckPhoneView.as_view(), name='check-phone'),
     path('auth/profile/', UserProfileView.as_view(), name='profile'),
     path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
     path('khata/my-ledger/request-whatsapp-statement/', CustomerRequestWhatsAppStatementView.as_view(), name='request-whatsapp-statement'),
