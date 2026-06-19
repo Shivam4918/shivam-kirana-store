@@ -115,8 +115,8 @@ class ExpiryBatchAdmin(admin.ModelAdmin):
 
 @admin.register(PendingRegistration)
 class PendingRegistrationAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'phone_number', 'is_verified', 'otp_expiry', 'attempt_count', 'created_at')
-    list_filter = ('is_verified', 'created_at', 'otp_expiry')
+    list_display = ('username', 'email', 'phone_number', 'status', 'is_verified', 'otp_expiry', 'attempt_count', 'created_at')
+    list_filter = ('status', 'is_verified', 'created_at', 'otp_expiry')
     search_fields = ('username', 'email', 'phone_number')
     ordering = ('-created_at',)
 

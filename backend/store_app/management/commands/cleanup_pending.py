@@ -7,7 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         now = timezone.now()
-        deleted_count, _ = PendingRegistration.objects.filter(otp_expiry__lt=now).delete()
+        updated_count = PendingRegistration.objects.filter(status='pending', otp_expiry__lt=now).update(status='expired')
         self.stdout.write(self.style.SUCCESS(
-            f'Successfully deleted {deleted_count} expired PendingRegistration records at {now}'
+            f'Successfully marked {updated_count} expired PendingRegistration records at {now}'
         ))

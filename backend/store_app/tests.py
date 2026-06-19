@@ -732,8 +732,9 @@ class StoreBackendTests(TestCase):
         user = User.objects.get(username='verify_success_test')
         self.assertTrue(user.is_active)
         
-        # Verify pending record is deleted
-        self.assertFalse(PendingRegistration.objects.filter(username='verify_success_test').exists())
+        # Verify pending record status is set to verified
+        pending = PendingRegistration.objects.get(username='verify_success_test')
+        self.assertEqual(pending.status, 'verified')
 
     def test_verify_otp_invalid(self):
         """Verify OTP verification fails when OTP is invalid."""
@@ -788,3 +789,77 @@ class StoreBackendTests(TestCase):
         pending.refresh_from_db()
         self.assertNotEqual(pending.otp, hashed)
         self.assertEqual(len(pending.otp), 64)
+
+    def test_registration_cancellation_and_expiration_uniqueness(self):
+        """Verify that cancelled or expired registrations do not block new registration attempts with the same credentials."""
+        from .models import PendingRegistration
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # 1. Create a cancelled pending registration
+        PendingRegistration.objects.create(
+            username='cancelled_user',
+            email='cancelled@test.com',
+            phone_number='9876543220',
+            password_hash=make_password('Prajapatiadmin2005#$@'),
+            otp='hashed',
+            otp_expiry=timezone.now() + timedelta(minutes=10),
+            status='cancelled'
+        )
+
+        # 2. Try to register with the same details
+        payload = {
+            'username': 'cancelled_user',
+            'email': 'cancelled@test.com',
+            'password': 'Prajapatiadmin2005#$@',
+            'confirm_password': 'Prajapatiadmin2005#$@',
+            'phone_number': '9876543220',
+            'role': 'CUSTOMER'
+        }
+        # Uniqueness check endpoints should return available=True
+        res_username = self.client.post('/api/auth/check-username/', {'username': 'cancelled_user'}, format='json')
+        self.assertEqual(res_username.status_code, status.HTTP_200_OK)
+        self.assertTrue(res_username.data['available'])
+
+        res_email = self.client.post('/api/auth/check-email/', {'email': 'cancelled@test.com'}, format='json')
+        self.assertEqual(res_email.status_code, status.HTTP_200_OK)
+        self.assertTrue(res_email.data['available'])
+
+        res_phone = self.client.post('/api/auth/check-phone/', {'phone_number': '9876543220'}, format='json')
+        self.assertEqual(res_phone.status_code, status.HTTP_200_OK)
+        self.assertTrue(res_phone.data['available'])
+
+        # Register POST should succeed
+        response = self.client.post('/api/auth/register/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify a new active pending registration is created and the old one is marked as cancelled
+        pending_records = PendingRegistration.objects.filter(username='cancelled_user')
+        self.assertEqual(pending_records.count(), 2)
+        self.assertEqual(pending_records.filter(status='pending').count(), 1)
+        self.assertEqual(pending_records.filter(status='cancelled').count(), 1)
+
+    def test_cancel_registration_api(self):
+        """Verify that the cancel-registration endpoint successfully marks a pending registration as cancelled."""
+        from .models import PendingRegistration
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from datetime import timedelta
+
+        PendingRegistration.objects.create(
+            username='to_cancel',
+            email='to_cancel@test.com',
+            phone_number='9876543221',
+            password_hash=make_password('Prajapatiadmin2005#$@'),
+            otp='hashed',
+            otp_expiry=timezone.now() + timedelta(minutes=10),
+            status='pending'
+        )
+
+        response = self.client.post('/api/auth/cancel-registration/', {'username': 'to_cancel'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['detail'], "Registration cancelled successfully.")
+
+        pending = PendingRegistration.objects.get(username='to_cancel')
+        self.assertEqual(pending.status, 'cancelled')

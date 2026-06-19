@@ -38,8 +38,8 @@ class RegisterView(APIView):
         from store_app.utils.task_helpers import run_task_async_or_sync
         from django.db.models import Q
 
-        # Clean up expired registrations first so they can be reused
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        # Update expired registrations status to 'expired' first so they can be reused
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
 
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -61,10 +61,11 @@ class RegisterView(APIView):
             # Hash password
             password_hash = make_password(password)
 
-            # Clean up any existing pending registration for this username/email/phone
+            # Mark any existing active pending registration for this username/email/phone as cancelled
             PendingRegistration.objects.filter(
-                Q(username__iexact=username) | Q(email__iexact=email) | Q(phone_number=phone)
-            ).delete()
+                Q(username__iexact=username) | Q(email__iexact=email) | Q(phone_number=phone),
+                status='pending'
+            ).update(status='cancelled')
 
             # Create PendingRegistration record
             pending = PendingRegistration.objects.create(
@@ -109,21 +110,15 @@ class VerifyOTPView(APIView):
         from django.utils import timezone
         import hashlib
 
-        # 1. Clean up expired registrations first
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        # 1. Update expired registrations status to 'expired' first
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
 
         # 2. Look up the pending registration by email or username
         pending = None
         if '@' in email_or_username:
-            try:
-                pending = PendingRegistration.objects.get(email__iexact=email_or_username)
-            except PendingRegistration.DoesNotExist:
-                pass
+            pending = PendingRegistration.objects.filter(email__iexact=email_or_username, status='pending').first()
         else:
-            try:
-                pending = PendingRegistration.objects.get(username__iexact=email_or_username)
-            except PendingRegistration.DoesNotExist:
-                pass
+            pending = PendingRegistration.objects.filter(username__iexact=email_or_username, status='pending').first()
 
         # If not found in PendingRegistration, check if User is already active in database
         if not pending:
@@ -147,7 +142,8 @@ class VerifyOTPView(APIView):
 
         # 4. Check expiration
         if pending.otp_expiry and pending.otp_expiry < timezone.now():
-            pending.delete()
+            pending.status = 'expired'
+            pending.save()
             return Response({"detail": "Verification code has expired. Please register again."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 5. Verify OTP
@@ -179,7 +175,9 @@ class VerifyOTPView(APIView):
             )
             user.password = pending.password_hash
             user.save()
-            pending.delete()
+            pending.status = 'verified'
+            pending.is_verified = True
+            pending.save()
 
         # 7. Generate JWT tokens for direct login
         from rest_framework_simplejwt.tokens import RefreshToken
@@ -216,19 +214,14 @@ class ResendOTPView(APIView):
         from store_app.utils.task_helpers import run_task_async_or_sync
         from django.core.cache import cache
 
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
 
+        # Find the active pending registration
         pending = None
         if '@' in email_or_username:
-            try:
-                pending = PendingRegistration.objects.get(email__iexact=email_or_username)
-            except PendingRegistration.DoesNotExist:
-                pass
+            pending = PendingRegistration.objects.filter(email__iexact=email_or_username, status='pending').first()
         else:
-            try:
-                pending = PendingRegistration.objects.get(username__iexact=email_or_username)
-            except PendingRegistration.DoesNotExist:
-                pass
+            pending = PendingRegistration.objects.filter(username__iexact=email_or_username, status='pending').first()
 
         if not pending:
             if '@' in email_or_username:
@@ -313,10 +306,10 @@ class CheckUsernameView(APIView):
 
         from store_app.models import PendingRegistration
         from django.utils import timezone
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
 
         exists_user = User.objects.filter(username__iexact=username).exists()
-        exists_pending = PendingRegistration.objects.filter(username__iexact=username).exists()
+        exists_pending = PendingRegistration.objects.filter(username__iexact=username, status='pending', otp_expiry__gt=timezone.now()).exists()
         return Response({"available": not (exists_user or exists_pending)})
 
 class CheckEmailView(APIView):
@@ -350,10 +343,10 @@ class CheckEmailView(APIView):
 
         from store_app.models import PendingRegistration
         from django.utils import timezone
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
 
         exists_user = User.objects.filter(email__iexact=email).exists()
-        exists_pending = PendingRegistration.objects.filter(email__iexact=email).exists()
+        exists_pending = PendingRegistration.objects.filter(email__iexact=email, status='pending', otp_expiry__gt=timezone.now()).exists()
         return Response({"available": not (exists_user or exists_pending)})
 
 class CheckPhoneView(APIView):
@@ -370,11 +363,39 @@ class CheckPhoneView(APIView):
 
         from store_app.models import PendingRegistration
         from django.utils import timezone
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
 
         exists_user = User.objects.filter(phone_number=phone_number).exists()
-        exists_pending = PendingRegistration.objects.filter(phone_number=phone_number).exists()
+        exists_pending = PendingRegistration.objects.filter(phone_number=phone_number, status='pending', otp_expiry__gt=timezone.now()).exists()
         return Response({"available": not (exists_user or exists_pending)})
+
+class CancelRegistrationView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email_or_username = request.data.get('username')
+        if not email_or_username:
+            return Response({"detail": "Username or Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        
+        # Mark expired first
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
+
+        # Find the active pending registration
+        pending = None
+        if '@' in email_or_username:
+            pending = PendingRegistration.objects.filter(email__iexact=email_or_username, status='pending').first()
+        else:
+            pending = PendingRegistration.objects.filter(username__iexact=email_or_username, status='pending').first()
+
+        if pending:
+            pending.status = 'cancelled'
+            pending.save()
+            return Response({"detail": "Registration cancelled successfully."}, status=status.HTTP_200_OK)
+
+        return Response({"detail": "No active pending registration found to cancel."}, status=status.HTTP_404_NOT_FOUND)
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

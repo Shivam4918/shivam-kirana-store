@@ -493,6 +493,6 @@ def cleanup_expired_pending_registrations_task():
     from django.utils import timezone
     from store_app.models import PendingRegistration
     now = timezone.now()
-    deleted_count, _ = PendingRegistration.objects.filter(otp_expiry__lt=now).delete()
-    logger.info(f"[CLEANUP] Deleted {deleted_count} expired PendingRegistration records at {now}")
-    return deleted_count
+    updated_count = PendingRegistration.objects.filter(status='pending', otp_expiry__lt=now).update(status='expired')
+    logger.info(f"[CLEANUP] Marked {updated_count} expired PendingRegistration records at {now}")
+    return updated_count

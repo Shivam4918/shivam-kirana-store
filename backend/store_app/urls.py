@@ -9,7 +9,7 @@ from .views import (
     PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
-    CheckUsernameView, CheckEmailView, CheckPhoneView
+    CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView
 )
 
 router = DefaultRouter()
@@ -28,6 +28,7 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('auth/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    path('auth/cancel-registration/', CancelRegistrationView.as_view(), name='cancel-registration'),
     path('auth/check-username/', CheckUsernameView.as_view(), name='check-username'),
     path('auth/check-email/', CheckEmailView.as_view(), name='check-email'),
     path('auth/check-phone/', CheckPhoneView.as_view(), name='check-phone'),

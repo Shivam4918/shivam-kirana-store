@@ -350,15 +350,23 @@ class ExpiryBatch(models.Model):
 
 
 class PendingRegistration(models.Model):
-    username = models.CharField(max_length=150, unique=True, db_index=True)
-    email = models.EmailField(unique=True, db_index=True)
-    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True, db_index=True)
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    username = models.CharField(max_length=150, db_index=True)
+    email = models.EmailField(db_index=True)
+    phone_number = models.CharField(max_length=15, null=True, blank=True, db_index=True)
     password_hash = models.CharField(max_length=128)
     otp = models.CharField(max_length=128, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
     otp_expiry = models.DateTimeField(blank=True, null=True)
     attempt_count = models.IntegerField(default=0)
     is_verified = models.BooleanField(default=False)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending', db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -368,5 +376,5 @@ class PendingRegistration(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Pending - {self.username} ({self.email})"
+        return f"PR ({self.status}) - {self.username} ({self.email})"
 

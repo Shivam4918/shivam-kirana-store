@@ -18,8 +18,8 @@ class UserSerializer(serializers.ModelSerializer):
         import socket
         from django.utils import timezone
         
-        # Clean up expired registrations first so credentials can be reused immediately
-        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+        # Update expired registrations status to 'expired' first so credentials can be reused immediately
+        PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
         
         # 1. Password Matching
         password = attrs.get('password')
@@ -61,7 +61,7 @@ class UserSerializer(serializers.ModelSerializer):
         if existing_user_query.exists():
             raise serializers.ValidationError({"username": "A user with this username already exists."})
             
-        if PendingRegistration.objects.filter(username__iexact=username).exists():
+        if PendingRegistration.objects.filter(username__iexact=username, status='pending', otp_expiry__gt=timezone.now()).exists():
             raise serializers.ValidationError({"username": "A registration for this username is currently pending verification."})
 
         # 3. Email Validation
@@ -100,7 +100,7 @@ class UserSerializer(serializers.ModelSerializer):
         if existing_email_query.exists():
             raise serializers.ValidationError({"email": "A user with this email already exists."})
             
-        if PendingRegistration.objects.filter(email__iexact=email).exists():
+        if PendingRegistration.objects.filter(email__iexact=email, status='pending', otp_expiry__gt=timezone.now()).exists():
             raise serializers.ValidationError({"email": "A registration for this email is currently pending verification."})
 
         # 4. Phone Number Validation
@@ -121,7 +121,7 @@ class UserSerializer(serializers.ModelSerializer):
         if existing_phone_query.exists():
             raise serializers.ValidationError({"phone_number": "A user with this phone number already exists."})
             
-        if PendingRegistration.objects.filter(phone_number=phone).exists():
+        if PendingRegistration.objects.filter(phone_number=phone, status='pending', otp_expiry__gt=timezone.now()).exists():
             raise serializers.ValidationError({"phone_number": "A registration for this phone number is currently pending verification."})
 
         # 5. Password Complexity Validation
@@ -256,20 +256,20 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                     "detail": "Please verify your email address before logging in."
                 })
 
-        # If user does not exist in CustomUser, check if there is an unexpired pending registration
+        # If user does not exist in CustomUser, check if there is an unexpired active pending registration
         if not user_obj and username_or_email:
             from .models import PendingRegistration
             from django.contrib.auth.hashers import check_password
             from django.utils import timezone
             
-            # Prune expired first
-            PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+            # Update expired registrations status to 'expired' first
+            PendingRegistration.objects.filter(status='pending', otp_expiry__lt=timezone.now()).update(status='expired')
             
             pending_obj = None
             if '@' in username_or_email:
-                pending_obj = PendingRegistration.objects.filter(email__iexact=username_or_email).first()
+                pending_obj = PendingRegistration.objects.filter(email__iexact=username_or_email, status='pending', otp_expiry__gt=timezone.now()).first()
             else:
-                pending_obj = PendingRegistration.objects.filter(username__iexact=username_or_email).first()
+                pending_obj = PendingRegistration.objects.filter(username__iexact=username_or_email, status='pending', otp_expiry__gt=timezone.now()).first()
                 
             if pending_obj and check_password(password, pending_obj.password_hash):
                 raise serializers.ValidationError({

@@ -514,6 +514,18 @@ const LoginPage = ({ defaultTab = 'login' }) => {
     }
   };
 
+  const handleCancelOtp = async () => {
+    setShowOtpModal(false);
+    setSuccessMsg('Registration cancelled. You can register again at any time.');
+    try {
+      await api.post('/auth/cancel-registration/', {
+        username: regUserEmailOrUsername
+      });
+    } catch (err) {
+      console.error('Failed to cancel registration in backend:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-secondary flex flex-col items-center justify-center p-4 relative overflow-y-auto text-left">
       
@@ -984,10 +996,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowOtpModal(false);
-                  setSuccessMsg('Account is pending verification. Please verify before signing in.');
-                }}
+                onClick={handleCancelOtp}
                 className="text-text-secondary hover:text-secondary font-medium cursor-pointer"
               >
                 Cancel
