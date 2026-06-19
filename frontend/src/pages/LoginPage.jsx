@@ -8,7 +8,7 @@ import {
 import api from '../services/api';
 
 const LoginPage = ({ defaultTab = 'login' }) => {
-  const { login, register, isAuthenticated, user } = useContext(AuthContext);
+  const { login, register, isAuthenticated, user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
   // State hooks declared first (to avoid TDZ issues)
@@ -466,15 +466,27 @@ const LoginPage = ({ defaultTab = 'login' }) => {
         username: regUserEmailOrUsername,
         otp: otpValue
       });
-      setOtpSuccess(res.data.detail || 'Email verified successfully! You can now log in.');
+      
+      const { access, refresh, user: userData } = res.data;
+      if (access && refresh && userData) {
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+      }
+
+      setOtpSuccess(res.data.detail || 'Email verified successfully! Logging you in...');
       setOtpValue('');
       
-      // Auto-hide modal and transition to login after 3 seconds
+      // Auto-hide modal and transition directly to dashboard after 1.5 seconds
       setTimeout(() => {
         setShowOtpModal(false);
-        setActiveTab('login');
-        setSuccessMsg('Email verified successfully! Please sign in.');
-      }, 3000);
+        if (userData && userData.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1500);
     } catch (err) {
       console.error(err);
       setOtpError(err.response?.data?.detail || 'Invalid verification code. Please try again.');

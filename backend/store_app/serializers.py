@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration
 
 User = get_user_model()
 
@@ -16,6 +16,10 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         import re
         import socket
+        from django.utils import timezone
+        
+        # Clean up expired registrations first so credentials can be reused immediately
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
         
         # 1. Password Matching
         password = attrs.get('password')
@@ -56,6 +60,9 @@ class UserSerializer(serializers.ModelSerializer):
             existing_user_query = existing_user_query.exclude(pk=self.instance.pk)
         if existing_user_query.exists():
             raise serializers.ValidationError({"username": "A user with this username already exists."})
+            
+        if PendingRegistration.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError({"username": "A registration for this username is currently pending verification."})
 
         # 3. Email Validation
         email = attrs.get('email', '')
@@ -92,6 +99,9 @@ class UserSerializer(serializers.ModelSerializer):
             existing_email_query = existing_email_query.exclude(pk=self.instance.pk)
         if existing_email_query.exists():
             raise serializers.ValidationError({"email": "A user with this email already exists."})
+            
+        if PendingRegistration.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({"email": "A registration for this email is currently pending verification."})
 
         # 4. Phone Number Validation
         phone = attrs.get('phone_number', '')
@@ -110,6 +120,9 @@ class UserSerializer(serializers.ModelSerializer):
             existing_phone_query = existing_phone_query.exclude(pk=self.instance.pk)
         if existing_phone_query.exists():
             raise serializers.ValidationError({"phone_number": "A user with this phone number already exists."})
+            
+        if PendingRegistration.objects.filter(phone_number=phone).exists():
+            raise serializers.ValidationError({"phone_number": "A registration for this phone number is currently pending verification."})
 
         # 5. Password Complexity Validation
         if not password:
@@ -239,6 +252,26 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         # If user exists and password is correct but inactive, throw verification warning
         if user_obj and user_obj.check_password(password):
             if not user_obj.is_active:
+                raise serializers.ValidationError({
+                    "detail": "Please verify your email address before logging in."
+                })
+
+        # If user does not exist in CustomUser, check if there is an unexpired pending registration
+        if not user_obj and username_or_email:
+            from .models import PendingRegistration
+            from django.contrib.auth.hashers import check_password
+            from django.utils import timezone
+            
+            # Prune expired first
+            PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+            
+            pending_obj = None
+            if '@' in username_or_email:
+                pending_obj = PendingRegistration.objects.filter(email__iexact=username_or_email).first()
+            else:
+                pending_obj = PendingRegistration.objects.filter(username__iexact=username_or_email).first()
+                
+            if pending_obj and check_password(password, pending_obj.password_hash):
                 raise serializers.ValidationError({
                     "detail": "Please verify your email address before logging in."
                 })

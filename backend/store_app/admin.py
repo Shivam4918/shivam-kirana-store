@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     CustomUser, Product, KhataProfile, Transaction, Expense, Supplier, 
     SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, 
-    PaymentRequest, WhatsAppLog, ExpiryBatch
+    PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration
 )
 
 @admin.register(CustomUser)
@@ -111,4 +111,12 @@ class ExpiryBatchAdmin(admin.ModelAdmin):
     list_filter = ('expiry_date', 'created_at')
     search_fields = ('product__name', 'batch_number')
     ordering = ('expiry_date',)
+
+
+@admin.register(PendingRegistration)
+class PendingRegistrationAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'phone_number', 'is_verified', 'otp_expiry', 'attempt_count', 'created_at')
+    list_filter = ('is_verified', 'created_at', 'otp_expiry')
+    search_fields = ('username', 'email', 'phone_number')
+    ordering = ('-created_at',)
 

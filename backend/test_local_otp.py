@@ -48,15 +48,16 @@ def run_test():
     # 2. Query Database directly to set a known OTP hash for testing
     time.sleep(1)  # Brief pause to ensure DB write is finalized
     try:
-        user = User.objects.get(username=username)
+        from store_app.models import PendingRegistration
+        pending = PendingRegistration.objects.get(username=username)
         raw_otp = "123456"
         import hashlib
         hashed_otp = hashlib.sha256(raw_otp.encode()).hexdigest()
-        user.otp_code = hashed_otp
-        user.save()
+        pending.otp = hashed_otp
+        pending.save()
         print(f"[+] Overrode DB OTP with hash of: {raw_otp}")
-    except User.DoesNotExist:
-        print(f"[-] Error: User {username} was not found in the database!")
+    except PendingRegistration.DoesNotExist:
+        print(f"[-] Error: Pending registration for {username} was not found in the database!")
         return False
  
     # 3. Submit OTP to verification endpoint
@@ -65,7 +66,7 @@ def run_test():
         "username": username,
         "otp": raw_otp
     }
-
+ 
     print(f"[+] Submitting OTP verification for user...")
     verify_response = requests.post(verify_url, json=verify_data)
     
@@ -74,9 +75,14 @@ def run_test():
         print(f"[-] Details: {verify_response.text}")
         return False
     print("[+] OTP verification endpoint responded with 200 OK.")
-
+ 
     # 4. Verify User state in database
-    user.refresh_from_db()
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        print("[-] Error: User was not created in the database after verification!")
+        return False
+
     if not user.is_active:
         print("[-] Error: User is still inactive in database after successful verification!")
         return False
@@ -90,7 +96,7 @@ def run_test():
     
     print("[+] User is successfully verified and active!")
     print("[+] KhataProfile verified successfully!")
-
+ 
     # 5. Clean up test user to keep DB clean
     user.delete()
     print("[+] Test user database records cleaned up successfully.")

@@ -409,18 +409,25 @@ def scan_and_alert_expiring_products_task():
 
 
 @shared_task
-def send_otp_email_task(user_id, raw_otp):
+def send_otp_email_task(user_id, raw_otp, is_pending_reg=False):
     import traceback
     from django.core.mail import send_mail
     from django.template.loader import render_to_string
     from django.conf import settings
-    from store_app.models import CustomUser
+    from store_app.models import CustomUser, PendingRegistration
 
-    try:
-        user = CustomUser.objects.get(id=user_id)
-    except CustomUser.DoesNotExist:
-        logger.error(f"[OTP EMAIL] User with ID {user_id} not found for OTP email.")
-        return False
+    if is_pending_reg:
+        try:
+            user = PendingRegistration.objects.get(id=user_id)
+        except PendingRegistration.DoesNotExist:
+            logger.error(f"[OTP EMAIL] PendingRegistration with ID {user_id} not found for OTP email.")
+            return False
+    else:
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            logger.error(f"[OTP EMAIL] User with ID {user_id} not found for OTP email.")
+            return False
 
     # Log the email backend so we can diagnose config issues on Render
     logger.info(
@@ -476,3 +483,16 @@ def send_otp_email_task(user_id, raw_otp):
             f"Traceback:\n{traceback.format_exc()}"
         )
         return False
+
+
+@shared_task
+def cleanup_expired_pending_registrations_task():
+    """
+    Periodic task to clean up expired PendingRegistration records.
+    """
+    from django.utils import timezone
+    from store_app.models import PendingRegistration
+    now = timezone.now()
+    deleted_count, _ = PendingRegistration.objects.filter(otp_expiry__lt=now).delete()
+    logger.info(f"[CLEANUP] Deleted {deleted_count} expired PendingRegistration records at {now}")
+    return deleted_count

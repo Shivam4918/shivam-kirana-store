@@ -657,7 +657,8 @@ class StoreBackendTests(TestCase):
         expired_product.delete()
 
     def test_customer_registration_inactive(self):
-        """Verify new registered customers are set as inactive by default and have an OTP generated."""
+        """Verify new registered customers are set as pending registration instead of CustomUser."""
+        from .models import PendingRegistration
         payload = {
             'username': 'inactive_tester',
             'email': 'inactive_tester@test.com',
@@ -669,21 +670,30 @@ class StoreBackendTests(TestCase):
         response = self.client.post('/api/auth/register/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # Check database is_active is False
-        user = User.objects.get(username='inactive_tester')
-        self.assertFalse(user.is_active)
-        self.assertIsNotNone(user.otp_code)
-        self.assertEqual(len(user.otp_code), 64)
+        # Check that no CustomUser was created
+        self.assertFalse(User.objects.filter(username='inactive_tester').exists())
+        
+        # Check that PendingRegistration was created
+        pending = PendingRegistration.objects.get(username='inactive_tester')
+        self.assertIsNotNone(pending.otp)
+        self.assertEqual(len(pending.otp), 64)
 
     def test_login_inactive_user(self):
-        """Verify correct login attempt for an inactive user returns verification validation error."""
-        inactive_user = User.objects.create_user(
+        """Verify correct login attempt for an unverified pending user returns verification validation error."""
+        from .models import PendingRegistration
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        PendingRegistration.objects.create(
             username='inactive_login_test',
             email='inactive_login_test@test.com',
-            password='Prajapatiadmin2005#$@',
-            role='CUSTOMER',
-            is_active=False
+            phone_number='9876543211',
+            password_hash=make_password('Prajapatiadmin2005#$@'),
+            otp='hashed_otp_placeholder',
+            otp_expiry=timezone.now() + timedelta(minutes=10)
         )
+        
         payload = {
             'username': 'inactive_login_test',
             'password': 'Prajapatiadmin2005#$@'
@@ -693,17 +703,23 @@ class StoreBackendTests(TestCase):
         self.assertIn("Please verify your email address before logging in.", response.data['detail'][0])
 
     def test_verify_otp_success(self):
-        """Verify OTP verification endpoint succeeds and activates user."""
+        """Verify OTP verification endpoint succeeds, deletes pending record, and creates user."""
+        from .models import PendingRegistration
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from datetime import timedelta
         import hashlib
+        
         hashed = hashlib.sha256('123456'.encode()).hexdigest()
-        inactive_user = User.objects.create_user(
+        PendingRegistration.objects.create(
             username='verify_success_test',
             email='verify_success_test@test.com',
-            password='Prajapatiadmin2005#$@',
-            role='CUSTOMER',
-            is_active=False,
-            otp_code=hashed
+            phone_number='9876543212',
+            password_hash=make_password('Prajapatiadmin2005#$@'),
+            otp=hashed,
+            otp_expiry=timezone.now() + timedelta(minutes=10)
         )
+        
         payload = {
             'username': 'verify_success_test',
             'otp': '123456'
@@ -712,23 +728,31 @@ class StoreBackendTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("verified successfully", response.data['detail'])
         
-        # Verify user is active in DB
-        inactive_user.refresh_from_db()
-        self.assertTrue(inactive_user.is_active)
-        self.assertIsNone(inactive_user.otp_code)
+        # Verify user is created and active in CustomUser table
+        user = User.objects.get(username='verify_success_test')
+        self.assertTrue(user.is_active)
+        
+        # Verify pending record is deleted
+        self.assertFalse(PendingRegistration.objects.filter(username='verify_success_test').exists())
 
     def test_verify_otp_invalid(self):
         """Verify OTP verification fails when OTP is invalid."""
+        from .models import PendingRegistration
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from datetime import timedelta
         import hashlib
+        
         hashed = hashlib.sha256('123456'.encode()).hexdigest()
-        inactive_user = User.objects.create_user(
+        PendingRegistration.objects.create(
             username='verify_failed_test',
             email='verify_failed_test@test.com',
-            password='Prajapatiadmin2005#$@',
-            role='CUSTOMER',
-            is_active=False,
-            otp_code=hashed
+            phone_number='9876543213',
+            password_hash=make_password('Prajapatiadmin2005#$@'),
+            otp=hashed,
+            otp_expiry=timezone.now() + timedelta(minutes=10)
         )
+        
         payload = {
             'username': 'verify_failed_test',
             'otp': '654321'
@@ -739,22 +763,28 @@ class StoreBackendTests(TestCase):
 
     def test_resend_otp(self):
         """Verify resending OTP generates a new OTP code."""
+        from .models import PendingRegistration
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from datetime import timedelta
         import hashlib
+        
         hashed = hashlib.sha256('111111'.encode()).hexdigest()
-        inactive_user = User.objects.create_user(
+        pending = PendingRegistration.objects.create(
             username='resend_otp_test',
             email='resend_otp_test@test.com',
-            password='Prajapatiadmin2005#$@',
-            role='CUSTOMER',
-            is_active=False,
-            otp_code=hashed
+            phone_number='9876543214',
+            password_hash=make_password('Prajapatiadmin2005#$@'),
+            otp=hashed,
+            otp_expiry=timezone.now() + timedelta(minutes=10)
         )
+        
         payload = {
             'username': 'resend_otp_test'
         }
         response = self.client.post('/api/auth/resend-otp/', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        inactive_user.refresh_from_db()
-        self.assertNotEqual(inactive_user.otp_code, hashed)
-        self.assertEqual(len(inactive_user.otp_code), 64)
+        pending.refresh_from_db()
+        self.assertNotEqual(pending.otp, hashed)
+        self.assertEqual(len(pending.otp), 64)

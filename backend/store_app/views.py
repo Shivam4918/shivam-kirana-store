@@ -28,42 +28,71 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        username = request.data.get('username')
-        email = request.data.get('email')
-        if username or email:
-            from django.db.models import Q
-            inactive_users = User.objects.filter(Q(username=username) | Q(email=email), is_active=False)
-            if inactive_users.exists():
-                inactive_users.delete()
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        from datetime import timedelta
+        import secrets
+        import hashlib
+        from django.contrib.auth.hashers import make_password
+        from store_app.tasks import send_otp_email_task
+        from store_app.utils.task_helpers import run_task_async_or_sync
+        from django.db.models import Q
+
+        # Clean up expired registrations first so they can be reused
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
 
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            if user.role == 'CUSTOMER':
-                import secrets
-                import hashlib
-                from django.utils import timezone
-                from store_app.tasks import send_otp_email_task
-                
-                # Generate cryptographically secure 6-digit OTP
-                otp = f"{secrets.randbelow(900000) + 100000}"
-                hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
-                
-                user.otp_code = hashed_otp
-                user.otp_created_at = timezone.now()
-                user.otp_failed_attempts = 0
-                user.save()
+            # If no users exist yet, make the first user an Admin immediately in the main database
+            if not User.objects.exists():
+                user = serializer.save() # Will call create and save active Admin
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-                # Dispatch OTP email task via run_task_async_or_sync helper
-                from store_app.utils.task_helpers import run_task_async_or_sync
-                import logging
-                logger = logging.getLogger(__name__)
-                try:
-                    run_task_async_or_sync(send_otp_email_task, user.id, raw_otp=otp)
-                    logger.info(f"Dispatched OTP email task for user {user.id}")
-                except Exception as dispatch_err:
-                    logger.error(f"Failed to dispatch OTP email: {str(dispatch_err)}")
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Otherwise, it's a regular user -> create PendingRegistration record
+            username = serializer.validated_data.get('username')
+            email = serializer.validated_data.get('email')
+            phone = serializer.validated_data.get('phone_number')
+            password = serializer.validated_data.get('password')
+
+            # Generate raw 6-digit OTP code
+            otp = f"{secrets.randbelow(900000) + 100000}"
+            hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
+
+            # Hash password
+            password_hash = make_password(password)
+
+            # Clean up any existing pending registration for this username/email/phone
+            PendingRegistration.objects.filter(
+                Q(username__iexact=username) | Q(email__iexact=email) | Q(phone_number=phone)
+            ).delete()
+
+            # Create PendingRegistration record
+            pending = PendingRegistration.objects.create(
+                username=username,
+                email=email,
+                phone_number=phone,
+                password_hash=password_hash,
+                otp=hashed_otp,
+                otp_created_at=timezone.now(),
+                otp_expiry=timezone.now() + timedelta(minutes=10),
+                attempt_count=0
+            )
+
+            # Send OTP email
+            import logging
+            logger = logging.getLogger(__name__)
+            try:
+                run_task_async_or_sync(send_otp_email_task, pending.id, raw_otp=otp, is_pending_reg=True)
+                logger.info(f"Dispatched pending registration OTP email for pending id {pending.id}")
+            except Exception as dispatch_err:
+                logger.error(f"Failed to dispatch pending registration OTP email: {str(dispatch_err)}")
+
+            return Response({
+                "detail": "OTP sent to your email. Please verify to complete registration.",
+                "email": email,
+                "username": username
+            }, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyOTPView(APIView):
@@ -76,48 +105,60 @@ class VerifyOTPView(APIView):
         if not email_or_username or not otp_code:
             return Response({"detail": "Username/Email and OTP code are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Retrieve user by username or email
-        user = None
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        import hashlib
+
+        # 1. Clean up expired registrations first
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+
+        # 2. Look up the pending registration by email or username
+        pending = None
         if '@' in email_or_username:
             try:
-                user = User.objects.get(email__iexact=email_or_username)
-            except User.DoesNotExist:
+                pending = PendingRegistration.objects.get(email__iexact=email_or_username)
+            except PendingRegistration.DoesNotExist:
                 pass
         else:
             try:
-                user = User.objects.get(username__iexact=email_or_username)
-            except User.DoesNotExist:
+                pending = PendingRegistration.objects.get(username__iexact=email_or_username)
+            except PendingRegistration.DoesNotExist:
                 pass
 
-        if not user:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        # If not found in PendingRegistration, check if User is already active in database
+        if not pending:
+            if '@' in email_or_username:
+                user_exists = User.objects.filter(email__iexact=email_or_username, is_active=True).exists()
+            else:
+                user_exists = User.objects.filter(username__iexact=email_or_username, is_active=True).exists()
+            
+            if user_exists:
+                return Response({"detail": "Account is already verified and active."}, status=status.HTTP_200_OK)
+            return Response({"detail": "No pending registration found for this user."}, status=status.HTTP_404_NOT_FOUND)
 
-        if user.is_active:
-            return Response({"detail": "Account is already verified and active."}, status=status.HTTP_200_OK)
-
-        # Locked out check
-        if user.otp_failed_attempts >= 5:
+        # 3. Locked out check
+        if pending.attempt_count >= 5:
+            pending.otp = None
+            pending.save()
             return Response(
                 {"detail": "Verification blocked due to too many failed attempts. Please request a new verification code."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Check expiration (10 minutes)
-        if user.otp_created_at:
-            from django.utils import timezone
-            from datetime import timedelta
-            elapsed = timezone.now() - user.otp_created_at
-            if elapsed > timedelta(minutes=10):
-                return Response({"detail": "Verification code has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
+        # 4. Check expiration
+        if pending.otp_expiry and pending.otp_expiry < timezone.now():
+            pending.delete()
+            return Response({"detail": "Verification code has expired. Please register again."}, status=status.HTTP_400_BAD_REQUEST)
 
-        import hashlib
+        # 5. Verify OTP
         incoming_hashed = hashlib.sha256(otp_code.encode()).hexdigest()
-
-        if not user.otp_code or user.otp_code != incoming_hashed:
-            user.otp_failed_attempts += 1
-            user.save()
-            attempts_left = max(0, 5 - user.otp_failed_attempts)
+        if not pending.otp or pending.otp != incoming_hashed:
+            pending.attempt_count += 1
+            pending.save()
+            attempts_left = max(0, 5 - pending.attempt_count)
             if attempts_left == 0:
+                pending.otp = None
+                pending.save()
                 return Response(
                     {"detail": "Too many failed attempts. This verification code has been locked. Please request a new code."},
                     status=status.HTTP_400_BAD_REQUEST
@@ -127,14 +168,35 @@ class VerifyOTPView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Activate user
-        user.is_active = True
-        user.otp_code = None
-        user.otp_created_at = None
-        user.otp_failed_attempts = 0
-        user.save()
+        # 6. Create actual User record
+        with db_transaction.atomic():
+            user = User(
+                username=pending.username,
+                email=pending.email,
+                phone_number=pending.phone_number,
+                role='CUSTOMER',
+                is_active=True
+            )
+            user.password = pending.password_hash
+            user.save()
+            pending.delete()
 
-        return Response({"detail": "Email verified successfully! You can now log in."}, status=status.HTTP_200_OK)
+        # 7. Generate JWT tokens for direct login
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            "detail": "Email verified successfully! You are now logged in.",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "phone_number": user.phone_number
+            }
+        }, status=status.HTTP_200_OK)
 
 class ResendOTPView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -145,29 +207,41 @@ class ResendOTPView(APIView):
         if not email_or_username:
             return Response({"detail": "Username or Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = None
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        from datetime import timedelta
+        import secrets
+        import hashlib
+        from store_app.tasks import send_otp_email_task
+        from store_app.utils.task_helpers import run_task_async_or_sync
+        from django.core.cache import cache
+
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+
+        pending = None
         if '@' in email_or_username:
             try:
-                user = User.objects.get(email__iexact=email_or_username)
-            except User.DoesNotExist:
+                pending = PendingRegistration.objects.get(email__iexact=email_or_username)
+            except PendingRegistration.DoesNotExist:
                 pass
         else:
             try:
-                user = User.objects.get(username__iexact=email_or_username)
-            except User.DoesNotExist:
+                pending = PendingRegistration.objects.get(username__iexact=email_or_username)
+            except PendingRegistration.DoesNotExist:
                 pass
 
-        if not user:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        if user.is_active:
-            return Response({"detail": "Account is already active."}, status=status.HTTP_200_OK)
+        if not pending:
+            if '@' in email_or_username:
+                user_exists = User.objects.filter(email__iexact=email_or_username, is_active=True).exists()
+            else:
+                user_exists = User.objects.filter(username__iexact=email_or_username, is_active=True).exists()
+            
+            if user_exists:
+                return Response({"detail": "Account is already active."}, status=status.HTTP_200_OK)
+            return Response({"detail": "No pending registration found. Please register again."}, status=status.HTTP_404_NOT_FOUND)
 
         # Resend rate limiting (max 5 resends per hour)
-        from django.core.cache import cache
-        from django.utils import timezone
-        
-        cache_key = f"otp_resend_{user.id}"
+        cache_key = f"otp_resend_pending_{pending.id}"
         now_ts = timezone.now().timestamp()
         resends = cache.get(cache_key, [])
         resends = [r for r in resends if now_ts - r < 3600]
@@ -179,8 +253,8 @@ class ResendOTPView(APIView):
             )
 
         # Cooldown check (60 seconds)
-        if user.otp_created_at:
-            elapsed = timezone.now() - user.otp_created_at
+        if pending.otp_created_at:
+            elapsed = timezone.now() - pending.otp_created_at
             if elapsed.total_seconds() < 60:
                 seconds_left = int(60 - elapsed.total_seconds())
                 return Response(
@@ -188,31 +262,28 @@ class ResendOTPView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        import secrets
-        import hashlib
-        from store_app.tasks import send_otp_email_task
-        
+        # Generate new OTP
         otp = f"{secrets.randbelow(900000) + 100000}"
         hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
         
-        user.otp_code = hashed_otp
-        user.otp_created_at = timezone.now()
-        user.otp_failed_attempts = 0
-        user.save()
+        pending.otp = hashed_otp
+        pending.otp_created_at = timezone.now()
+        pending.otp_expiry = timezone.now() + timedelta(minutes=10)
+        pending.attempt_count = 0
+        pending.save()
 
         # Update resend cache
         resends.append(now_ts)
         cache.set(cache_key, resends, 3600)
 
-        # Send OTP email via run_task_async_or_sync helper
-        from store_app.utils.task_helpers import run_task_async_or_sync
+        # Send OTP email
         import logging
         logger = logging.getLogger(__name__)
         try:
-            run_task_async_or_sync(send_otp_email_task, user.id, raw_otp=otp)
-            logger.info(f"Dispatched OTP email resend task for user {user.id}")
+            run_task_async_or_sync(send_otp_email_task, pending.id, raw_otp=otp, is_pending_reg=True)
+            logger.info(f"Dispatched pending registration resend OTP email for pending id {pending.id}")
         except Exception as dispatch_err:
-            logger.error(f"Failed to dispatch OTP email resend: {str(dispatch_err)}")
+            logger.error(f"Failed to dispatch pending registration resend OTP: {str(dispatch_err)}")
 
         return Response({"detail": "A new verification code has been sent to your email."}, status=status.HTTP_200_OK)
 
@@ -240,8 +311,13 @@ class CheckUsernameView(APIView):
         if username.lower() in reserved:
             return Response({"available": False, "detail": "This username is reserved and cannot be used."})
 
-        exists = User.objects.filter(username__iexact=username).exists()
-        return Response({"available": not exists})
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+
+        exists_user = User.objects.filter(username__iexact=username).exists()
+        exists_pending = PendingRegistration.objects.filter(username__iexact=username).exists()
+        return Response({"available": not (exists_user or exists_pending)})
 
 class CheckEmailView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -272,8 +348,13 @@ class CheckEmailView(APIView):
             except socket.gaierror:
                 return Response({"available": False, "detail": "Invalid email domain or no active DNS record found."})
 
-        exists = User.objects.filter(email__iexact=email).exists()
-        return Response({"available": not exists})
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+
+        exists_user = User.objects.filter(email__iexact=email).exists()
+        exists_pending = PendingRegistration.objects.filter(email__iexact=email).exists()
+        return Response({"available": not (exists_user or exists_pending)})
 
 class CheckPhoneView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -287,8 +368,13 @@ class CheckPhoneView(APIView):
         if not re.match(r'^[6-9]\d{9}$', phone_number):
             return Response({"available": False, "detail": "Phone number must start with 6-9 and contain exactly 10 digits."})
 
-        exists = User.objects.filter(phone_number=phone_number).exists()
-        return Response({"available": not exists})
+        from store_app.models import PendingRegistration
+        from django.utils import timezone
+        PendingRegistration.objects.filter(otp_expiry__lt=timezone.now()).delete()
+
+        exists_user = User.objects.filter(phone_number=phone_number).exists()
+        exists_pending = PendingRegistration.objects.filter(phone_number=phone_number).exists()
+        return Response({"available": not (exists_user or exists_pending)})
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

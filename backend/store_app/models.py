@@ -348,3 +348,25 @@ class ExpiryBatch(models.Model):
         batch_label = f"Batch {self.batch_number}" if self.batch_number else "Unnamed Batch"
         return f"{batch_label} — {self.product.name} (Exp: {self.expiry_date})"
 
+
+class PendingRegistration(models.Model):
+    username = models.CharField(max_length=150, unique=True, db_index=True)
+    email = models.EmailField(unique=True, db_index=True)
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True, db_index=True)
+    password_hash = models.CharField(max_length=128)
+    otp = models.CharField(max_length=128, blank=True, null=True)
+    otp_created_at = models.DateTimeField(blank=True, null=True)
+    otp_expiry = models.DateTimeField(blank=True, null=True)
+    attempt_count = models.IntegerField(default=0)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.phone_number == '':
+            self.phone_number = None
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Pending - {self.username} ({self.email})"
+
