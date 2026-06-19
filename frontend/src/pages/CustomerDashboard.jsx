@@ -630,6 +630,57 @@ const CustomerDashboard = () => {
 
   const activeBanners = banners.length > 0 ? banners : defaultBanners;
 
+  const renderCartButton = (p) => {
+    const cartItem = cart.find(item => item.product.id === p.id);
+    if (p.stock_quantity <= 0) {
+      return (
+        <span className="inline-block bg-rose-50 text-rose-500 border border-rose-100 text-[9px] font-extrabold px-3 py-1.5 rounded-xl uppercase tracking-wider">
+          Sold Out
+        </span>
+      );
+    }
+    if (cartItem) {
+      return (
+        <div className="flex items-center space-x-1.5 bg-primary text-white rounded-xl px-1.5 py-1">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              const updateRes = updateQuantity(p.id, -1);
+              showToast(updateRes.message, updateRes.success ? 'success' : 'error');
+            }}
+            className="p-1 hover:bg-primary-hover rounded text-white cursor-pointer transition-colors"
+          >
+            <FiMinus className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-xs font-bold w-4 text-center">{cartItem.quantity}</span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              const updateRes = updateQuantity(p.id, 1);
+              showToast(updateRes.message, updateRes.success ? 'success' : 'error');
+            }}
+            className="p-1 hover:bg-primary-hover rounded text-white cursor-pointer transition-colors"
+          >
+            <FiPlus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      );
+    }
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          const addRes = addToCart(p);
+          showToast(addRes.message, addRes.success ? 'success' : 'error');
+        }}
+        className="border border-primary text-primary hover:bg-emerald-50 px-4 py-1.5 rounded-xl text-xs font-extrabold shadow-sm cursor-pointer transition-all flex items-center space-x-1"
+      >
+        <FiPlus className="w-3 h-3" />
+        <span>ADD</span>
+      </button>
+    );
+  };
+
   return (
     <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-y-auto bg-slate-50/50 text-[#111827] flex flex-col justify-start relative text-left">
       
@@ -1272,20 +1323,7 @@ const CustomerDashboard = () => {
                           <span className="text-[9.5px] font-semibold text-text-secondary block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/60">
                             <span className="font-extrabold text-xs text-secondary">₹{p.price}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const res = addToCart(p);
-                                if (res.success === false) {
-                                  showToast(res.message, 'error');
-                                } else {
-                                  showToast(res.message, 'success');
-                                }
-                              }}
-                              className="bg-primary hover:bg-primary-hover text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-lg"
-                            >
-                              Add
-                            </button>
+                            {renderCartButton(p)}
                           </div>
                         </div>
                       </div>
@@ -1322,20 +1360,7 @@ const CustomerDashboard = () => {
                           <span className="text-[9.5px] font-semibold text-text-secondary block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/60">
                             <span className="font-extrabold text-xs text-secondary">₹{p.price}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const res = addToCart(p);
-                                if (res.success === false) {
-                                  showToast(res.message, 'error');
-                                } else {
-                                  showToast(res.message, 'success');
-                                }
-                              }}
-                              className="bg-primary hover:bg-primary-hover text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-lg"
-                            >
-                              Add
-                            </button>
+                            {renderCartButton(p)}
                           </div>
                         </div>
                       </div>
@@ -1372,20 +1397,7 @@ const CustomerDashboard = () => {
                           <span className="text-[9.5px] font-semibold text-text-secondary block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/60">
                             <span className="font-extrabold text-xs text-secondary">₹{p.price}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const res = addToCart(p);
-                                if (res.success === false) {
-                                  showToast(res.message, 'error');
-                                } else {
-                                  showToast(res.message, 'success');
-                                }
-                              }}
-                              className="bg-primary hover:bg-primary-hover text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-lg"
-                            >
-                              Add
-                            </button>
+                            {renderCartButton(p)}
                           </div>
                         </div>
                       </div>
@@ -1512,47 +1524,7 @@ const CustomerDashboard = () => {
                         </div>
 
                         <div className="text-right">
-                          {p.stock_quantity <= 0 ? (
-                            <span className="inline-block bg-rose-50 text-rose-500 border border-rose-100 text-[9px] font-extrabold px-3 py-1.5 rounded-xl uppercase tracking-wider">
-                              Sold Out
-                            </span>
-                          ) : cartItem ? (
-                            <div className="flex items-center space-x-2 bg-primary text-white rounded-xl px-2 py-1">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const updateRes = updateQuantity(p.id, -1);
-                                  showToast(updateRes.message, updateRes.success ? 'success' : 'error');
-                                }}
-                                className="p-1 hover:bg-primary-hover rounded text-white cursor-pointer transition-colors"
-                              >
-                                <FiMinus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="text-xs font-bold w-4 text-center">{cartItem.quantity}</span>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const updateRes = updateQuantity(p.id, 1);
-                                  showToast(updateRes.message, updateRes.success ? 'success' : 'error');
-                                }}
-                                className="p-1 hover:bg-primary-hover rounded text-white cursor-pointer transition-colors"
-                              >
-                                <FiPlus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const addRes = addToCart(p);
-                                showToast(addRes.message, addRes.success ? 'success' : 'error');
-                              }}
-                              className="border border-primary text-primary hover:bg-emerald-50 px-4 py-1.5 rounded-xl text-xs font-extrabold shadow-sm cursor-pointer transition-all flex items-center space-x-1"
-                            >
-                              <FiPlus className="w-3 h-3" />
-                              <span>ADD</span>
-                            </button>
-                          )}
+                          {renderCartButton(p)}
                         </div>
                       </div>
 
