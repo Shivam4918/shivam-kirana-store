@@ -1,10 +1,12 @@
 import { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { FiLogOut, FiUser, FiShoppingBag, FiBell, FiCheck, FiAlertTriangle, FiInfo } from 'react-icons/fi';
+import { CartContext } from '../context/CartContext';
+import { FiLogOut, FiUser, FiShoppingBag, FiBell, FiCheck, FiAlertTriangle, FiInfo, FiShoppingCart } from 'react-icons/fi';
 import api from '../services/api';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
+  const { cartCount, cartTotal, setIsCartOpen } = useContext(CartContext);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -67,6 +69,27 @@ const Navbar = () => {
 
       <div className="flex items-center space-x-4">
         
+        {/* Shopping Cart Button */}
+        {user?.role === 'CUSTOMER' && (
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-primary border border-emerald-100 transition-all duration-200 shadow-sm cursor-pointer"
+            title="Shopping Cart"
+          >
+            <div className="relative">
+              <FiShoppingCart className="w-5 h-5 text-primary" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2.5 -right-2.5 bg-rose-500 text-white rounded-full text-[9px] font-extrabold w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-bold hidden sm:inline-block">
+              {cartCount > 0 ? `₹${cartTotal.toFixed(2)}` : 'Cart'}
+            </span>
+          </button>
+        )}
+
         {/* Notification Bell Panel */}
         <div className="relative">
           <button

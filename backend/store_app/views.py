@@ -9,12 +9,12 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, ProductReview, WishlistItem, PromotionalBanner, StoreConfig
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
     ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
     InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer, WhatsAppLogSerializer,
-    ExpiryBatchSerializer
+    ExpiryBatchSerializer, ProductReviewSerializer, WishlistItemSerializer, PromotionalBannerSerializer, StoreConfigSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
 from django.http import HttpResponse
@@ -428,7 +428,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'category', 'description', 'barcode']
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'by_barcode']:
+        if self.action in ['list', 'retrieve', 'by_barcode', 'buy_again', 'best_sellers', 'trending', 'recommendations', 'reviews']:
             return [permissions.IsAuthenticated()]
         return [IsAdminUserRole()]
 
@@ -443,6 +443,122 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response(ProductSerializer(product).data)
         except Product.DoesNotExist:
             return Response({'detail': f'No product found with barcode "{barcode}".'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'], url_path='buy-again')
+    def buy_again(self, request):
+        user = request.user
+        if not user.is_authenticated or user.role != 'CUSTOMER':
+            return Response([])
+        purchased = Transaction.objects.filter(
+            khata_profile__user=user,
+            transaction_type='CREDIT',
+            product__isnull=False
+        ).values('product_id').annotate(buy_count=Count('product_id')).order_by('-buy_count')[:8]
+        product_ids = [p['product_id'] for p in purchased]
+        products = Product.objects.filter(id__in=product_ids)
+        product_dict = {p.id: p for p in products}
+        sorted_products = [product_dict[pid] for pid in product_ids if pid in product_dict]
+        serializer = ProductSerializer(sorted_products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='best-sellers')
+    def best_sellers(self, request):
+        top_sales = Transaction.objects.filter(
+            transaction_type='CREDIT',
+            product__isnull=False
+        ).values('product_id').annotate(total_qty=Sum('quantity')).order_by('-total_qty')[:8]
+        product_ids = [p['product_id'] for p in top_sales]
+        products = Product.objects.filter(id__in=product_ids)
+        product_dict = {p.id: p for p in products}
+        sorted_products = [product_dict[pid] for pid in product_ids if pid in product_dict]
+        if not sorted_products:
+            sorted_products = list(Product.objects.all().order_by('-stock_quantity')[:8])
+        serializer = ProductSerializer(sorted_products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='trending')
+    def trending(self, request):
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        trending_sales = Transaction.objects.filter(
+            transaction_type='CREDIT',
+            product__isnull=False,
+            created_at__gte=seven_days_ago
+        ).values('product_id').annotate(tx_count=Count('id')).order_by('-tx_count')[:8]
+        product_ids = [p['product_id'] for p in trending_sales]
+        if len(product_ids) < 4:
+            trending_sales = Transaction.objects.filter(
+                transaction_type='CREDIT',
+                product__isnull=False
+            ).values('product_id').annotate(tx_count=Count('id')).order_by('-tx_count')[:8]
+            product_ids = [p['product_id'] for p in trending_sales]
+        products = Product.objects.filter(id__in=product_ids)
+        product_dict = {p.id: p for p in products}
+        sorted_products = [product_dict[pid] for pid in product_ids if pid in product_dict]
+        if not sorted_products:
+            sorted_products = list(Product.objects.all().order_by('-created_at')[:8])
+        serializer = ProductSerializer(sorted_products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='recommendations')
+    def recommendations(self, request):
+        user = request.user
+        if not user.is_authenticated or user.role != 'CUSTOMER':
+            return Response(ProductSerializer(Product.objects.all().order_by('?')[:8], many=True).data)
+        
+        fav_categories = Transaction.objects.filter(
+            khata_profile__user=user,
+            transaction_type='CREDIT',
+            product__isnull=False
+        ).values_list('product__category', flat=True).distinct()
+        fav_categories = [c for c in fav_categories if c]
+        
+        if fav_categories:
+            recommended = Product.objects.filter(category__in=fav_categories).exclude(
+                transactions__khata_profile__user=user
+            ).order_by('?')[:8]
+            if len(recommended) < 4:
+                recommended = Product.objects.filter(category__in=fav_categories).order_by('?')[:8]
+        else:
+            recommended = Product.objects.all().order_by('?')[:8]
+        serializer = ProductSerializer(recommended, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get', 'post'], url_path='reviews')
+    def reviews(self, request, pk=None):
+        product = self.get_object()
+        if request.method == 'GET':
+            approved_reviews = product.reviews.filter(is_approved=True)
+            serializer = ProductReviewSerializer(approved_reviews, many=True)
+            return Response(serializer.data)
+        elif request.method == 'POST':
+            user = request.user
+            rating = request.data.get('rating')
+            review_text = request.data.get('review_text', '')
+            if rating is None:
+                return Response({"detail": "rating field is required."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                rating = int(rating)
+                if rating < 1 or rating > 5:
+                    raise ValueError()
+            except ValueError:
+                return Response({"detail": "rating must be an integer between 1 and 5."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            is_verified = Transaction.objects.filter(
+                khata_profile__user=user,
+                product=product,
+                transaction_type='CREDIT'
+            ).exists()
+            review, created = ProductReview.objects.update_or_create(
+                product=product,
+                user=user,
+                defaults={
+                    'rating': rating,
+                    'review_text': review_text,
+                    'is_verified_purchase': is_verified,
+                    'is_approved': True
+                }
+            )
+            return Response(ProductReviewSerializer(review).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 class CustomerKhataView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -492,6 +608,8 @@ class CustomerCheckoutView(APIView):
             )
 
         items_data = request.data.get('items', [])
+        redeem_opt = request.data.get('redeem_points', False)
+        
         if not items_data:
             return Response({"detail": "No items in cart."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -525,8 +643,17 @@ class CustomerCheckoutView(APIView):
                     validated_items.append((product, quantity))
                     cart_total += product.price * quantity
 
-                if locked_profile.current_balance + cart_total > locked_profile.credit_limit:
-                    raise ValueError(f"Checkout would exceed your credit limit of ₹{locked_profile.credit_limit}. Current Balance: ₹{locked_profile.current_balance}, Purchase Total: ₹{cart_total}")
+                # Calculate points to redeem
+                redeemed_points = 0
+                redeem_discount = Decimal('0.00')
+                if redeem_opt and locked_profile.loyalty_points > 0:
+                    redeemed_points = min(locked_profile.loyalty_points, int(cart_total))
+                    redeem_discount = Decimal(str(redeemed_points))
+
+                final_purchase_amount = cart_total - redeem_discount
+
+                if locked_profile.current_balance + final_purchase_amount > locked_profile.credit_limit:
+                    raise ValueError(f"Checkout would exceed your credit limit of ₹{locked_profile.credit_limit}. Current Balance: ₹{locked_profile.current_balance}, Net Purchase Total: ₹{final_purchase_amount}")
 
                 # Generate invoice number sequentially inside transaction
                 today_str = timezone.localtime(timezone.now()).strftime('%Y%m%d')
@@ -592,10 +719,31 @@ class CustomerCheckoutView(APIView):
                     )
                     transactions.append(tx)
 
+                # Process point redemption if active
+                if redeemed_points > 0:
+                    locked_profile.loyalty_points -= redeemed_points
+                    locked_profile.points_redeemed += redeemed_points
+                    locked_profile.save(update_fields=['loyalty_points', 'points_redeemed'])
+
+                    Transaction.objects.create(
+                        khata_profile=locked_profile,
+                        transaction_type='DEBIT',
+                        amount=redeem_discount,
+                        description=f"Redeemed {redeemed_points} loyalty points [Inv: {invoice_number}]",
+                        invoice=invoice
+                    )
+
+                # Process points earned on net cash/credit checkouts
+                earned_points = int(final_purchase_amount / Decimal('100.00'))
+                if earned_points > 0:
+                    locked_profile.loyalty_points += earned_points
+                    locked_profile.points_earned += earned_points
+                    locked_profile.save(update_fields=['loyalty_points', 'points_earned'])
+
                 invoice.subtotal = subtotal_sum
                 invoice.cgst_total = cgst_sum
                 invoice.sgst_total = sgst_sum
-                invoice.grand_total = grand_total_sum
+                invoice.grand_total = grand_total_sum - redeem_discount
                 invoice.save()
 
                 profile.refresh_from_db()
@@ -610,7 +758,7 @@ class CustomerCheckoutView(APIView):
             'TRANSACTION_ALERT',
             {
                 'transaction_type': 'CREDIT',
-                'amount': float(grand_total_sum),
+                'amount': float(grand_total_sum - redeem_discount),
                 'description': f"Checked out items under invoice {invoice_number}"
             }
         )
@@ -620,7 +768,7 @@ class CustomerCheckoutView(APIView):
             "current_balance": float(profile.current_balance),
             "invoice_number": invoice_number,
             "invoice_id": invoice.id,
-            "grand_total": float(grand_total_sum)
+            "grand_total": float(grand_total_sum - redeem_discount)
         }, status=status.HTTP_201_CREATED)
 
 class AdminDashboardAnalyticsView(APIView):
@@ -2300,4 +2448,84 @@ class TestEmailView(APIView):
                 "smtp_test": smtp_test,
                 "email_config": email_config,
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class WishlistViewSet(viewsets.ModelViewSet):
+    serializer_class = WishlistItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return WishlistItem.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='toggle')
+    def toggle(self, request):
+        product_id = request.data.get('product_id')
+        if not product_id:
+            return Response({"detail": "product_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return Response({"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)
+        if not created:
+            item.delete()
+            return Response({"status": "removed", "detail": f"Removed {product.name} from wishlist."})
+        return Response({"status": "added", "detail": f"Added {product.name} to wishlist."})
+
+
+class PromotionalBannerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = PromotionalBanner.objects.filter(is_active=True).order_by('order', '-created_at')
+    serializer_class = PromotionalBannerSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class StoreConfigViewSet(viewsets.ModelViewSet):
+    queryset = StoreConfig.objects.all()
+    serializer_class = StoreConfigSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated()]
+        return [IsAdminUserRole()]
+
+
+class CustomerDashboardSummaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'CUSTOMER':
+            return Response({"detail": "Only customers can view this summary."}, status=status.HTTP_403_FORBIDDEN)
+
+        user = request.user
+        try:
+            khata = user.khata_profile
+        except KhataProfile.DoesNotExist:
+            return Response({"detail": "Khata profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Count total orders (invoices)
+        total_orders = Invoice.objects.filter(customer=khata).count()
+
+        # Compute total savings (5% of each invoice total)
+        grand_total_sum = Invoice.objects.filter(customer=khata).aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
+        total_savings = float(grand_total_sum) * 0.05
+
+        # Recent transactions/purchases
+        recent_txs = Transaction.objects.filter(khata_profile=khata).order_by('-created_at')[:5]
+        recent_data = TransactionSerializer(recent_txs, many=True).data
+
+        return Response({
+            "total_orders": total_orders,
+            "total_savings": round(total_savings, 2),
+            "loyalty_points": khata.loyalty_points,
+            "points_earned": khata.points_earned,
+            "points_redeemed": khata.points_redeemed,
+            "khata_balance": float(khata.current_balance),
+            "credit_limit": float(khata.credit_limit),
+            "recent_purchases": recent_data
+        })
+
 

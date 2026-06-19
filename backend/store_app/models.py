@@ -51,6 +51,9 @@ class KhataProfile(models.Model):
     total_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=10000.00)
     is_accessible_by_customer = models.BooleanField(default=False)
+    loyalty_points = models.IntegerField(default=0)
+    points_earned = models.IntegerField(default=0)
+    points_redeemed = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -377,4 +380,68 @@ class PendingRegistration(models.Model):
 
     def __str__(self):
         return f"PR ({self.status}) - {self.username} ({self.email})"
+
+
+class ProductReview(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='reviews')
+    rating = models.IntegerField(default=5)  # 1 to 5 stars
+    review_text = models.TextField(blank=True, null=True)
+    is_verified_purchase = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('product', 'user')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Review ({self.rating}*) for {self.product.name} by {self.user.username}"
+
+
+class WishlistItem(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='wishlist_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='wishlisted_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.product.name}"
+
+
+class PromotionalBanner(models.Model):
+    BANNER_TYPES = (
+        ('OFFER', 'Offer'),
+        ('DISCOUNT', 'Discount'),
+        ('ANNOUNCEMENT', 'Announcement'),
+        ('KHATA', 'Khata Promotion'),
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    image_url = models.TextField(help_text="Image URL or base64 data")
+    link_to_category = models.CharField(max_length=100, blank=True, null=True, help_text="Redirect category tag if clicked")
+    banner_type = models.CharField(max_length=20, choices=BANNER_TYPES, default='OFFER')
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return f"[{self.banner_type}] {self.title}"
+
+
+class StoreConfig(models.Model):
+    key = models.CharField(max_length=50, unique=True)
+    value = models.TextField()
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration, ProductReview, WishlistItem, PromotionalBanner, StoreConfig
 
 User = get_user_model()
 
@@ -186,9 +186,43 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 class ProductSerializer(serializers.ModelSerializer):
+    average_rating = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
+    badges = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         fields = '__all__'
+
+    def get_average_rating(self, obj):
+        from django.db.models import Avg
+        avg = obj.reviews.filter(is_approved=True).aggregate(Avg('rating'))['rating__avg']
+        return round(avg, 1) if avg is not None else 5.0
+
+    def get_total_reviews(self, obj):
+        return obj.reviews.filter(is_approved=True).count()
+
+    def get_badges(self, obj):
+        from django.utils import timezone
+        from django.db.models import Sum
+        badges_list = []
+        if (timezone.now() - obj.created_at).days <= 15:
+            badges_list.append("🆕 New Arrival")
+        if obj.id % 3 == 0:
+            badges_list.append("💸 Discount")
+        
+        # Best Seller if total sold units >= 10
+        total_sold = obj.transactions.filter(transaction_type='CREDIT').aggregate(Sum('quantity'))['quantity__sum'] or 0
+        if total_sold >= 10:
+            badges_list.append("🔥 Best Seller")
+            badges_list.append("⚡ Fast Moving")
+            
+        # Top Rated if rating is >= 4.5
+        from django.db.models import Avg
+        avg = obj.reviews.filter(is_approved=True).aggregate(Avg('rating'))['rating__avg']
+        if avg is not None and avg >= 4.5:
+            badges_list.append("⭐ Top Rated")
+        return badges_list
 
     def validate_gst_rate(self, value):
         if value < 0 or value > 100:
@@ -221,11 +255,39 @@ class TransactionSerializer(serializers.ModelSerializer):
 class KhataProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     transactions = TransactionSerializer(many=True, read_only=True)
+    current_due = serializers.SerializerMethodField()
+    last_payment_amount = serializers.SerializerMethodField()
+    last_payment_date = serializers.SerializerMethodField()
+    next_due_date = serializers.SerializerMethodField()
 
     class Meta:
         model = KhataProfile
-        fields = ('id', 'user', 'current_balance', 'total_credit', 'total_paid', 'credit_limit', 'is_accessible_by_customer', 'transactions', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'current_balance', 'total_credit', 'total_paid', 'credit_limit', 'created_at', 'updated_at')
+        fields = ('id', 'user', 'current_balance', 'total_credit', 'total_paid', 'credit_limit', 'is_accessible_by_customer', 'transactions', 'created_at', 'updated_at',
+                  'loyalty_points', 'points_earned', 'points_redeemed', 'current_due', 'last_payment_amount', 'last_payment_date', 'next_due_date')
+        read_only_fields = ('id', 'current_balance', 'total_credit', 'total_paid', 'credit_limit', 'created_at', 'updated_at', 'loyalty_points', 'points_earned', 'points_redeemed')
+
+    def get_current_due(self, obj):
+        return float(obj.current_balance)
+
+    def get_last_payment_amount(self, obj):
+        last_payment = obj.transactions.filter(transaction_type='DEBIT').order_by('-created_at').first()
+        return float(last_payment.amount) if last_payment else 0.0
+
+    def get_last_payment_date(self, obj):
+        last_payment = obj.transactions.filter(transaction_type='DEBIT').order_by('-created_at').first()
+        return last_payment.created_at if last_payment else None
+
+    def get_next_due_date(self, obj):
+        if obj.current_balance > 0:
+            from django.utils import timezone
+            import datetime
+            today = timezone.localtime(timezone.now()).date()
+            if today.month == 12:
+                next_month = datetime.date(today.year + 1, 1, 5)
+            else:
+                next_month = datetime.date(today.year, today.month + 1, 5)
+            return next_month
+        return None
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -405,3 +467,34 @@ class ExpiryBatchSerializer(serializers.ModelSerializer):
         elif delta <= 30:
             return 'EXPIRING_MONTH'
         return 'OK'
+
+
+class ProductReviewSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = ProductReview
+        fields = '__all__'
+        read_only_fields = ('id', 'user', 'is_verified_purchase', 'is_approved', 'created_at', 'updated_at')
+
+
+class WishlistItemSerializer(serializers.ModelSerializer):
+    product_details = ProductSerializer(source='product', read_only=True)
+
+    class Meta:
+        model = WishlistItem
+        fields = '__all__'
+        read_only_fields = ('id', 'user', 'created_at')
+
+
+class PromotionalBannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PromotionalBanner
+        fields = '__all__'
+
+
+class StoreConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreConfig
+        fields = '__all__'
+

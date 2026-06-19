@@ -32,53 +32,57 @@ const AppLayout = () => {
   );
 };
 
+import { CartProvider } from './context/CartContext';
+
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage defaultTab="login" />} />
-          <Route path="/register" element={<LoginPage defaultTab="register" />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+        <CartProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage defaultTab="login" />} />
+            <Route path="/register" element={<LoginPage defaultTab="register" />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
-          {/* Admin Protected Routes */}
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="inventory" element={<ProductManagement />} />
-            <Route path="customers" element={<CustomerManagement />} />
-            <Route path="expenses" element={<ExpenseManagement />} />
-            <Route path="suppliers" element={<SupplierManagement />} />
-            <Route path="finance" element={<FinancialReports />} />
-            <Route path="reports" element={<AdvancedReports />} />
-            <Route path="expiry" element={<ExpiryManager />} />
-          </Route>
+            {/* Admin Protected Routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="inventory" element={<ProductManagement />} />
+              <Route path="customers" element={<CustomerManagement />} />
+              <Route path="expenses" element={<ExpenseManagement />} />
+              <Route path="suppliers" element={<SupplierManagement />} />
+              <Route path="finance" element={<FinancialReports />} />
+              <Route path="reports" element={<AdvancedReports />} />
+              <Route path="expiry" element={<ExpiryManager />} />
+            </Route>
 
 
-          {/* Customer Protected Routes */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute requiredRole="CUSTOMER">
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<CustomerDashboard />} />
-            <Route path="khata" element={<CustomerDashboard />} />
-          </Route>
+            {/* Customer Protected Routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="CUSTOMER">
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<CustomerDashboard />} />
+              <Route path="khata" element={<CustomerDashboard />} />
+            </Route>
 
-          {/* Catch-all fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Catch-all fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </CartProvider>
       </AuthProvider>
     </Router>
   );

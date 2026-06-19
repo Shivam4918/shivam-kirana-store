@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     CustomUser, Product, KhataProfile, Transaction, Expense, Supplier, 
     SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, 
-    PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration
+    PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration,
+    ProductReview, WishlistItem, PromotionalBanner, StoreConfig
 )
 
 @admin.register(CustomUser)
@@ -119,4 +120,33 @@ class PendingRegistrationAdmin(admin.ModelAdmin):
     list_filter = ('status', 'is_verified', 'created_at', 'otp_expiry')
     search_fields = ('username', 'email', 'phone_number')
     ordering = ('-created_at',)
+
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = ('product', 'user', 'rating', 'is_verified_purchase', 'is_approved', 'created_at')
+    list_filter = ('rating', 'is_verified_purchase', 'is_approved', 'created_at')
+    search_fields = ('product__name', 'user__username', 'review_text')
+    list_editable = ('is_approved',)
+
+
+@admin.register(WishlistItem)
+class WishlistItemAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'created_at')
+    search_fields = ('user__username', 'product__name')
+
+
+@admin.register(PromotionalBanner)
+class PromotionalBannerAdmin(admin.ModelAdmin):
+    list_display = ('title', 'banner_type', 'is_active', 'order', 'created_at')
+    list_filter = ('banner_type', 'is_active', 'created_at')
+    search_fields = ('title', 'description')
+    list_editable = ('is_active', 'order')
+
+
+@admin.register(StoreConfig)
+class StoreConfigAdmin(admin.ModelAdmin):
+    list_display = ('key', 'value', 'description')
+    search_fields = ('key', 'value', 'description')
+
 

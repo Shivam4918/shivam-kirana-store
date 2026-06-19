@@ -9,7 +9,8 @@ from .views import (
     PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
-    CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView
+    CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView,
+    WishlistViewSet, PromotionalBannerViewSet, StoreConfigViewSet, CustomerDashboardSummaryView
 )
 
 router = DefaultRouter()
@@ -23,6 +24,9 @@ router.register(r'invoices', InvoiceViewSet, basename='invoices')
 router.register(r'admin/payments', AdminPaymentRequestViewSet, basename='admin-payments')
 router.register(r'admin/whatsapp-logs', WhatsAppLogViewSet, basename='admin-whatsapp-logs')
 router.register(r'admin/expiry-batches', ExpiryBatchViewSet, basename='admin-expiry-batches')
+router.register(r'wishlist', WishlistViewSet, basename='wishlist')
+router.register(r'banners', PromotionalBannerViewSet, basename='banners')
+router.register(r'configs', StoreConfigViewSet, basename='configs')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -36,6 +40,7 @@ urlpatterns = [
     path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
     path('khata/my-ledger/request-whatsapp-statement/', CustomerRequestWhatsAppStatementView.as_view(), name='request-whatsapp-statement'),
     path('checkout/', CustomerCheckoutView.as_view(), name='checkout'),
+    path('customer/summary/', CustomerDashboardSummaryView.as_view(), name='customer-summary'),
     path('admin/analytics/', AdminDashboardAnalyticsView.as_view(), name='admin-analytics'),
     
     # Online Payments
