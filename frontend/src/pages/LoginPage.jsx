@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { 
   FiMail, FiLock, FiUser, FiPhone, FiArrowRight, 
-  FiShoppingBag, FiHome, FiCheckCircle 
+  FiShoppingBag, FiHome, FiCheckCircle, FiEye, FiEyeOff 
 } from 'react-icons/fi';
 import api from '../services/api';
 
@@ -18,6 +18,8 @@ const LoginPage = ({ defaultTab = 'login' }) => {
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [loginEmailOrUsername, setLoginEmailOrUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -814,13 +816,20 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   <FiLock className="w-5 h-5" />
                 </div>
                 <input
-                  type="password"
+                  type={showRegPassword ? 'text' : 'password'}
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  className={`w-full bg-white border ${valErrors.password ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
+                  className={`w-full bg-white border ${valErrors.password ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="Min. 8 characters"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowRegPassword(!showRegPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-650 cursor-pointer"
+                >
+                  {showRegPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                </button>
               </div>
               {valErrors.password && (
                 <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.password}</p>
@@ -866,20 +875,27 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   <FiLock className="w-5 h-5" />
                 </div>
                 <input
-                  type="password"
+                  type={showRegConfirmPassword ? 'text' : 'password'}
                   value={regConfirmPassword}
                   onChange={(e) => setRegConfirmPassword(e.target.value)}
-                  className={`w-full bg-white border ${valErrors.confirmPassword ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : regConfirmPassword && regConfirmPassword === regPassword ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
+                  className={`w-full bg-white border ${valErrors.confirmPassword ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : regConfirmPassword && regConfirmPassword === regPassword ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-16 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="Retype password"
                   required
                 />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center space-x-2">
                   {regConfirmPassword && regConfirmPassword === regPassword && (
                     <span className="text-emerald-500 font-bold text-sm">✓</span>
                   )}
                   {regConfirmPassword && regConfirmPassword !== regPassword && (
                     <span className="text-rose-500 font-bold text-sm">✕</span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                    className="text-slate-400 hover:text-slate-650 cursor-pointer"
+                  >
+                    {showRegConfirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
               {valErrors.confirmPassword && (
