@@ -20,6 +20,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginEmailOrUsername, setLoginEmailOrUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -654,13 +655,21 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   <FiLock className="w-5 h-5" />
                 </div>
                 <input
-                  type="password"
+                  type={showLoginPassword ? 'text' : 'password'}
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
                   placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-650 cursor-pointer"
+                  aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                >
+                  {showLoginPassword ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
@@ -827,8 +836,9 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="button"
                   onClick={() => setShowRegPassword(!showRegPassword)}
                   className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-650 cursor-pointer"
+                  aria-label={showRegPassword ? "Hide password" : "Show password"}
                 >
-                  {showRegPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  {showRegPassword ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
                 </button>
               </div>
               {valErrors.password && (
@@ -893,8 +903,9 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                     type="button"
                     onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
                     className="text-slate-400 hover:text-slate-650 cursor-pointer"
+                    aria-label={showRegConfirmPassword ? "Hide password" : "Show password"}
                   >
-                    {showRegConfirmPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                    {showRegConfirmPassword ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
