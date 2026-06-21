@@ -48,6 +48,8 @@ const CustomerDashboard = () => {
   const [khataLoading, setKhataLoading] = useState(true);
   const [khataLocked, setKhataLocked] = useState(false);
   const [lockedBalance, setLockedBalance] = useState(0.00);
+  const [ledgerCurrentPage, setLedgerCurrentPage] = useState(1);
+  const ledgerPageSize = 5;
 
   // Upgraded Feature States
   const [banners, setBanners] = useState([]);
@@ -140,6 +142,7 @@ const CustomerDashboard = () => {
     try {
       const res = await api.get('/khata/my-ledger/');
       setKhataProfile(res.data);
+      setLedgerCurrentPage(1);
       if (res.data) {
         setKhataLocked(!res.data.is_accessible_by_customer);
         setLockedBalance(res.data.current_balance);
@@ -576,6 +579,13 @@ const CustomerDashboard = () => {
     const matchesWishlist = !showWishlistOnly || wishlistIds.has(p.id);
     return matchesCategory && matchesWishlist;
   });
+
+  // Ledger Statement Book pagination calculations
+  const totalLedgerPages = Math.ceil((khataProfile?.transactions?.length || 0) / ledgerPageSize) || 1;
+  const paginatedTransactions = (khataProfile?.transactions || []).slice(
+    (ledgerCurrentPage - 1) * ledgerPageSize,
+    ledgerCurrentPage * ledgerPageSize
+  );
 
   // Delivery details helper
   const getDeliveryEstimate = () => {
@@ -1779,7 +1789,7 @@ const CustomerDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {khataProfile.transactions.map((tx) => (
+                        {paginatedTransactions.map((tx) => (
                           <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-xs sm:text-sm">
                             <td className="py-4 px-6 font-medium text-text-secondary">
                               <span className="flex items-center space-x-2">
@@ -1830,6 +1840,29 @@ const CustomerDashboard = () => {
                         ))}
                       </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {totalLedgerPages > 1 && (
+                      <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                        <button
+                          onClick={() => setLedgerCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={ledgerCurrentPage === 1}
+                          className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                        >
+                          <span>&larr; Previous</span>
+                        </button>
+                        <span className="text-xs font-medium text-text-secondary">
+                          Page <span className="font-bold text-secondary">{ledgerCurrentPage}</span> of <span className="font-bold text-secondary">{totalLedgerPages}</span>
+                        </span>
+                        <button
+                          onClick={() => setLedgerCurrentPage(prev => Math.min(prev + 1, totalLedgerPages))}
+                          disabled={ledgerCurrentPage === totalLedgerPages}
+                          className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                        >
+                          <span>Next &rarr;</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="py-16 flex flex-col items-center justify-center space-y-3.5 text-center">
