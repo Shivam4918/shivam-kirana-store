@@ -594,7 +594,13 @@ const CustomerManagement = () => {
                 
                 {selectedProfile.transactions && selectedProfile.transactions.length > 0 ? (
                   <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                    {selectedProfile.transactions.map((tx) => (
+                    {[...selectedProfile.transactions]
+                      .sort((a, b) => {
+                        const dateDiff = new Date(b.created_at) - new Date(a.created_at);
+                        if (dateDiff !== 0) return dateDiff;
+                        return b.id - a.id;
+                      })
+                      .map((tx) => (
                       <div key={tx.id} className="bg-slate-50/50 border border-slate-200/60 rounded-2xl p-3.5 flex items-center justify-between text-xs transition-colors hover:border-slate-300">
                         <div className="space-y-1">
                           <p className="font-bold text-secondary leading-tight">{tx.description || 'N/A'}</p>

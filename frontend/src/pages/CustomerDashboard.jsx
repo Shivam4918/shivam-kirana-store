@@ -581,8 +581,13 @@ const CustomerDashboard = () => {
   });
 
   // Ledger Statement Book pagination calculations
-  const totalLedgerPages = Math.ceil((khataProfile?.transactions?.length || 0) / ledgerPageSize) || 1;
-  const paginatedTransactions = (khataProfile?.transactions || []).slice(
+  const sortedTransactions = [...(khataProfile?.transactions || [])].sort((a, b) => {
+    const dateDiff = new Date(b.created_at) - new Date(a.created_at);
+    if (dateDiff !== 0) return dateDiff;
+    return b.id - a.id;
+  });
+  const totalLedgerPages = Math.ceil(sortedTransactions.length / ledgerPageSize) || 1;
+  const paginatedTransactions = sortedTransactions.slice(
     (ledgerCurrentPage - 1) * ledgerPageSize,
     ledgerCurrentPage * ledgerPageSize
   );
