@@ -422,10 +422,16 @@ class UserProfileView(APIView):
         return Response(data)
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'category', 'description', 'barcode']
+
+    def get_queryset(self):
+        from django.db.models import Prefetch
+        return Product.objects.all().prefetch_related(
+            Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+            Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+        ).order_by('-created_at')
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'by_barcode', 'buy_again', 'best_sellers', 'trending', 'recommendations', 'reviews']:
@@ -439,7 +445,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         if not barcode:
             return Response({'detail': 'barcode query parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            product = Product.objects.get(barcode=barcode)
+            from django.db.models import Prefetch
+            product = Product.objects.prefetch_related(
+                Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+            ).get(barcode=barcode)
             return Response(ProductSerializer(product).data)
         except Product.DoesNotExist:
             return Response({'detail': f'No product found with barcode "{barcode}".'}, status=status.HTTP_404_NOT_FOUND)
@@ -455,7 +465,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             product__isnull=False
         ).values('product_id').annotate(buy_count=Count('product_id')).order_by('-buy_count')[:8]
         product_ids = [p['product_id'] for p in purchased]
-        products = Product.objects.filter(id__in=product_ids)
+        from django.db.models import Prefetch
+        products = Product.objects.filter(id__in=product_ids).prefetch_related(
+            Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+            Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+        )
         product_dict = {p.id: p for p in products}
         sorted_products = [product_dict[pid] for pid in product_ids if pid in product_dict]
         serializer = ProductSerializer(sorted_products, many=True)
@@ -468,11 +482,18 @@ class ProductViewSet(viewsets.ModelViewSet):
             product__isnull=False
         ).values('product_id').annotate(total_qty=Sum('quantity')).order_by('-total_qty')[:8]
         product_ids = [p['product_id'] for p in top_sales]
-        products = Product.objects.filter(id__in=product_ids)
+        from django.db.models import Prefetch
+        products = Product.objects.filter(id__in=product_ids).prefetch_related(
+            Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+            Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+        )
         product_dict = {p.id: p for p in products}
         sorted_products = [product_dict[pid] for pid in product_ids if pid in product_dict]
         if not sorted_products:
-            sorted_products = list(Product.objects.all().order_by('-stock_quantity')[:8])
+            sorted_products = list(Product.objects.all().prefetch_related(
+                Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+            ).order_by('-stock_quantity')[:8])
         serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data)
 
@@ -491,19 +512,30 @@ class ProductViewSet(viewsets.ModelViewSet):
                 product__isnull=False
             ).values('product_id').annotate(tx_count=Count('id')).order_by('-tx_count')[:8]
             product_ids = [p['product_id'] for p in trending_sales]
-        products = Product.objects.filter(id__in=product_ids)
+        from django.db.models import Prefetch
+        products = Product.objects.filter(id__in=product_ids).prefetch_related(
+            Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+            Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+        )
         product_dict = {p.id: p for p in products}
         sorted_products = [product_dict[pid] for pid in product_ids if pid in product_dict]
         if not sorted_products:
-            sorted_products = list(Product.objects.all().order_by('-created_at')[:8])
+            sorted_products = list(Product.objects.all().prefetch_related(
+                Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+            ).order_by('-created_at')[:8])
         serializer = ProductSerializer(sorted_products, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='recommendations')
     def recommendations(self, request):
         user = request.user
+        from django.db.models import Prefetch
         if not user.is_authenticated or user.role != 'CUSTOMER':
-            return Response(ProductSerializer(Product.objects.all().order_by('?')[:8], many=True).data)
+            return Response(ProductSerializer(Product.objects.all().prefetch_related(
+                Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+            ).order_by('?')[:8], many=True).data)
         
         fav_categories = Transaction.objects.filter(
             khata_profile__user=user,
@@ -515,11 +547,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         if fav_categories:
             recommended = Product.objects.filter(category__in=fav_categories).exclude(
                 transactions__khata_profile__user=user
+            ).prefetch_related(
+                Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
             ).order_by('?')[:8]
             if len(recommended) < 4:
-                recommended = Product.objects.filter(category__in=fav_categories).order_by('?')[:8]
+                recommended = Product.objects.filter(category__in=fav_categories).prefetch_related(
+                    Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                    Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+                ).order_by('?')[:8]
         else:
-            recommended = Product.objects.all().order_by('?')[:8]
+            recommended = Product.objects.all().prefetch_related(
+                Prefetch('reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+                Prefetch('transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+            ).order_by('?')[:8]
         serializer = ProductSerializer(recommended, many=True)
         return Response(serializer.data)
 
@@ -2455,7 +2496,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return WishlistItem.objects.filter(user=self.request.user)
+        from django.db.models import Prefetch
+        return WishlistItem.objects.filter(user=self.request.user).select_related('product').prefetch_related(
+            Prefetch('product__reviews', queryset=ProductReview.objects.filter(is_approved=True)),
+            Prefetch('product__transactions', queryset=Transaction.objects.filter(transaction_type='CREDIT'))
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -2514,7 +2559,7 @@ class CustomerDashboardSummaryView(APIView):
         total_savings = float(grand_total_sum) * 0.05
 
         # Recent transactions/purchases
-        recent_txs = Transaction.objects.filter(khata_profile=khata).order_by('-created_at')[:5]
+        recent_txs = Transaction.objects.filter(khata_profile=khata).select_related('product').order_by('-created_at')[:5]
         recent_data = TransactionSerializer(recent_txs, many=True).data
 
         return Response({

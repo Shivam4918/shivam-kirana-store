@@ -195,33 +195,40 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_average_rating(self, obj):
-        from django.db.models import Avg
-        avg = obj.reviews.filter(is_approved=True).aggregate(Avg('rating'))['rating__avg']
-        return round(avg, 1) if avg is not None else 5.0
+        reviews = obj.reviews.all()
+        approved_ratings = [r.rating for r in reviews if getattr(r, 'is_approved', True)]
+        if not approved_ratings:
+            return 5.0
+        avg = sum(approved_ratings) / len(approved_ratings)
+        return round(avg, 1)
 
     def get_total_reviews(self, obj):
-        return obj.reviews.filter(is_approved=True).count()
+        reviews = obj.reviews.all()
+        approved_reviews = [r for r in reviews if getattr(r, 'is_approved', True)]
+        return len(approved_reviews)
 
     def get_badges(self, obj):
         from django.utils import timezone
-        from django.db.models import Sum
         badges_list = []
         if (timezone.now() - obj.created_at).days <= 15:
             badges_list.append("🆕 New Arrival")
         if obj.id % 3 == 0:
             badges_list.append("💸 Discount")
         
-        # Best Seller if total sold units >= 10
-        total_sold = obj.transactions.filter(transaction_type='CREDIT').aggregate(Sum('quantity'))['quantity__sum'] or 0
+        # Best Seller if total sold units >= 10 (computed in memory)
+        transactions = obj.transactions.all()
+        total_sold = sum(t.quantity for t in transactions if t.transaction_type == 'CREDIT' and t.quantity is not None)
         if total_sold >= 10:
             badges_list.append("🔥 Best Seller")
             badges_list.append("⚡ Fast Moving")
             
         # Top Rated if rating is >= 4.5
-        from django.db.models import Avg
-        avg = obj.reviews.filter(is_approved=True).aggregate(Avg('rating'))['rating__avg']
-        if avg is not None and avg >= 4.5:
-            badges_list.append("⭐ Top Rated")
+        reviews = obj.reviews.all()
+        approved_ratings = [r.rating for r in reviews if getattr(r, 'is_approved', True)]
+        if approved_ratings:
+            avg = sum(approved_ratings) / len(approved_ratings)
+            if avg >= 4.5:
+                badges_list.append("⭐ Top Rated")
         return badges_list
 
     def validate_gst_rate(self, value):
