@@ -5,6 +5,7 @@ import {
   FiPlus, FiCalendar, FiX, FiArrowUpRight, FiArrowDownLeft, FiBookOpen, FiAlertCircle, FiCheckCircle,
   FiEdit2, FiSliders, FiSave, FiSend
 } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 
 const CustomerManagement = () => {
   const [customers, setCustomers] = useState([]);
@@ -450,11 +451,10 @@ const CustomerManagement = () => {
                 </div>
               </div>
 
-              {/* WhatsApp Alerts */}
               {selectedProfile.phone && (
                 <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 border border-slate-200/50 rounded-2xl">
                   <div className="flex items-center space-x-2">
-                    <FiSend className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <FaWhatsapp className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
                     <span className="text-[11px] font-bold text-secondary uppercase tracking-wider">WhatsApp Alerts</span>
                   </div>
                   <div className="flex items-center space-x-2">

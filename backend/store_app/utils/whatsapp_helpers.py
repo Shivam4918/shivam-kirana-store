@@ -18,17 +18,30 @@ def format_whatsapp_phone(phone_str):
     if not cleaned:
         return ""
         
-    if cleaned.startswith('+'):
-        return cleaned
-    
+    # Standardize: remove leading + if present temporarily to make checks simpler
+    has_plus = cleaned.startswith('+')
+    if has_plus:
+        cleaned = cleaned[1:]
+        
+    # Strip double zero (e.g. 0091...)
+    if cleaned.startswith('00'):
+        cleaned = cleaned[2:]
+    # Strip single leading zero (e.g. 09876543210 -> 9876543210)
+    elif cleaned.startswith('0') and len(cleaned) == 11:
+        cleaned = cleaned[1:]
+        
+    if not cleaned:
+        return ""
+        
     # If 10 digits without country code, default to +91
     if len(cleaned) == 10:
         return f"+91{cleaned}"
         
-    # If starts with 91 but no '+', prepend '+'
+    # If starts with 91 and has 12 digits total
     if cleaned.startswith('91') and len(cleaned) == 12:
         return f"+{cleaned}"
         
+    # Prepend '+' to whatever country code format they already provided
     return f"+{cleaned}"
 
 def send_whatsapp_message(to_phone, body):

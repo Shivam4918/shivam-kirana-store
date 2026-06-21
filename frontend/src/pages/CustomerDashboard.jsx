@@ -11,6 +11,21 @@ import {
   FiStar, FiZap, FiRefreshCw, FiSend, FiHeart, FiGift, FiClock, FiHome, FiUser, 
   FiHelpCircle, FiLayers, FiAlertTriangle, FiInfo
 } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
+
+const cleanPhoneForWhatsApp = (phone) => {
+  if (!phone) return '';
+  let cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('00')) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = cleaned.substring(1);
+  }
+  if (cleaned.length === 10) {
+    return `91${cleaned}`;
+  }
+  return cleaned;
+};
 
 const CustomerDashboard = () => {
   const location = useLocation();
@@ -1895,13 +1910,13 @@ const CustomerDashboard = () => {
 
       {/* Floating help WhatsApp Button (Configurable support number) */}
       <a
-        href={`https://wa.me/${configs.SUPPORT_PHONE || '919876543210'}?text=Hello%20Shivam%20Kirana%20Store,%20I%20need%20help%20with%20my%20credit%20ledger.`}
+        href={`https://wa.me/${cleanPhoneForWhatsApp(configs.SUPPORT_PHONE) || '919876543210'}?text=Hello%20Shivam%20Kirana%20Store,%20I%20need%20help%20with%20my%20credit%20ledger.`}
         target="_blank"
         rel="noreferrer"
         className="fixed bottom-6 left-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white p-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105"
         title="WhatsApp Support Contact"
       >
-        <FiHelpCircle className="w-6 h-6" />
+        <FaWhatsapp className="w-6 h-6" />
       </a>
 
       {/* Mobile Sticky Bottom Navigation Menu (Home, Cart, Khata, Orders, Profile) */}
