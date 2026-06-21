@@ -10,6 +10,8 @@ const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expiryData, setExpiryData] = useState(null);
+  const [auditCurrentPage, setAuditCurrentPage] = useState(1);
+  const auditPageSize = 5;
   const navigate = useNavigate();
 
   const fetchAnalytics = async () => {
@@ -17,6 +19,7 @@ const AdminDashboard = () => {
     try {
       const res = await api.get('/admin/analytics/');
       setAnalytics(res.data);
+      setAuditCurrentPage(1);
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
     } finally {
@@ -60,6 +63,12 @@ const AdminDashboard = () => {
     recent_transactions: [],
     charts: { revenue_trends: [], credit_trends: [], balance_overview: [] }
   };
+
+  const totalAuditPages = Math.ceil((recent_transactions?.length || 0) / auditPageSize) || 1;
+  const paginatedAudits = (recent_transactions || []).slice(
+    (auditCurrentPage - 1) * auditPageSize,
+    auditCurrentPage * auditPageSize
+  );
 
   // Find max values for chart scaling
   const maxRevenue = Math.max(...charts.revenue_trends.map(t => t.amount), 1);
@@ -283,7 +292,7 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {recent_transactions.map((tx) => (
+                {paginatedAudits.map((tx) => (
                   <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-xs sm:text-sm">
                     <td className="py-4 px-6">
                       <div>
@@ -319,6 +328,29 @@ const AdminDashboard = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {totalAuditPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                <button
+                  onClick={() => setAuditCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={auditCurrentPage === 1}
+                  className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                >
+                  <span>&larr; Previous</span>
+                </button>
+                <span className="text-xs font-medium text-text-secondary">
+                  Page <span className="font-bold text-secondary">{auditCurrentPage}</span> of <span className="font-bold text-secondary">{totalAuditPages}</span>
+                </span>
+                <button
+                  onClick={() => setAuditCurrentPage(prev => Math.min(prev + 1, totalAuditPages))}
+                  disabled={auditCurrentPage === totalAuditPages}
+                  className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                >
+                  <span>Next &rarr;</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-16 flex flex-col items-center justify-center space-y-3.5 text-center">
