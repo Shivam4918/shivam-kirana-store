@@ -532,48 +532,53 @@ const LoginPage = ({ defaultTab = 'login' }) => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-secondary flex flex-col items-center justify-center p-4 relative overflow-y-auto text-left">
       
-      {/* Background patterns */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-orange-500/5 blur-[120px] pointer-events-none"></div>
+      {/* Background dynamic mesh gradients */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[5%] left-[10%] w-[380px] h-[380px] rounded-full bg-emerald-400/15 blur-[100px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute bottom-[8%] right-[8%] w-[420px] h-[420px] rounded-full bg-teal-500/15 blur-[110px] animate-pulse" style={{ animationDuration: '10s' }}></div>
+        <div className="absolute top-[40%] right-[15%] w-[320px] h-[320px] rounded-full bg-orange-400/10 blur-[90px] animate-pulse" style={{ animationDuration: '12s' }}></div>
+        <div className="absolute bottom-[30%] left-[20%] w-[350px] h-[350px] rounded-full bg-indigo-500/8 blur-[100px] animate-pulse" style={{ animationDuration: '9s' }}></div>
+      </div>
 
       {/* Floating Home Link */}
       <Link 
         to="/" 
-        className="absolute top-6 left-6 flex items-center space-x-2 text-text-secondary hover:text-secondary font-bold text-sm bg-white border border-slate-200/60 px-4 py-2 rounded-xl shadow-sm transition-all"
+        className="absolute top-6 left-6 flex items-center space-x-2 text-slate-700 hover:text-secondary font-bold text-xs sm:text-sm bg-white/40 backdrop-blur-md border border-white/45 hover:bg-white/60 px-4 py-2.5 rounded-xl shadow-sm transition-all z-20"
       >
         <FiHome className="w-4 h-4" />
         <span>Back to Home</span>
       </Link>
 
-      <div className="w-full max-w-md bg-white border border-slate-200/60 rounded-3xl p-6 sm:p-8 shadow-premium-lg relative z-10 my-12">
+      <div className="w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 shadow-premium-lg relative z-10 my-12 border-white/50 transition-all duration-300 hover:shadow-premium-xl">
         
         {/* Brand header */}
         <div className="text-center mb-6">
-          <div className="bg-primary p-3 rounded-2xl text-white shadow-md shadow-emerald-500/20 inline-block mb-3">
-            <FiShoppingBag className="w-6 h-6" />
+          <div className="bg-gradient-to-tr from-emerald-400 to-teal-500 p-3.5 rounded-2xl text-white shadow-md shadow-emerald-500/25 inline-flex items-center justify-center mb-3.5 relative group">
+            <div className="absolute inset-0 rounded-2xl bg-emerald-400/30 blur-md group-hover:blur-lg transition-all pointer-events-none"></div>
+            <FiShoppingBag className="w-6 h-6 relative z-10" />
           </div>
-          <h2 className="font-poppins font-extrabold text-2xl text-secondary">Shivam Kirana Store</h2>
-          <p className="text-text-secondary text-xs mt-1">Smart Groceries & Ledger Khata Management</p>
+          <h2 className="font-poppins font-extrabold text-2xl text-secondary tracking-tight">Shivam Kirana Store</h2>
+          <p className="text-text-secondary text-xs mt-1 font-medium">Smart Groceries & Ledger Khata Management</p>
         </div>
 
         {/* Tab Toggles */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 border border-slate-200/45">
+        <div className="flex bg-black/5 backdrop-blur-md p-1.5 rounded-2xl mb-6 border border-white/20">
           <button
             onClick={() => { setActiveTab('login'); setErrorMsg(''); setSuccessMsg(''); }}
-            className={`w-1/2 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer ${
+            className={`w-1/2 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 cursor-pointer ${
               activeTab === 'login'
-                ? 'bg-primary text-white shadow-sm shadow-emerald-500/10'
-                : 'text-text-secondary hover:text-secondary'
+                ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                : 'text-text-secondary hover:text-secondary hover:bg-white/30'
             }`}
           >
             Sign In
           </button>
           <button
             onClick={() => { setActiveTab('register'); setErrorMsg(''); setSuccessMsg(''); }}
-            className={`w-1/2 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer ${
+            className={`w-1/2 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 cursor-pointer ${
               activeTab === 'register'
-                ? 'bg-primary text-white shadow-sm shadow-emerald-500/10'
-                : 'text-text-secondary hover:text-secondary'
+                ? 'bg-gradient-to-r from-primary to-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                : 'text-text-secondary hover:text-secondary hover:bg-white/30'
             }`}
           >
             Register
@@ -582,7 +587,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
 
         {/* Notifications */}
         {errorMsg && (
-          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-600 p-3.5 rounded-2xl text-xs font-medium flex flex-col space-y-1.5">
+          <div className="mb-4 bg-rose-50/80 backdrop-blur-md border border-rose-200 text-rose-600 p-3.5 rounded-2xl text-xs font-medium flex flex-col space-y-1.5">
             {errorMsg.split('\n').map((line, i) => (
               <span key={i} className="flex items-start gap-1.5">
                 {errorMsg.includes('\n') && <span className="mt-0.5 shrink-0">•</span>}
@@ -619,7 +624,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
           </div>
         )}
         {successMsg && (
-          <div className="mb-4 bg-emerald-55 border border-emerald-200 text-emerald-600 p-3.5 rounded-2xl text-xs font-medium">
+          <div className="mb-4 bg-emerald-55/80 backdrop-blur-md border border-emerald-200 text-emerald-600 p-3.5 rounded-2xl text-xs font-medium">
             {successMsg}
           </div>
         )}
@@ -628,7 +633,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
         {activeTab === 'login' && (
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Username or Email
               </label>
               <div className="relative">
@@ -639,7 +644,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="text"
                   value={loginEmailOrUsername}
                   onChange={(e) => setLoginEmailOrUsername(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className="w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10 rounded-xl py-3 pl-11 pr-4 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
                   placeholder="e.g. shivam"
                   required
                 />
@@ -647,7 +652,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Password
               </label>
               <div className="relative">
@@ -658,7 +663,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type={showLoginPassword ? 'text' : 'password'}
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
+                  className="w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10 rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none"
                   placeholder="••••••••"
                   required
                 />
@@ -676,7 +681,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-6 bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              className="w-full mt-6 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-hover hover:to-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -694,7 +699,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
         {activeTab === 'register' && (
           <form onSubmit={handleRegisterSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Username <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -705,12 +710,12 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="text"
                   value={regUsername}
                   onChange={(e) => setRegUsername(e.target.value)}
-                  className={`w-full bg-white border ${
+                  className={`w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border ${
                     valErrors.username || usernameBackendError
-                      ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
+                      ? 'border-rose-300 focus:border-rose-455 focus:ring-4 focus:ring-rose-500/10'
                       : usernameAvailable === true
-                      ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100'
-                      : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'
+                      ? 'border-emerald-300 focus:border-emerald-455 focus:ring-4 focus:ring-emerald-500/10'
+                      : 'border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10'
                   } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
                   placeholder="e.g. shivam"
                   required
@@ -728,14 +733,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                 </div>
               </div>
               {(valErrors.username || usernameBackendError) && (
-                <p className="mt-1.5 text-xs font-medium text-rose-500">
+                <p className="mt-1.5 text-xs font-medium text-rose-500 pl-1">
                   {valErrors.username || usernameBackendError}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Email Address <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -746,13 +751,13 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="email"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  className={`w-full bg-white border ${
+                  className={`w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border ${
                     valErrors.email || emailBackendError
-                      ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
+                      ? 'border-rose-300 focus:border-rose-455 focus:ring-4 focus:ring-rose-500/10'
                       : emailAvailable === true
-                      ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100'
-                      : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'
-                  } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
+                      ? 'border-emerald-300 focus:border-emerald-455 focus:ring-4 focus:ring-emerald-500/10'
+                      : 'border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10'
+                  } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-450 transition-all outline-none`}
                   placeholder="e.g. shivam@gmail.com"
                   required
                 />
@@ -769,14 +774,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                 </div>
               </div>
               {(valErrors.email || emailBackendError) && (
-                <p className="mt-1.5 text-xs font-medium text-rose-500">
+                <p className="mt-1.5 text-xs font-medium text-rose-500 pl-1">
                   {valErrors.email || emailBackendError}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Phone Number <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -787,13 +792,13 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type="tel"
                   value={regPhone}
                   onChange={(e) => setRegPhone(e.target.value)}
-                  className={`w-full bg-white border ${
+                  className={`w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border ${
                     valErrors.phone || phoneBackendError
-                      ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
+                      ? 'border-rose-300 focus:border-rose-455 focus:ring-4 focus:ring-rose-500/10'
                       : phoneAvailable === true
-                      ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100'
-                      : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'
-                  } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
+                      ? 'border-emerald-300 focus:border-emerald-455 focus:ring-4 focus:ring-emerald-500/10'
+                      : 'border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10'
+                  } rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-450 transition-all outline-none`}
                   placeholder="e.g. 9988776655"
                   required
                 />
@@ -810,14 +815,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                 </div>
               </div>
               {(valErrors.phone || phoneBackendError) && (
-                <p className="mt-1.5 text-xs font-medium text-rose-500">
+                <p className="mt-1.5 text-xs font-medium text-rose-500 pl-1">
                   {valErrors.phone || phoneBackendError}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Password <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -828,7 +833,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type={showRegPassword ? 'text' : 'password'}
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  className={`w-full bg-white border ${valErrors.password ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
+                  className={`w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border ${valErrors.password ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-150' : 'border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10'} rounded-xl py-3 pl-11 pr-10 text-sm text-text-primary placeholder-slate-450 transition-all outline-none`}
                   placeholder="Min. 8 characters"
                   required
                 />
@@ -842,12 +847,12 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                 </button>
               </div>
               {valErrors.password && (
-                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.password}</p>
+                <p className="mt-1.5 text-xs font-medium text-rose-500 pl-1">{valErrors.password}</p>
               )}
 
               {/* Password strength checklist and bar */}
               {regPassword && (
-                <div className="mt-2.5 space-y-2 p-3 bg-slate-50 border border-slate-200/50 rounded-xl">
+                <div className="mt-2.5 space-y-2 p-3 bg-white/45 border border-slate-200/50 rounded-xl backdrop-blur-md">
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-text-secondary">Password Strength:</span>
                     <span className={`${strength.color.replace('bg-', 'text-')} font-bold`}>{strength.text}</span>
@@ -877,7 +882,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-1.5 pl-1">
                 Confirm Password <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -888,7 +893,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   type={showRegConfirmPassword ? 'text' : 'password'}
                   value={regConfirmPassword}
                   onChange={(e) => setRegConfirmPassword(e.target.value)}
-                  className={`w-full bg-white border ${valErrors.confirmPassword ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : regConfirmPassword && regConfirmPassword === regPassword ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-100' : 'border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100'} rounded-xl py-3 pl-11 pr-16 text-sm text-text-primary placeholder-slate-400 transition-all outline-none`}
+                  className={`w-full bg-white/45 hover:bg-white/60 focus:bg-white/95 border ${valErrors.confirmPassword ? 'border-rose-300 focus:border-rose-450 focus:ring-4 focus:ring-rose-500/10' : regConfirmPassword && regConfirmPassword === regPassword ? 'border-emerald-300 focus:border-emerald-455 focus:ring-4 focus:ring-emerald-500/10' : 'border-slate-200/50 focus:border-primary focus:ring-4 focus:ring-emerald-500/10'} rounded-xl py-3 pl-11 pr-16 text-sm text-text-primary placeholder-slate-450 transition-all outline-none`}
                   placeholder="Retype password"
                   required
                 />
@@ -910,7 +915,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                 </div>
               </div>
               {valErrors.confirmPassword && (
-                <p className="mt-1.5 text-xs font-medium text-rose-500">{valErrors.confirmPassword}</p>
+                <p className="mt-1.5 text-xs font-medium text-rose-500 pl-1">{valErrors.confirmPassword}</p>
               )}
             </div>
 
@@ -925,9 +930,9 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                     setAcceptTerms(e.target.checked);
                     if (e.target.checked) setTermsError('');
                   }}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-emerald-500 cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-350 text-primary focus:ring-emerald-500 cursor-pointer"
                 />
-                <label htmlFor="acceptTerms" className="text-xs text-text-secondary leading-tight cursor-pointer selection:bg-transparent">
+                <label htmlFor="acceptTerms" className="text-xs text-text-secondary leading-tight cursor-pointer selection:bg-transparent pl-0.5">
                   I agree to the{' '}
                   <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">
                     Terms & Conditions
@@ -940,14 +945,14 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                 </label>
               </div>
               {termsError && (
-                <p className="text-xs font-medium text-rose-500">{termsError}</p>
+                <p className="text-xs font-medium text-rose-500 pl-1">{termsError}</p>
               )}
             </div>
 
             <button
               type="submit"
               disabled={isRegisterDisabled}
-              className="w-full mt-6 bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              className="w-full mt-6 bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-hover hover:to-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -966,22 +971,22 @@ const LoginPage = ({ defaultTab = 'login' }) => {
       {/* OTP Verification Modal Overlay */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="w-full max-w-md bg-white border border-slate-200/60 rounded-3xl p-6 sm:p-8 shadow-premium-2xl text-center">
-            <div className="bg-emerald-50 text-emerald-500 p-4 rounded-full inline-block mb-4">
+          <div className="w-full max-w-md glass-panel border-white/50 rounded-3xl p-6 sm:p-8 shadow-premium-2xl text-center">
+            <div className="bg-emerald-50/80 backdrop-blur-md text-emerald-500 p-4 rounded-full inline-block mb-4 border border-emerald-100/50">
               <FiCheckCircle className="w-12 h-12" />
             </div>
             <h3 className="font-poppins font-extrabold text-xl text-secondary mb-2">Verify your account</h3>
-            <p className="text-text-secondary text-sm mb-6">
+            <p className="text-text-secondary text-sm mb-6 font-medium">
               Please enter the 6-digit verification code sent to <strong className="text-secondary">{regUserEmailOrUsername}</strong>.
             </p>
 
             {otpError && (
-              <div className="mb-4 bg-rose-50 border border-rose-250 text-rose-600 p-3.5 rounded-2xl text-xs font-medium text-left">
+              <div className="mb-4 bg-rose-50/80 backdrop-blur-md border border-rose-250 text-rose-600 p-3.5 rounded-2xl text-xs font-medium text-left">
                 {otpError}
               </div>
             )}
             {otpSuccess && (
-              <div className="mb-4 bg-emerald-55 border border-emerald-250 text-emerald-600 p-3.5 rounded-2xl text-xs font-medium text-left">
+              <div className="mb-4 bg-emerald-55/80 backdrop-blur-md border border-emerald-250 text-emerald-600 p-3.5 rounded-2xl text-xs font-medium text-left">
                 {otpSuccess}
               </div>
             )}
@@ -993,7 +998,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
                   maxLength={6}
                   value={otpValue}
                   onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ''))}
-                  className="w-full tracking-[10px] text-center font-mono font-extrabold text-2xl bg-slate-50 border border-slate-200 focus:border-primary focus:ring-2 focus:ring-emerald-100 rounded-2xl py-4 pr-1 text-text-primary placeholder-slate-300 transition-all outline-none"
+                  className="w-full tracking-[10px] text-center font-mono font-extrabold text-2xl bg-white/45 border border-slate-200 focus:border-primary focus:ring-4 focus:ring-emerald-500/10 rounded-2xl py-4 pr-1 text-text-primary placeholder-slate-300 transition-all outline-none"
                   placeholder="000000"
                   required
                 />
@@ -1002,7 +1007,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
               <button
                 type="submit"
                 disabled={otpLoading}
-                className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                className="w-full bg-gradient-to-r from-primary to-emerald-600 hover:from-primary-hover hover:to-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
               >
                 {otpLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1012,19 +1017,19 @@ const LoginPage = ({ defaultTab = 'login' }) => {
               </button>
             </form>
 
-            <div className="mt-6 flex justify-between items-center text-sm">
+            <div className="mt-6 flex justify-between items-center text-sm font-semibold">
               <button
                 type="button"
                 onClick={handleResendOtp}
                 disabled={otpCooldown > 0 || otpLoading}
-                className="text-primary hover:underline font-semibold disabled:text-slate-400 disabled:no-underline cursor-pointer"
+                className="text-primary hover:underline font-bold disabled:text-slate-400 disabled:no-underline cursor-pointer"
               >
                 {otpCooldown > 0 ? `Resend Code in ${otpCooldown}s` : 'Resend Code'}
               </button>
               <button
                 type="button"
                 onClick={handleCancelOtp}
-                className="text-text-secondary hover:text-secondary font-medium cursor-pointer"
+                className="text-text-secondary hover:text-secondary font-bold cursor-pointer"
               >
                 Cancel
               </button>
