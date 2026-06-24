@@ -40,6 +40,12 @@ const CustomerManagement = () => {
   const [limitLoading, setLimitLoading] = useState(false);
   const [whatsappLoading, setWhatsappLoading] = useState(false);
 
+  const filteredCustomers = customers.filter(c =>
+    (c.name && c.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (c.phone && c.phone.includes(searchQuery))
+  );
+
   const fetchProducts = async () => {
     try {
       const res = await api.get('/products/');
@@ -124,7 +130,6 @@ const CustomerManagement = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchCustomers(searchQuery);
   };
 
   const fetchCustomerDetail = async (id) => {
@@ -324,7 +329,7 @@ const CustomerManagement = () => {
           {/* Directory table card */}
           {loading ? (
             <div className="bg-white border border-slate-100 rounded-3xl p-6 h-60 animate-pulse shadow-sm"></div>
-          ) : customers.length > 0 ? (
+          ) : filteredCustomers.length > 0 ? (
             <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -337,7 +342,7 @@ const CustomerManagement = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {customers.map((c) => (
+                    {filteredCustomers.map((c) => (
                       <tr 
                         key={c.id} 
                         className={`border-b border-slate-100 hover:bg-slate-50/50 cursor-pointer transition-colors text-xs sm:text-sm ${
