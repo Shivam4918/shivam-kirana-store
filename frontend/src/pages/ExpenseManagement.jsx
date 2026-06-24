@@ -8,6 +8,8 @@ const ExpenseManagement = () => {
   const [expenses, setExpenses] = useState([]);
   const [summary, setSummary] = useState({ today_expenses: 0, monthly_expenses: 0, yearly_expenses: 0, breakdown: [] });
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
   
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,9 +64,24 @@ const ExpenseManagement = () => {
     }
   };
 
+  const totalPages = Math.ceil(expenses.length / pageSize);
+  const paginatedExpenses = expenses.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   useEffect(() => {
     fetchExpenses();
+    setCurrentPage(1);
   }, [searchQuery, selectedCategory, startDate, endDate]);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    } else if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [expenses.length, currentPage, totalPages]);
 
   const openAddModal = () => {
     setModalType('add');
@@ -327,7 +344,7 @@ const ExpenseManagement = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {expenses.map((e) => (
+                    {paginatedExpenses.map((e) => (
                       <tr key={e.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-xs sm:text-sm">
                         <td className="py-4 px-6">
                           <div>
@@ -370,6 +387,30 @@ const ExpenseManagement = () => {
                   </tbody>
                 </table>
               </div>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                  >
+                    <span>&larr; Previous</span>
+                  </button>
+                  <span className="text-xs font-medium text-text-secondary">
+                    Page <span className="font-bold text-secondary">{currentPage}</span> of <span className="font-bold text-secondary">{totalPages}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                  >
+                    <span>Next &rarr;</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-3xl py-16 px-4 flex flex-col items-center justify-center space-y-3.5 text-center shadow-sm">
