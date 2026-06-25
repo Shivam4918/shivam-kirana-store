@@ -472,9 +472,9 @@ const LoginPage = ({ defaultTab = 'login' }) => {
       
       const { access, refresh, user: userData } = res.data;
       if (access && refresh && userData) {
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
-        localStorage.setItem('user', JSON.stringify(userData));
+        sessionStorage.setItem('access_token', access);
+        sessionStorage.setItem('refresh_token', refresh);
+        sessionStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
       }
 

@@ -10,7 +10,8 @@ from .views import (
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
     CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView,
-    WishlistViewSet, PromotionalBannerViewSet, StoreConfigViewSet, CustomerDashboardSummaryView
+    WishlistViewSet, PromotionalBannerViewSet, StoreConfigViewSet, CustomerDashboardSummaryView,
+    LogoutView
 )
 
 router = DefaultRouter()
@@ -30,6 +31,7 @@ router.register(r'configs', StoreConfigViewSet, basename='configs')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
+    path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('auth/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('auth/cancel-registration/', CancelRegistrationView.as_view(), name='cancel-registration'),

@@ -1103,9 +1103,41 @@ class AdminCustomerViewSet(viewsets.ViewSet):
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
+from django.contrib.auth import login as django_login, logout as django_logout
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        # Invalidate any previous session key to prevent Session Fixation
+        request.session.flush()
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            username = request.data.get('username')
+            if username:
+                try:
+                    user = User.objects.filter(Q(username=username) | Q(email=username)).first()
+                    if user and user.is_active:
+                        django_login(request, user)
+                except Exception:
+                    pass
+        return response
+
+class LogoutView(APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        # Flush the Django session
+        request.session.flush()
+        # Remove authentication
+        django_logout(request)
+        # Delete session cookies
+        response = Response({"detail": "Successfully logged out."})
+        response.delete_cookie('sessionid')
+        response.delete_cookie('csrftoken')
+        return response
 
 
 # --- ERP VIEWSETS ---
