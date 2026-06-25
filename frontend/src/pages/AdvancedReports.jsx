@@ -16,6 +16,8 @@ const AdvancedReports = () => {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logStatusFilter, setLogStatusFilter] = useState('');
   const [logCustomerFilter, setLogCustomerFilter] = useState('');
+  const [logCurrentPage, setLogCurrentPage] = useState(1);
+  const logPageSize = 5;
 
   const fetchCustomers = async () => {
     try {
@@ -59,6 +61,10 @@ const AdvancedReports = () => {
       fetchWhatsappLogs();
     }
   }, [activeTab, logStatusFilter, logCustomerFilter]);
+
+  useEffect(() => {
+    setLogCurrentPage(1);
+  }, [logStatusFilter, logCustomerFilter, activeTab]);
 
   const handleDownload = async (url, filename, exportId) => {
     setDownloading(exportId);
@@ -164,6 +170,20 @@ const AdvancedReports = () => {
       icon: <FiCreditCard className="w-5 h-5 text-teal-500" />
     }
   ];
+
+  const totalPages = Math.ceil(whatsappLogs.length / logPageSize);
+  const paginatedLogs = whatsappLogs.slice(
+    (logCurrentPage - 1) * logPageSize,
+    logCurrentPage * logPageSize
+  );
+
+  useEffect(() => {
+    if (totalPages > 0 && logCurrentPage > totalPages) {
+      setLogCurrentPage(totalPages);
+    } else if (totalPages === 0 && logCurrentPage !== 1) {
+      setLogCurrentPage(1);
+    }
+  }, [whatsappLogs.length, logCurrentPage, totalPages]);
 
   return (
     <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-y-auto bg-slate-50/50 text-[#111827] flex flex-col justify-start relative text-left">
@@ -411,7 +431,7 @@ const AdvancedReports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {whatsappLogs.map((log) => (
+                    {paginatedLogs.map((log) => (
                       <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs sm:text-sm">
                         <td className="py-4 px-6 text-text-secondary font-medium whitespace-nowrap">
                           {new Date(log.sent_at).toLocaleString()}
@@ -451,6 +471,30 @@ const AdvancedReports = () => {
                   </tbody>
                 </table>
               </div>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => setLogCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={logCurrentPage === 1}
+                    className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                  >
+                    <span>&larr; Previous</span>
+                  </button>
+                  <span className="text-xs font-medium text-text-secondary">
+                    Page <span className="font-bold text-secondary">{logCurrentPage}</span> of <span className="font-bold text-secondary">{totalPages}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLogCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={logCurrentPage === totalPages}
+                    className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                  >
+                    <span>Next &rarr;</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-3xl py-12 px-4 flex flex-col items-center justify-center space-y-3.5 text-center shadow-sm">
