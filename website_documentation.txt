@@ -1,0 +1,116 @@
+================================================================================
+          SHIVAM KIRANA STORE - RETAIL ERP & DIGITAL KHATA MANAGER
+================================================================================
+
+Shivam Kirana Store is a comprehensive Retail ERP (Enterprise Resource Planning),
+Inventory Control, Advanced Accounting, and Digital Khata (Customer Ledger)
+management system. It enables a retail shop owner (Admin) to manage inventory,
+sales, purchases, expenses, and supplier debts, while providing customers with
+a self-service catalog, checkout system, and outstanding balance payment portal.
+
+--------------------------------------------------------------------------------
+1. TECHNICAL ARCHITECTURE & STACK
+--------------------------------------------------------------------------------
+
+* FRONTEND (SPA):
+  - React.js (Vite): Fast rendering and reactive user interface.
+  - Tailwind CSS: Clean modern utility styling with glassmorphism components.
+  - Framer Motion: Premium animations (drawer slides, layout transitions).
+  - Axios: Interceptors configuration for automatic JWT auth token injection,
+    refresh token handling, and unauthenticated redirects.
+
+* BACKEND (RESTful API Service):
+  - Django & Django REST Framework (DRF): Secure REST APIs and database modeling.
+  - Simple JWT: Stateless JSON Web Token authentication.
+  - PostgreSQL (Neon Cloud / Production): Relational database storage.
+  - SQLite (Local Development): File-based database fallback.
+  - Celery & Redis: Asynchronous task queue for email alerts.
+
+* DOCUMENT GENERATION:
+  - ReportLab (PDF): Generates branded A4 invoices and financial ledgers.
+  - openpyxl (Excel): Constructs spreadsheets with automated formatting.
+
+--------------------------------------------------------------------------------
+2. ROLE-BASED ACCESS CONTROL (RBAC)
+--------------------------------------------------------------------------------
+
+1. ADMIN (Store Owner):
+   - Access to analytics dashboards, reports, and financial charts.
+   - Manage inventory, catalog products, scan barcodes.
+   - Adjust customer ledger books and manually register payments.
+   - Manage suppliers, purchase books, and business expenses.
+   - Access Profit & Loss Statements, Balance Sheets, and Cash Flow Audits.
+
+2. CUSTOMER (Shopper):
+   - View grocery catalog with filtering and search capabilities.
+   - Add items to checkout cart, scan barcodes via device camera.
+   - Settle checkout orders on store credit (Khata).
+   - View personal digital ledger statements, transaction history.
+   - Pay outstanding balance online using integrated Razorpay UPI checkout.
+
+--------------------------------------------------------------------------------
+3. DETAILED FUNCTIONALITY & FEATURES
+--------------------------------------------------------------------------------
+
+* PERFORMANCE & EXECUTIVE ANALYTICS:
+  - Today's Earnings, Outstanding Credit, Customer Count, and Product Count.
+  - Last 7 days revenue and credit trend visualizations.
+  - Bracket distribution of customer debt (No debt, <1k, 1k-5k, 5k+).
+  - Stream of last 10 transaction logs.
+
+* PRODUCT & INVENTORY MANAGEMENT:
+  - Full catalog CRUD (Create, Read, Update, Delete).
+  - Camera barcode scanners for product lookup and registration.
+  - Dynamic pagination showing 5 records per page by default to prevent bloat.
+  - In-stock monitoring and automated Low Stock Alerts (threshold < 10 units).
+
+* CUSTOMER & KHATA LEDGER:
+  - CRM management of shopper accounts.
+  - Lock/Unlock customer credit accounts. Locked accounts cannot checkout.
+  - Customizable credit limits with dynamic utilization percentage meters.
+  - Live customer directory search by name, email, and phone number.
+
+* OPERATING EXPENSES RECORD BOOK:
+  - Log expenses under Category buckets (Rent, Salary, Bills, Transport, etc.).
+  - Bar charts indicating Category overhead ratios.
+  - Expense ledger with dynamic filters and 5-item default pagination.
+
+* SUPPLIERS & WHOLESALE PURCHASE BOOK:
+  - Vendor details database (Contacts, GSTIN).
+  - Bulk purchase ledger: logs item units, updates stock counts, cost metrics,
+    and outstanding vendor debts.
+  - Supplier ledger history tracking and debt settlement logs.
+
+* DYNAMIC DOUBLE-ENTRY FINANCIAL ACCOUNTING:
+  - Profit & Loss Statement (Sales Revenue, COGS, Gross Profit, Operating Costs, Net Profit).
+  - Balance Sheet (Assets, Inventory Value, Accounts Receivable, Accounts Payable, Net Worth).
+  - Cash Flow Statement (Cash Inflows vs Cash Outflows).
+  - GST Invoices & Summaries: CGST/SGST tax breakdowns and monthly exports.
+
+* AUTOMATED NOTIFICATIONS:
+  - Low Stock alert, high customer credit warning, high supplier payable warning.
+  - Logging audits for WhatsApp communication logs.
+
+--------------------------------------------------------------------------------
+4. PRODUCTION-GRADE SECURITY HARDENING
+--------------------------------------------------------------------------------
+
+- Session-Based Authentication: Login tokens and user metadata are stored in
+  sessionStorage rather than localStorage, securing them against persistence
+  when browser window/tabs are closed.
+- Automatic Logout on Browser/Tab Close: Uses window 'pagehide' event listener
+  connected to navigator.sendBeacon() to destroy the server-side session.
+- Prevent Session Fixation: Generates a fresh session ID on login and flushes
+  any anonymous/prior session keys.
+- Complete Server Session Destruction: Invalidation of server-side session,
+  deletion of Django session database entry, and wiping of session/CSRF cookies.
+- Inactivity Session Timeout: Adjusted access and refresh token lifetimes to 15
+  minutes, rotating the refresh token dynamically. Inactivity logs the user
+  out automatically after 15 minutes of idle time.
+- Cache-Control & Anti-Caching: Appends headers (no-store, no-cache, must-revalidate)
+  on all API endpoints, admin views, and main index.html Vercel entry points
+  to prevent post-logout page retention via the browser back button.
+- Multi-Tab Logout Sync: Instantly triggers logout across all active browser
+  tabs using browser storage listener events.
+
+================================================================================
