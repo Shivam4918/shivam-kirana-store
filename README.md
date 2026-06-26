@@ -179,3 +179,5 @@ VITE_API_URL=https://shivam-backend.onrender.com/api
 1. **Caching**: Integrate **Redis** to cache inventory product details and category queries, lowering database pressure.
 2. **WebSockets**: Transition the ledger access toggle from polling/re-fetching to **Django Channels** (WebSockets) for instant real-time UI updates on client screens.
 3. **SMS Alerts**: Integrate **Twilio** or **Msg91** to send SMS transaction receipts to customers whenever credit is issued or paid.
+
+<!-- Trigger Vercel rebuild to deploy reverted codebase -->
