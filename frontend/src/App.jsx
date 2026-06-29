@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import CartDrawer from './components/CartDrawer';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -28,6 +29,7 @@ const AppLayout = () => {
           <Outlet />
         </main>
       </div>
+      <CartDrawer />
     </div>
   );
 };
