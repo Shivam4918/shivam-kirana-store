@@ -8,21 +8,16 @@ import {
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
   FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, 
   FiStar, FiZap, FiRefreshCw, FiSend, FiHeart, FiGift, FiClock, FiHome, 
-  FiLayers, FiInfo
+  FiLayers, FiInfo, FiChevronLeft, FiChevronRight, FiCheckCircle
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
 const cleanPhoneForWhatsApp = (phone) => {
   if (!phone) return '';
   let cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('00')) {
-    cleaned = cleaned.substring(2);
-  } else if (cleaned.startsWith('0') && cleaned.length === 11) {
-    cleaned = cleaned.substring(1);
-  }
-  if (cleaned.length === 10) {
-    return `91${cleaned}`;
-  }
+  if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);
+  else if (cleaned.startsWith('0') && cleaned.length === 11) cleaned = cleaned.substring(1);
+  if (cleaned.length === 10) return `91${cleaned}`;
   return cleaned;
 };
 
@@ -58,7 +53,7 @@ const CustomerDashboard = () => {
   const [ledgerCurrentPage, setLedgerCurrentPage] = useState(1);
   const ledgerPageSize = 5;
 
-  // Upgraded Feature States
+  // Banners & Summary states
   const [banners, setBanners] = useState([]);
   const [bannersLoading, setBannersLoading] = useState(true);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -66,7 +61,7 @@ const CustomerDashboard = () => {
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   
-  // Search History & Dropdown States
+  // Autocomplete search states
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
@@ -76,17 +71,17 @@ const CustomerDashboard = () => {
     }
   });
 
-  // Sliders data
+  // Section sliders data
   const [buyAgainProducts, setBuyAgainProducts] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
 
-  // Wishlist States
+  // Wishlist states
   const [wishlistIds, setWishlistIds] = useState(new Set());
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
 
-  // Product Quick View States
+  // Product quick-view overlay states
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -94,10 +89,10 @@ const CustomerDashboard = () => {
   const [newReviewText, setNewReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // Mobile Bottom Navigation States
+  // Mobile bottom tab nav
   const [mobileTab, setMobileTab] = useState(isKhataView ? 'khata' : 'home');
 
-  // General UI states
+  // General notifier state
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
@@ -111,13 +106,19 @@ const CustomerDashboard = () => {
 
   const searchInputRef = useRef(null);
 
-  // Debounce search query
+  // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Sync searchQuery with URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearchQuery(params.get('search') || '');
+  }, [location.search]);
 
   // Toast notifier helper
   const showToast = (message, type = 'success') => {
@@ -506,7 +507,7 @@ const CustomerDashboard = () => {
   };
 
   const getDeliveryEstimate = () => {
-    return configs.DELIVERY_TIME || 'Deliver in 2 hours';
+    return configs.DELIVERY_TIME || 'Deliver in 12 mins';
   };
 
   const renderCartButton = (product) => {
@@ -557,7 +558,7 @@ const CustomerDashboard = () => {
         >
           <FiMinus className="w-3 h-3" />
         </button>
-        <span className="text-xs font-mono font-bold text-slate-805 px-1.5 min-w-[16px] text-center">
+        <span className="text-xs font-mono font-bold text-slate-800 px-1.5 min-w-[16px] text-center">
           {cartItem.quantity}
         </span>
         <button
@@ -592,65 +593,71 @@ const CustomerDashboard = () => {
         </div>
       )}
 
-      {/* ── TOP STATS BAR / SUMMARY (Customer Overview) ── */}
+      {/* ── STATS / OVERVIEW BAR ── */}
       {!summaryLoading && summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left font-medium">
-          <div className="bg-white border border-slate-200/60 rounded-lg p-4 shadow-sm flex items-center space-x-3">
-            <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
-              <FiShoppingBag className="w-4 h-4" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left font-medium">
+          
+          <div className="bg-white border-l-4 border-l-blue-500 border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Total Orders</span>
+              <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                <FiShoppingBag className="w-4 h-4" />
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Total Orders</span>
-              <span className="text-base font-semibold font-mono text-slate-900">{summary.total_orders || 0} checkout logs</span>
-            </div>
+            <span className="text-xl font-bold font-mono text-slate-900 block">{summary.total_orders || 0}</span>
+            <p className="text-[10px] text-slate-400 mt-1">Completed store checkouts</p>
           </div>
 
-          <div className="bg-white border border-slate-200/60 rounded-lg p-4 shadow-sm flex items-center space-x-3">
-            <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-[#10B981]">
-              <FiGift className="w-4 h-4" />
+          <div className="bg-white border-l-4 border-l-[#10B981] border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Loyalty Points</span>
+              <div className="p-1.5 bg-emerald-50 rounded-lg text-[#10B981]">
+                <FiGift className="w-4 h-4" />
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Loyalty Points</span>
-              <span className="text-base font-semibold font-mono text-[#10B981]">{summary.loyalty_points || 0} points</span>
-            </div>
+            <span className="text-xl font-bold font-mono text-[#10B981] block">{summary.loyalty_points || 0}</span>
+            <p className="text-[10px] text-slate-400 mt-1">Redeemable on checkout</p>
           </div>
 
-          <div className="bg-white border border-slate-200/60 rounded-lg p-4 shadow-sm flex items-center space-x-3">
-            <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-rose-500">
-              <FiLock className="w-4 h-4" />
+          <div className="bg-white border-l-4 border-l-rose-500 border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Khata Outstanding</span>
+              <div className="p-1.5 bg-rose-50 rounded-lg text-rose-500">
+                <FiLock className="w-4 h-4" />
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Khata Outstanding</span>
-              <span className="text-base font-semibold font-mono text-rose-600">₹{parseFloat(summary.current_balance || 0).toFixed(2)}</span>
-            </div>
+            <span className="text-xl font-bold font-mono text-rose-600 block">₹{parseFloat(summary.current_balance || 0).toFixed(2)}</span>
+            <p className="text-[10px] text-slate-400 mt-1">Unpaid store balance due</p>
           </div>
 
-          <div className="bg-white border border-slate-200/60 rounded-lg p-4 shadow-sm flex items-center space-x-3">
-            <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
-              <FiUnlock className="w-4 h-4" />
+          <div className="bg-white border-l-4 border-l-slate-800 border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Credit Limit</span>
+              <div className="p-1.5 bg-slate-100 rounded-lg text-slate-700">
+                <FiUnlock className="w-4 h-4" />
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Credit Limit</span>
-              <span className="text-base font-semibold font-mono text-slate-800">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
-            </div>
+            <span className="text-xl font-bold font-mono text-slate-800 block">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
+            <p className="text-[10px] text-slate-400 mt-1">Assigned digital credit limit</p>
           </div>
+
         </div>
       )}
 
-      {/* STOREFRONT VIEW */}
+      {/* STOREFRONT GROCERY CATALOG VIEW */}
       {!isKhataView && (
         <div className="space-y-6">
           
-          {/* Quick settlement strip if unpaid debt exists */}
+          {/* Quick outstanding alert strip */}
           {!khataLoading && khataProfile && parseFloat(khataProfile.current_balance) > 0 && (
             <div className="bg-rose-50/50 border border-rose-100 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-left">
               <div className="flex items-start space-x-3">
-                <div className="bg-rose-50 text-rose-600 p-2.5 rounded-lg border border-rose-100 shrink-0">
+                <div className="bg-rose-50 text-rose-600 p-2 rounded-lg border border-rose-100 shrink-0">
                   <FiLock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">Unsettled digital Khata balances detected</h4>
-                  <p className="text-[11px] text-slate-500 mt-1 font-light">Outstanding liability: <span className="font-bold text-rose-600 font-mono">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>. Settle online to unlock seamless ordering.</p>
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">Pending credit balance statement</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">Outstanding total: <span className="font-bold text-rose-600 font-mono">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>. Please clear payables online via UPI checkout.</p>
                 </div>
               </div>
               <button
@@ -659,14 +666,14 @@ const CustomerDashboard = () => {
                   setShowSettlementModal(true);
                   setPaymentRequest(null);
                 }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4.5 py-2 rounded-lg text-xs transition-colors cursor-pointer active:scale-95 shrink-0"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-1.5 rounded-lg text-xs cursor-pointer transition-colors active:scale-95 shrink-0"
               >
-                Clear Outstanding
+                Clear Balance
               </button>
             </div>
           )}
 
-          {/* Promotional Banners Carousel */}
+          {/* Premium auto-sliding banner carousel */}
           <div className="relative rounded-lg overflow-hidden border border-slate-200/60 shadow-sm group h-44 sm:h-52 bg-slate-50 flex items-stretch">
             {bannersLoading ? (
               <div className="w-full h-full animate-pulse bg-slate-100"></div>
@@ -737,118 +744,26 @@ const CustomerDashboard = () => {
             )}
           </div>
 
-          {/* Search, Sort and Layout filters */}
+          {/* Search, Sort and Layout filters (mobile fallback search) */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 leading-none">Browse Catalog</h2>
-              <p className="text-slate-505 text-xs sm:text-sm mt-1.5 font-medium">Instant Blinkit-style delivery. Zero immediate payment, checkout on Digital Khata ledger.</p>
+              <p className="text-slate-505 text-xs sm:text-sm mt-1.5 font-medium">Blinkit-style delivery. Zero immediate payment, checkout on Digital Khata ledger.</p>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-stretch gap-3">
-              <div className="relative flex-1 sm:w-72">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Mobile-only visible search input */}
+              <div className="relative flex-1 sm:hidden">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <FiSearch className="w-4 h-4" />
                 </span>
                 <input
-                  ref={searchInputRef}
                   type="text"
                   value={searchQuery}
-                  onFocus={() => setShowSuggestions(true)}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full bg-white border border-slate-200 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-500/20 rounded-lg py-2 pl-9 pr-8 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
+                  className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 pl-9 pr-4 text-xs text-slate-900 outline-none"
                 />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer"
-                  >
-                    <FiX className="w-4 h-4" />
-                  </button>
-                )}
-
-                {showSuggestions && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowSuggestions(false)} />
-                    <div className="absolute left-0 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-md z-50 p-1 text-left text-xs">
-                      
-                      {recentSearches.length > 0 && !searchQuery && (
-                        <div className="mb-2">
-                          <div className="flex justify-between items-center px-2 py-1 text-[9px] text-slate-400 uppercase font-bold tracking-wider">
-                            <span>Recent Searches</span>
-                            <button onClick={clearSearchHistory} className="text-rose-500 hover:underline cursor-pointer lowercase">clear</button>
-                          </div>
-                          {recentSearches.map((s, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleSearchSelect(s)}
-                              className="w-full flex items-center space-x-2 px-3 py-1.5 hover:bg-slate-50 rounded text-slate-700 font-medium cursor-pointer"
-                            >
-                              <FiClock className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{s}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {!searchQuery && (
-                        <div className="mb-1">
-                          <div className="px-2 py-1 text-[9px] text-slate-400 uppercase font-bold tracking-wider">
-                            Popular Searches
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 p-1.5">
-                            {['Milk', 'Bread', 'Butter', 'Wheat Atta', 'Cooking Oil', 'Eggs'].map((tag, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => handleSearchSelect(tag)}
-                                className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-semibold text-slate-700 cursor-pointer"
-                              >
-                                {tag}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {searchQuery && (
-                        <div>
-                          <div className="px-2 py-1 text-[9px] text-slate-400 uppercase font-bold tracking-wider border-b border-slate-100 pb-1.5 mb-1.5">
-                            Matching Catalog Items
-                          </div>
-                          {searchedProducts.slice(0, 5).length > 0 ? (
-                            searchedProducts.slice(0, 5).map((p) => (
-                              <div
-                                key={p.id}
-                                onClick={() => {
-                                  handleSearchSelect(p.name);
-                                  setQuickViewProduct(p);
-                                }}
-                                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-50 rounded cursor-pointer transition-colors"
-                              >
-                                <div className="flex items-center space-x-2 min-w-0">
-                                  <div className="w-6 h-6 bg-slate-50 border border-slate-200 rounded flex items-center justify-center shrink-0">
-                                    {p.image ? (
-                                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <FiShoppingBag className="w-3.5 h-3.5 text-slate-400" />
-                                    )}
-                                  </div>
-                                  <div className="truncate">
-                                    <p className="font-bold text-slate-800 text-xs">{highlightText(p.name, searchQuery)}</p>
-                                    <span className="text-[9.5px] text-slate-400">{p.category || 'General'}</span>
-                                  </div>
-                                </div>
-                                <span className="font-bold text-xs text-[#10B981] font-mono">₹{p.price}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="py-4 text-center text-slate-400 italic">No products matched query.</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
               </div>
 
               <button
@@ -887,7 +802,7 @@ const CustomerDashboard = () => {
             </div>
           </div>
 
-          {/* Catalog Row Subsections */}
+          {/* Catalog Row Subsections (Buy Again, Best Sellers, Trending, Recommended) */}
           {!showWishlistOnly && !searchQuery && (
             <div className="space-y-6">
               
@@ -900,7 +815,7 @@ const CustomerDashboard = () => {
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
                     {buyAgainProducts.map(p => (
-                      <div key={p.id} className="w-44 bg-white border border-slate-200/60 rounded-lg p-3.5 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-300 transition-colors cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                      <div key={p.id} className="w-44 bg-white border border-slate-200/60 rounded-lg p-3.5 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-350 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
                         <button 
                           onClick={(e) => handleToggleWishlist(e, p.id)}
                           className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
@@ -909,7 +824,7 @@ const CustomerDashboard = () => {
                         </button>
                         <div className="h-28 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
                           ) : (
                             <FiShoppingBag className="w-7 h-7 text-slate-300" />
                           )}
@@ -917,7 +832,7 @@ const CustomerDashboard = () => {
                         <div className="mt-2.5 space-y-1">
                           <h4 className="font-bold text-xs text-slate-900 truncate">{p.name}</h4>
                           <div className="flex justify-between items-center mt-2.5">
-                            <span className="font-bold text-xs text-slate-800 font-mono">₹{p.price}</span>
+                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -928,7 +843,7 @@ const CustomerDashboard = () => {
                                   showToast(res.message, 'success');
                                 }
                               }}
-                              className="bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-semibold px-2.5 py-1 rounded shadow-sm"
+                              className="bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-semibold px-2.5 py-1 rounded shadow-sm transition-colors"
                             >
                               Reorder
                             </button>
@@ -944,12 +859,12 @@ const CustomerDashboard = () => {
               {bestSellers.length > 0 && (
                 <div className="space-y-3 text-left">
                   <div className="flex items-center space-x-1.5">
-                    <FiZap className="text-amber-500 w-4 h-4 shrink-0" />
+                    <FiZap className="text-amber-500 w-4 h-4 shrink-0 animate-pulse" />
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">🔥 Best Sellers</h3>
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
                     {bestSellers.map(p => (
-                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-300 transition-colors cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-355 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
                         <button 
                           onClick={(e) => handleToggleWishlist(e, p.id)}
                           className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
@@ -958,7 +873,7 @@ const CustomerDashboard = () => {
                         </button>
                         <div className="h-24 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
                           ) : (
                             <FiShoppingBag className="w-5 h-5 text-slate-300" />
                           )}
@@ -967,7 +882,7 @@ const CustomerDashboard = () => {
                           <h4 className="font-bold text-xs text-slate-900 truncate">{p.name}</h4>
                           <span className="text-[9px] font-bold text-slate-400 block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                            <span className="font-bold text-xs text-slate-800 font-mono">₹{p.price}</span>
+                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
                             {renderCartButton(p)}
                           </div>
                         </div>
@@ -986,7 +901,7 @@ const CustomerDashboard = () => {
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
                     {trendingProducts.map(p => (
-                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-300 transition-colors cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-355 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
                         <button 
                           onClick={(e) => handleToggleWishlist(e, p.id)}
                           className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
@@ -995,13 +910,13 @@ const CustomerDashboard = () => {
                         </button>
                         <div className="h-24 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
                           ) : (
                             <FiShoppingBag className="w-5 h-5 text-slate-300" />
                           )}
                         </div>
                         <div className="mt-2.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-900 truncate">{p.name}</h4>
+                          <h4 className="font-bold text-xs text-slate-905 truncate">{p.name}</h4>
                           <span className="text-[9px] font-bold text-slate-400 block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
                             <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
@@ -1023,25 +938,25 @@ const CustomerDashboard = () => {
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
                     {recommendations.map(p => (
-                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-300 transition-colors cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-355 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
                         <button 
                           onClick={(e) => handleToggleWishlist(e, p.id)}
-                          className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
+                          className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/95 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
                         >
                           <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
                         </button>
                         <div className="h-24 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
                           ) : (
                             <FiShoppingBag className="w-5 h-5 text-slate-300" />
                           )}
                         </div>
                         <div className="mt-2.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-900 truncate">{p.name}</h4>
+                          <h4 className="font-bold text-xs text-slate-905 truncate">{p.name}</h4>
                           <span className="text-[9px] font-bold text-slate-400 block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                            <span className="font-bold text-xs text-slate-800 font-mono">₹{p.price}</span>
+                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
                             {renderCartButton(p)}
                           </div>
                         </div>
@@ -1054,21 +969,17 @@ const CustomerDashboard = () => {
             </div>
           )}
 
-          {/* Main Catalog categories tab filter */}
-          <div className="border-t border-slate-200/65 pt-6 space-y-4">
-            <h3 className="font-semibold text-slate-900 text-xs sm:text-sm uppercase tracking-wider text-[10px] text-left">
-              {showWishlistOnly ? 'My Wishlisted Products' : 'Explore Full Catalog'}
-            </h3>
-            
-            <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+          {/* Sticky horizontal premium category filter chips */}
+          <div className="sticky top-[58px] z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-t border-b border-slate-200/50 py-3.5 space-y-3.5">
+            <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none pr-4">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap border cursor-pointer transition-all ${
+                  className={`px-4.5 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap border cursor-pointer transition-all hover:-translate-y-0.5 ${
                     selectedCategory === cat
                       ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                      : 'bg-white text-slate-500 hover:text-slate-900 border-slate-200/60 hover:border-slate-300'
+                      : 'bg-white text-slate-500 hover:text-slate-900 border-slate-205/60 hover:border-slate-350'
                   }`}
                 >
                   {cat}
@@ -1079,11 +990,11 @@ const CustomerDashboard = () => {
 
           {/* Product Cards Catalog Grid */}
           {productsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-white border border-slate-100 rounded-lg p-4 h-[320px] shadow-sm">
-                  <div className="w-full h-40 bg-slate-100 rounded-lg mb-3"></div>
-                  <div className="h-4 bg-slate-100 rounded w-2/3 mb-2"></div>
+                <div key={i} className="bg-white border border-slate-200/60 rounded-lg p-5 h-[320px] shadow-sm animate-pulse space-y-4">
+                  <div className="w-full h-40 bg-slate-100 rounded-lg"></div>
+                  <div className="h-4 bg-slate-100 rounded w-2/3"></div>
                   <div className="h-3 bg-slate-100 rounded w-1/2"></div>
                 </div>
               ))}
@@ -1094,22 +1005,27 @@ const CustomerDashboard = () => {
                 const stockInfo = getStockStatus(p.stock_quantity);
 
                 return (
-                  <div key={p.id} className="bg-white border border-slate-200/60 hover:border-slate-300 rounded-lg overflow-hidden transition-all duration-200 group flex flex-col h-full shadow-sm relative cursor-pointer" onClick={() => setQuickViewProduct(p)}>
-                    
+                  <div 
+                    key={p.id} 
+                    className="bg-white border border-slate-200/60 hover:border-slate-300 rounded-lg overflow-hidden transition-all duration-250 group flex flex-col h-full shadow-sm hover:shadow-md hover:-translate-y-0.5 relative cursor-pointer" 
+                    onClick={() => setQuickViewProduct(p)}
+                  >
+                    {/* Wishlist item toggle overlay */}
                     <button 
                       onClick={(e) => handleToggleWishlist(e, p.id)}
-                      className="absolute top-3 right-3 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer transition-colors"
+                      className="absolute top-3 right-3 z-10 p-1.5 bg-white/95 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer transition-colors"
                       title="Add to wishlist"
                     >
                       <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
                     </button>
 
-                    <div className="h-40 overflow-hidden relative bg-slate-50 flex items-center justify-center border-b border-slate-100">
+                    {/* Image Area */}
+                    <div className="h-44 overflow-hidden relative bg-slate-50 flex items-center justify-center border-b border-slate-100">
                       {p.image ? (
                         <img 
                           src={p.image} 
                           alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-all duration-350"
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-350"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80';
@@ -1123,21 +1039,23 @@ const CustomerDashboard = () => {
                         {p.category || 'General'}
                       </span>
 
-                      <span className="absolute bottom-3 left-3 bg-slate-900/80 text-white text-[9px] font-semibold px-2 py-0.5 rounded flex items-center space-x-1 shadow-sm">
+                      <span className="absolute bottom-3 left-3 bg-slate-900/80 text-white text-[9px] font-semibold px-2 py-0.5 rounded flex items-center space-x-1 shadow-sm font-mono">
                         <FiClock className="w-3 h-3 text-[#10B981]" />
                         <span>{getDeliveryEstimate()}</span>
                       </span>
                     </div>
 
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                      <div className="text-left">
-                        <div className="flex flex-wrap gap-1.5 items-center mb-2">
+                    {/* Details content */}
+                    <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3.5 text-left">
+                      <div>
+                        {/* Ratings & Tags */}
+                        <div className="flex flex-wrap gap-1.5 items-center mb-2.5">
                           <span className="bg-amber-50 text-amber-600 text-[9.5px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100">
                             <FiStar className="w-3 h-3 fill-current text-amber-500" />
                             <span>{p.average_rating || '5.0'}</span>
                           </span>
                           {p.badges && p.badges.map((b, idx) => (
-                            <span key={idx} className="bg-slate-50 text-slate-655 border border-slate-200 text-[8.5px] font-bold px-1.5 py-0.5 rounded uppercase">
+                            <span key={idx} className="bg-slate-50 text-slate-500 border border-slate-200 text-[8.5px] font-bold px-1.5 py-0.5 rounded uppercase">
                               {b.replace(/[^\w\s]/g, '')}
                             </span>
                           ))}
@@ -1146,17 +1064,18 @@ const CustomerDashboard = () => {
                         <h3 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight group-hover:text-[#10B981] transition-colors truncate">
                           {p.name}
                         </h3>
-                        <p className="text-[10px] text-slate-400 mt-1 font-medium leading-normal line-clamp-2">
+                        <p className="text-[10.5px] text-slate-400 mt-1 font-medium leading-normal line-clamp-2">
                           {p.description || 'Fresh selected local grocery items.'}
                         </p>
                       </div>
 
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                        <div className="text-left">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold border ${stockInfo.color} mb-1.5`}>
+                      {/* Pricing margins & actions */}
+                      <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between mt-auto">
+                        <div className="text-left font-mono">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold border font-sans mb-1.5 ${stockInfo.color}`}>
                             {stockInfo.text}
                           </span>
-                          <p className="font-bold text-sm sm:text-base text-slate-900 leading-none font-mono">₹{p.price}</p>
+                          <p className="font-bold text-sm sm:text-base text-slate-900 leading-none">₹{p.price}</p>
                         </div>
 
                         <div className="text-right">
@@ -1170,16 +1089,16 @@ const CustomerDashboard = () => {
               })}
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-lg py-16 px-4 flex flex-col items-center justify-center space-y-3.5 text-center shadow-sm">
-              <div className="bg-slate-50 p-3 rounded-lg text-slate-400">
-                <FiInbox className="w-6 h-6" />
+            <div className="bg-white border border-slate-200/60 rounded-lg py-20 px-4 flex flex-col items-center justify-center space-y-3.5 text-center shadow-sm">
+              <div className="bg-slate-50 p-3.5 rounded-lg text-slate-400">
+                <FiInbox className="w-7 h-7" />
               </div>
-              <h3 className="text-slate-800 font-semibold text-sm">No products found</h3>
+              <h3 className="text-slate-800 font-semibold text-sm">No grocery products found</h3>
               <p className="text-slate-400 text-xs max-w-sm">We couldn't find any products matching your active filters or wishlist selection.</p>
             </div>
           )}
 
-          {/* Trust Badges Section */}
+          {/* Brand trust badges */}
           <div className="border-t border-slate-200/60 pt-10 pb-8 mt-10">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center text-xs text-slate-400">
               <div className="flex flex-col items-center space-y-1.5 p-3.5 bg-white border border-slate-200/60 rounded-lg shadow-sm font-semibold">
@@ -1213,7 +1132,7 @@ const CustomerDashboard = () => {
         <div className="space-y-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 leading-none">Digital Khata Ledger Book</h2>
-            <p className="text-slate-505 text-xs sm:text-sm mt-1.5 font-medium">Track your balance liabilities, outstanding credit orders, and official payment logs.</p>
+            <p className="text-slate-505 text-xs sm:text-sm mt-1.5 font-medium font-medium">Track your balance liabilities, outstanding credit orders, and official payment logs.</p>
           </div>
 
           {khataLoading ? (
@@ -1246,7 +1165,7 @@ const CustomerDashboard = () => {
 
               <button
                 onClick={fetchKhataLedger}
-                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95"
+                className="bg-white hover:bg-slate-50 text-slate-707 border border-slate-200 px-4.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95"
               >
                 Refresh Account Status
               </button>
@@ -1376,7 +1295,7 @@ const CustomerDashboard = () => {
                     <span className={`text-[9.5px] font-bold ${
                       (parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100 >= 80 ? 'text-amber-600' : 'text-[#10B981]'
                     }`}>
-                      {Math.min(100, ((parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100)).toFixed(1)}% used
+                      {Math.min(100, ((parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 105)).toFixed(1)}% used
                     </span>
                     <span className="text-[9.5px] font-medium">
                       ₹{parseFloat(khataProfile.current_balance).toFixed(2)} outstanding
@@ -1421,7 +1340,7 @@ const CustomerDashboard = () => {
                             <td className="py-3.5 px-5 text-slate-900 font-semibold">{tx.description || 'N/A'}</td>
                             <td className="py-3.5 px-5">
                               {tx.product_name ? (
-                                <span className="bg-slate-50 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200/60">
+                                <span className="bg-slate-50 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200/60 font-mono">
                                   {tx.product_name} x {tx.quantity || 1}
                                 </span>
                               ) : (
@@ -1511,7 +1430,7 @@ const CustomerDashboard = () => {
         href={`https://wa.me/${cleanPhoneForWhatsApp(configs.SUPPORT_PHONE) || '919876543210'}?text=Hello%20Shivam%20Kirana%20Store,%20I%20need%20help%20with%20my%20credit%20ledger.`}
         target="_blank"
         rel="noreferrer"
-        className="fixed bottom-6 left-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white p-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-6 left-6 z-40 bg-[#10B981] hover:bg-[#059669] text-white p-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95"
         title="WhatsApp Support Contact"
       >
         <FaWhatsapp className="w-5 h-5" />
@@ -1599,7 +1518,7 @@ const CustomerDashboard = () => {
                       {quickViewProduct.category || 'General'}
                     </span>
                     {quickViewProduct.badges && quickViewProduct.badges.map((b, i) => (
-                      <span key={i} className="bg-amber-50 text-amber-600 border border-amber-200/40 text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase">
+                      <span key={i} className="bg-amber-50 text-amber-605 border border-amber-200/40 text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase">
                         {b}
                       </span>
                     ))}
@@ -1712,18 +1631,18 @@ const CustomerDashboard = () => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-slate-400 font-mono">{new Date(r.created_at).toLocaleDateString()}</span>
+                          <span className="text-[10px] text-slate-405 font-mono">{new Date(r.created_at).toLocaleDateString()}</span>
                         </div>
                         <div className="flex space-x-0.5 text-amber-400">
                           {[...Array(5)].map((_, i) => (
                             <FiStar key={i} className={`w-3 h-3 ${i < r.rating ? 'fill-current text-amber-500' : ''}`} />
                           ))}
                         </div>
-                        <p className="leading-normal font-normal text-slate-655">{r.review_text || 'Excellent product.'}</p>
+                        <p className="leading-normal font-normal text-slate-600">{r.review_text || 'Excellent product.'}</p>
                       </div>
                     ))
                   ) : (
-                    <div className="py-8 text-center text-xs text-slate-400 italic font-medium">No approved reviews yet. Be the first to write a review!</div>
+                    <div className="py-8 text-center text-xs text-slate-405 italic font-medium">No approved reviews yet. Be the first to write a review!</div>
                   )}
                 </div>
 
@@ -1746,7 +1665,7 @@ const CustomerDashboard = () => {
             </button>
 
             <div className="flex items-center space-x-2.5 mb-5 text-left font-medium">
-              <div className="bg-rose-50 text-rose-500 p-2 rounded-lg border border-rose-100">
+              <div className="bg-rose-50 text-rose-505 p-2 rounded-lg border border-rose-100">
                 <FiZap className="w-4.5 h-4.5" />
               </div>
               <h3 className="text-lg font-semibold text-slate-950 tracking-tight leading-none">
@@ -1760,7 +1679,7 @@ const CustomerDashboard = () => {
                   <span className="text-[9.5px] uppercase font-bold tracking-wider text-slate-400 block font-sans">
                     Outstanding Debt Liability
                   </span>
-                  <span className="text-2xl font-bold text-rose-600 block mt-1">
+                  <span className="text-2xl font-bold text-rose-605 block mt-1">
                     ₹{parseFloat(khataProfile.current_balance).toFixed(2)}
                   </span>
                 </div>
@@ -1776,11 +1695,11 @@ const CustomerDashboard = () => {
                     max={parseFloat(khataProfile.current_balance)}
                     value={settleAmount}
                     onChange={(e) => setSettleAmount(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2.5 px-3 text-xs sm:text-sm font-mono text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
+                    className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2.5 px-3 text-xs sm:text-sm font-mono text-slate-905 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
                     placeholder="Enter amount to pay"
                     required
                   />
-                  <span className="text-[9.5px] text-slate-400 mt-1 block leading-normal">
+                  <span className="text-[9.5px] text-slate-400 mt-1 block leading-normal font-sans">
                     Must be greater than ₹0 and not exceed your total debt.
                   </span>
                 </div>
