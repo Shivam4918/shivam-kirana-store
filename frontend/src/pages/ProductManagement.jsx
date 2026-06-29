@@ -151,11 +151,9 @@ const ProductManagement = () => {
     setShowScanner(false);
 
     if (scannerMode === 'fill') {
-      // Fill the barcode field in the form
       setBarcode(code);
       setSuccessMsg(`Barcode captured: ${code}`);
     } else if (scannerMode === 'find') {
-      // Find a product by this barcode
       setSuccessMsg('');
       setErrorMsg('');
       try {
@@ -203,31 +201,30 @@ const ProductManagement = () => {
   }, [filteredProducts.length, currentPage, totalPages]);
 
   return (
-    <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-y-auto bg-slate-50/50 text-[#111827] flex flex-col justify-start relative text-left">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto bg-[#F8FAFC] text-[#111827] flex flex-col justify-start relative text-left">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-poppins font-extrabold text-secondary">Inventory Catalog</h2>
-          <p className="text-[#6B7280] text-xs sm:text-sm">Manage products, modify prices, restock units, and scan barcodes.</p>
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 leading-none">Inventory Catalog</h2>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1.5 font-medium">Manage products, modify prices, restock units, and scan barcodes.</p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          {/* Scan to Find button */}
+        <div className="flex items-center gap-2">
           <button
             onClick={openScanToFind}
-            className="flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-secondary font-bold px-3.5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer text-xs active:scale-95"
+            className="flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-205 text-slate-750 font-semibold px-3.5 py-2 rounded-lg shadow-sm transition-all cursor-pointer text-xs active:scale-95"
             title="Scan a barcode to instantly find & edit a product"
           >
-            <FiZap className="w-4 h-4 text-primary" />
+            <FiZap className="w-3.5 h-3.5 text-[#10B981]" />
             <span>Scan to Find</span>
           </button>
 
           <button
             onClick={openAddModal}
-            className="bg-primary hover:bg-primary-hover text-white font-bold px-4.5 py-2.5 rounded-xl flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all cursor-pointer text-xs sm:text-sm active:scale-95"
+            className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95"
           >
-            <FiPlus className="w-4.5 h-4.5" />
+            <FiPlus className="w-4 h-4" />
             <span>Add Catalog Item</span>
           </button>
         </div>
@@ -237,7 +234,7 @@ const ProductManagement = () => {
       <div className="flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-            <FiSearch className="w-4.5 h-4.5" />
+            <FiSearch className="w-4 h-4" />
           </span>
           <input
             type="text"
@@ -247,49 +244,56 @@ const ProductManagement = () => {
               setCurrentPage(1);
             }}
             placeholder="Search by name, category, or barcode..."
-            className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2 pl-9 pr-4 text-xs sm:text-sm text-text-primary placeholder-slate-400 outline-none transition-all focus:ring-2 focus:ring-emerald-100"
+            className="w-full bg-white border border-slate-200 focus:border-[#10B981] focus:ring-2 focus:ring-emerald-500/20 rounded-lg py-2 pl-9 pr-4 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
           />
         </div>
       </div>
 
       {/* Action alerts */}
       {successMsg && (
-        <div className="bg-emerald-55 border border-emerald-200 text-emerald-600 p-3.5 rounded-2xl text-xs flex items-center space-x-2 font-medium">
-          <FiCheckCircle className="w-4 h-4 shrink-0" />
+        <div className="bg-emerald-50/50 border border-emerald-100 text-[#10B981] p-3.5 rounded-lg text-xs flex items-center space-x-2 font-medium">
+          <FiCheckCircle className="w-4 h-4 shrink-0 text-[#10B981]" />
           <span>{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="bg-rose-50 border border-rose-250 text-rose-600 p-3.5 rounded-2xl text-xs flex items-center space-x-2 font-medium">
-          <FiAlertCircle className="w-4 h-4 shrink-0" />
+        <div className="bg-rose-50/50 border border-rose-100 text-rose-600 p-3.5 rounded-lg text-xs flex items-center space-x-2 font-medium">
+          <FiAlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Catalog Table */}
       {loading ? (
-        <div className="bg-white border border-slate-100 rounded-3xl p-6 h-60 animate-pulse shadow-sm"></div>
+        <div className="bg-white border border-slate-200/60 rounded-lg p-6 h-60 animate-pulse shadow-sm">
+          <div className="space-y-4">
+            <div className="h-6 bg-slate-100 rounded w-1/4"></div>
+            <div className="h-10 bg-slate-100 rounded"></div>
+            <div className="h-10 bg-slate-100 rounded"></div>
+            <div className="h-10 bg-slate-100 rounded"></div>
+          </div>
+        </div>
       ) : filteredProducts.length > 0 ? (
-        <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-slate-200/60 rounded-lg overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-150 text-[10px] uppercase font-bold tracking-wider text-[#6B7280] bg-slate-50/70">
-                  <th className="py-4 px-6">Image</th>
-                  <th className="py-4 px-6">Item Details</th>
-                  <th className="py-4 px-6">Category</th>
-                  <th className="py-4 px-6">Barcode</th>
-                  <th className="py-4 px-6">Expiry</th>
-                  <th className="py-4 px-6 text-right">Price per unit</th>
-                  <th className="py-4 px-6 text-right">Stock Level</th>
-                  <th className="py-4 px-6 text-center">Actions</th>
+                <tr className="border-b border-slate-200/60 text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-50/50">
+                  <th className="py-3 px-5">Image</th>
+                  <th className="py-3 px-5">Item Details</th>
+                  <th className="py-3 px-5">Category</th>
+                  <th className="py-3 px-5">Barcode</th>
+                  <th className="py-3 px-5">Expiry</th>
+                  <th className="py-3 px-5 text-right">Price</th>
+                  <th className="py-3 px-5 text-right">Stock Level</th>
+                  <th className="py-3 px-5 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedProducts.map((p) => (
                   <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-xs sm:text-sm">
-                    <td className="py-4 px-6">
-                      <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center overflow-hidden">
+                    <td className="py-3.5 px-5">
+                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200/50 flex items-center justify-center overflow-hidden">
                         {p.image ? (
                           <img
                             src={p.image}
@@ -301,31 +305,31 @@ const ProductManagement = () => {
                             }}
                           />
                         ) : (
-                          <FiBox className="w-5 h-5 text-slate-350" />
+                          <FiBox className="w-4.5 h-4.5 text-slate-300" />
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-5">
                       <div>
-                        <p className="font-bold text-secondary text-sm sm:text-base leading-snug">{p.name}</p>
-                        <p className="text-xs text-text-secondary mt-1 font-light leading-normal line-clamp-1 max-w-xs">{p.description || 'No description provided.'}</p>
+                        <p className="font-semibold text-slate-900 leading-snug">{p.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5 line-clamp-1 max-w-xs font-normal">{p.description || 'No description provided.'}</p>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <span className="text-[10px] font-extrabold text-secondary bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md uppercase tracking-wide">
+                    <td className="py-3.5 px-5">
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-wide">
                         {p.category || 'General'}
                       </span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-5">
                       {p.barcode ? (
-                        <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1 rounded-md tracking-widest">
+                        <span className="font-mono text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded tracking-widest">
                           {p.barcode}
                         </span>
                       ) : (
                         <span className="text-[10px] text-slate-400 italic">No barcode</span>
                       )}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-5">
                       {(() => {
                         if (!p.expiry_date) return (
                           <span className="text-[10px] text-slate-400 italic flex items-center gap-1"><FiClock className="w-3 h-3" />No date</span>
@@ -334,50 +338,50 @@ const ProductManagement = () => {
                         const exp = new Date(p.expiry_date);
                         const daysLeft = Math.round((exp - today) / 86400000);
                         if (daysLeft < 0) return (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-1 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>EXPIRED
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full">
+                            <span className="w-1 h-1 rounded-full bg-rose-500 inline-block"></span>EXPIRED
                           </span>
                         );
                         if (daysLeft <= 7) return (
                           <div>
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>Expires in {daysLeft}d
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
+                              <span className="w-1 h-1 rounded-full bg-amber-500 inline-block"></span>Expires {daysLeft}d
                             </span>
                           </div>
                         );
                         return (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>{p.expiry_date}
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block"></span>{p.expiry_date}
                           </span>
                         );
                       })()}
                     </td>
-                    <td className="py-4 px-6 font-extrabold text-secondary text-right">₹{parseFloat(p.price).toFixed(2)}</td>
-                    <td className="py-4 px-6 text-right">
+                    <td className="py-3.5 px-5 font-mono font-semibold text-slate-800 text-right">₹{parseFloat(p.price).toFixed(2)}</td>
+                    <td className="py-3.5 px-5 text-right font-mono">
                       <div>
-                        <p className={`font-bold text-sm leading-none ${p.stock_quantity > 10 ? 'text-secondary' : p.stock_quantity > 0 ? 'text-amber-500' : 'text-rose-500'}`}>
+                        <p className={`font-semibold text-xs sm:text-sm leading-none ${p.stock_quantity > 10 ? 'text-slate-800' : p.stock_quantity > 0 ? 'text-amber-500' : 'text-rose-500'}`}>
                           {p.stock_quantity} units
                         </p>
-                        <span className={`text-[9.5px] uppercase font-bold tracking-wider mt-1 inline-block ${p.stock_quantity > 0 ? 'text-primary' : 'text-rose-400'}`}>
+                        <span className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 inline-block ${p.stock_quantity > 0 ? 'text-emerald-500' : 'text-rose-400'}`}>
                           {p.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center space-x-2">
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center justify-center space-x-1.5">
                         <button
                           onClick={() => openEditModal(p)}
-                          className="p-2.5 rounded-xl bg-white hover:bg-emerald-50 text-text-secondary hover:text-primary border border-slate-200 hover:border-emerald-250 transition-all shadow-sm cursor-pointer"
+                          className="p-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-700 border border-slate-200 transition-all shadow-sm cursor-pointer"
                           title="Edit Product"
                         >
-                          <FiEdit2 className="w-4 h-4" />
+                          <FiEdit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(p.id)}
-                          className="p-2.5 rounded-xl bg-white hover:bg-rose-50 text-text-secondary hover:text-rose-500 border border-slate-200 hover:border-rose-250 transition-all shadow-sm cursor-pointer"
+                          className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 transition-all shadow-sm cursor-pointer"
                           title="Delete Product"
                         >
-                          <FiTrash2 className="w-4 h-4" />
+                          <FiTrash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -388,82 +392,82 @@ const ProductManagement = () => {
           </div>
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg cursor-pointer transition-all"
               >
-                <span>&larr; Previous</span>
+                &larr; Previous
               </button>
-              <span className="text-xs font-medium text-text-secondary">
-                Page <span className="font-bold text-secondary">{currentPage}</span> of <span className="font-bold text-secondary">{totalPages}</span>
+              <span className="text-xs font-semibold text-slate-400 font-mono">
+                Page {currentPage} of {totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3.5 py-2 text-xs font-bold text-secondary border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-xl cursor-pointer transition-all flex items-center space-x-1"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg cursor-pointer transition-all"
               >
-                <span>Next &rarr;</span>
+                Next &rarr;
               </button>
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-3xl py-16 px-4 flex flex-col items-center justify-center space-y-3.5 text-center shadow-sm">
-          <div className="bg-slate-100 p-4 rounded-full text-slate-350">
-            <FiBox className="w-8 h-8" />
+        <div className="bg-white border border-slate-200/60 rounded-lg py-16 px-4 flex flex-col items-center justify-center space-y-3.5 text-center shadow-sm">
+          <div className="bg-slate-50 p-3 rounded-lg text-slate-405">
+            <FiBox className="w-6 h-6" />
           </div>
-          <h3 className="text-secondary font-bold text-lg">No products catalogued</h3>
-          <p className="text-text-secondary text-sm max-w-sm text-center">Add fresh items using the "Add Catalog Item" button to build the retail store inventory catalog.</p>
+          <h3 className="text-slate-800 font-semibold text-sm">No products catalogued</h3>
+          <p className="text-slate-400 text-xs max-w-sm text-center leading-normal">Add fresh items using the "Add Catalog Item" button to build the retail store inventory catalog.</p>
         </div>
       )}
 
       {/* Add/Edit Product Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-premium-lg relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-md bg-white border border-slate-205 rounded-xl p-6 sm:p-8 shadow-lg relative animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
 
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-secondary p-1.5 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-full transition-all cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-1 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all cursor-pointer"
             >
-              <FiX className="w-5 h-5" />
+              <FiX className="w-4 h-4" />
             </button>
 
-            <h3 className="text-lg font-poppins font-extrabold text-secondary mb-6 text-left">
+            <h3 className="text-lg font-semibold text-slate-950 mb-6 text-left tracking-tight">
               {modalType === 'add' ? 'Add Catalog Item' : 'Edit Product Details'}
             </h3>
 
             <form onSubmit={handleFormSubmit} className="space-y-4 text-left">
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Product Name *</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Product Name *</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                  className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-medium"
                   placeholder="e.g. Premium Basmati Rice"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Category</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Category</label>
                 <input
                   type="text"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                  className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-medium"
                   placeholder="e.g. Dairy, Grains, Oils"
                 />
               </div>
 
               {/* Barcode field with scan button */}
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Barcode <span className="normal-case font-normal text-slate-400 ml-1">(EAN-13, UPC-A, Code-128…)</span>
                 </label>
                 <div className="flex gap-2">
@@ -471,16 +475,16 @@ const ProductManagement = () => {
                     type="text"
                     value={barcode}
                     onChange={(e) => setBarcode(e.target.value)}
-                    className="flex-1 bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm font-mono text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    className="flex-1 bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm font-mono text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
                     placeholder="Scan or type barcode..."
                   />
                   <button
                     type="button"
                     onClick={openScanToFill}
-                    className="flex items-center space-x-1.5 bg-emerald-50 hover:bg-emerald-100 text-primary border border-emerald-200 px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95"
+                    className="flex items-center space-x-1 bg-emerald-50 hover:bg-emerald-100 text-[#10B981] border border-emerald-100 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all active:scale-95"
                     title="Open camera to scan barcode"
                   >
-                    <FiCamera className="w-4 h-4" />
+                    <FiCamera className="w-3.5 h-3.5" />
                     <span>Scan</span>
                   </button>
                 </div>
@@ -488,11 +492,11 @@ const ProductManagement = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">GST Rate Slab *</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">GST Rate Slab *</label>
                   <select
                     value={gstRate}
                     onChange={(e) => setGstRate(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-3 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all cursor-pointer"
+                    className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all cursor-pointer font-medium"
                     required
                   >
                     <option value="0.00">0% GST</option>
@@ -503,37 +507,37 @@ const ProductManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">HSN Code</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">HSN Code</label>
                   <input
                     type="text"
                     value={hsnCode}
                     onChange={(e) => setHsnCode(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-medium"
                     placeholder="e.g. 1006"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 font-mono">
                 <div>
-                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Price (₹) *</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-sans">Price (₹) *</label>
                   <input
                     type="number"
                     step="0.01"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
                     placeholder="120.00"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Stock Level *</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-sans">Stock Level *</label>
                   <input
                     type="number"
                     value={stockQuantity}
                     onChange={(e) => setStockQuantity(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                    className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
                     placeholder="50"
                     required
                   />
@@ -541,11 +545,11 @@ const ProductManagement = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Product Image</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Product Image</label>
                 {/* Image preview */}
                 {image ? (
                   <div className="relative mb-2 group">
-                    <div className="w-full h-40 rounded-xl border-2 border-emerald-200 bg-emerald-50/30 overflow-hidden flex items-center justify-center">
+                    <div className="w-full h-36 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
                       <img
                         src={image}
                         alt="Product preview"
@@ -560,7 +564,7 @@ const ProductManagement = () => {
                     <button
                       type="button"
                       onClick={() => setImage('')}
-                      className="absolute top-2 right-2 bg-white/90 hover:bg-rose-50 text-slate-400 hover:text-rose-500 p-1.5 rounded-full border border-slate-200 hover:border-rose-200 shadow-sm transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-rose-50 text-slate-400 hover:text-rose-500 p-1 rounded-full border border-slate-200 shadow-sm transition-all cursor-pointer opacity-0 group-hover:opacity-100"
                       title="Remove image"
                     >
                       <FiX className="w-3.5 h-3.5" />
@@ -569,7 +573,7 @@ const ProductManagement = () => {
                 ) : null}
                 {/* Upload button */}
                 <label
-                  className="flex flex-col items-center justify-center gap-2 w-full py-4 px-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-primary bg-white hover:bg-emerald-50/30 cursor-pointer transition-all group"
+                  className="flex flex-col items-center justify-center gap-1.5 w-full py-4 px-3 rounded-lg border-2 border-dashed border-slate-200 hover:border-[#10B981] bg-white hover:bg-emerald-50/10 cursor-pointer transition-all group"
                 >
                   <input
                     type="file"
@@ -590,11 +594,11 @@ const ProductManagement = () => {
                       e.target.value = '';
                     }}
                   />
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                    <FiCamera className="w-5 h-5 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-emerald-50 flex items-center justify-center transition-colors">
+                    <FiCamera className="w-4 h-4 text-slate-400 group-hover:text-[#10B981]" />
                   </div>
                   <div className="text-center">
-                    <p className="text-xs font-bold text-secondary group-hover:text-primary transition-colors">
+                    <p className="text-xs font-semibold text-slate-500 group-hover:text-[#10B981] transition-colors">
                       {image ? 'Change Image' : 'Add from Gallery'}
                     </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP — max 5 MB</p>
@@ -603,25 +607,25 @@ const ProductManagement = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">Description</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows="3"
-                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all resize-none"
+                  className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all resize-none font-medium"
                   placeholder="Describe grocery unit, features, or weight details..."
                 ></textarea>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#6B7280] uppercase tracking-wider mb-2">
-                  <span className="flex items-center gap-1.5"><FiClock className="w-3.5 h-3.5" />Expiry Date <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span></span>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  <span className="flex items-center gap-1.5"><FiClock className="w-3.5 h-3.5 text-slate-400" />Expiry Date <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span></span>
                 </label>
                 <input
                   type="date"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-primary rounded-xl py-2.5 px-4 text-sm text-[#111827] focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                  className="w-full bg-white border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all font-mono"
                 />
                 {expiryDate && (() => {
                   const today = new Date(); today.setHours(0,0,0,0);
@@ -634,23 +638,23 @@ const ProductManagement = () => {
               </div>
 
               {errorMsg && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-xl text-xs flex items-center space-x-2">
+                <div className="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-lg text-xs flex items-center space-x-2">
                   <FiAlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex space-x-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/2 bg-white border border-slate-200 hover:bg-slate-50 text-text-secondary font-semibold py-3 px-4 rounded-xl transition-all cursor-pointer text-center text-sm"
+                  className="w-1/2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 font-semibold py-2.5 px-4 rounded-lg transition-colors cursor-pointer text-center text-xs sm:text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all cursor-pointer text-center text-sm"
+                  className="w-1/2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm active:scale-[0.98] transition-all cursor-pointer text-center text-xs sm:text-sm"
                 >
                   {modalType === 'add' ? 'Create Item' : 'Save Changes'}
                 </button>
