@@ -626,7 +626,7 @@ const CustomerDashboard = () => {
                 <FiLock className="w-4 h-4" />
               </div>
             </div>
-            <span className="text-xl font-bold font-mono text-rose-600 block">₹{parseFloat(summary.current_balance || 0).toFixed(2)}</span>
+            <span className="text-xl font-bold font-mono text-rose-600 block">₹{parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0).toFixed(2)}</span>
             <p className="text-[10px] text-slate-400 mt-1">Unpaid store balance due</p>
           </div>
 

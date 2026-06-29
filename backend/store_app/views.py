@@ -2601,6 +2601,7 @@ class CustomerDashboardSummaryView(APIView):
             "points_earned": khata.points_earned,
             "points_redeemed": khata.points_redeemed,
             "khata_balance": float(khata.current_balance),
+            "current_balance": float(khata.current_balance),
             "credit_limit": float(khata.credit_limit),
             "recent_purchases": recent_data
         })

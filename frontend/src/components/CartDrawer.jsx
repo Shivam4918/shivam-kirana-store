@@ -75,7 +75,7 @@ const CartDrawer = () => {
   };
 
   const loyaltyPoints = summaryData?.loyalty_points || 0;
-  const currentBalance = summaryData?.current_balance || 0;
+  const currentBalance = summaryData?.current_balance !== undefined ? summaryData.current_balance : (summaryData?.khata_balance || 0);
   const creditLimit = summaryData?.credit_limit || 0;
   const remainingCredit = Math.max(0, creditLimit - currentBalance);
 
