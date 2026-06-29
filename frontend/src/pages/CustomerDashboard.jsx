@@ -674,58 +674,105 @@ const CustomerDashboard = () => {
           )}
 
           {/* Premium auto-sliding banner carousel */}
-          <div className="relative rounded-lg overflow-hidden border border-slate-200/60 shadow-sm group h-44 sm:h-52 bg-slate-50 flex items-stretch">
+          <div className="relative rounded-xl overflow-hidden shadow-md group h-44 sm:h-52 bg-slate-100 flex items-stretch">
             {bannersLoading ? (
-              <div className="w-full h-full animate-pulse bg-slate-100"></div>
+              <div className="w-full h-full animate-pulse bg-slate-200"></div>
             ) : (
               <div className="w-full h-full relative flex items-stretch overflow-hidden">
-                {activeBanners.map((banner, index) => (
-                  <div
-                    key={banner.id || index}
-                    className={`absolute inset-0 transition-opacity duration-700 flex items-stretch ${
-                      index === activeBannerIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                    }`}
-                  >
-                    <div className={`w-full flex flex-col md:flex-row items-stretch justify-between p-6 sm:p-8 text-white bg-gradient-to-r ${
-                      banner.bgGradient || 'from-emerald-700 to-slate-900'
-                    } relative overflow-hidden flex-1`}>
-                      <div className="absolute inset-0 bg-black/10"></div>
-                      <div className="flex flex-col justify-between relative z-10 max-w-lg text-left">
-                        <div className="space-y-1.5">
-                          <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider inline-block">
-                            {banner.tag || banner.banner_type || 'OFFER'}
-                          </span>
-                          <h3 className="text-xl sm:text-2xl font-semibold leading-tight tracking-tight">
-                            {banner.title}
-                          </h3>
-                          <p className="text-xs text-white/90 font-normal leading-relaxed">
-                            {banner.description}
-                          </p>
+                {activeBanners.map((banner, index) => {
+                  const type = banner.banner_type || banner.tag || 'OFFER';
+                  
+                  // Production level color gradients and accents matching Blinkit
+                  const styles = {
+                    OFFER: {
+                      gradient: 'from-[#FF5E62] to-[#FF9966]',
+                      icon: '🏷️',
+                      badge: 'bg-white/20 text-white'
+                    },
+                    DISCOUNT: {
+                      gradient: 'from-[#11998E] to-[#38EF7D]',
+                      icon: '⚡',
+                      badge: 'bg-white/20 text-white'
+                    },
+                    ANNOUNCEMENT: {
+                      gradient: 'from-[#00c6ff] to-[#0072ff]',
+                      icon: '📢',
+                      badge: 'bg-white/20 text-white'
+                    },
+                    KHATA: {
+                      gradient: 'from-[#8A2387] via-[#E94057] to-[#F27121]',
+                      icon: '💳',
+                      badge: 'bg-white/20 text-white'
+                    }
+                  };
+                  const style = styles[type] || styles.OFFER;
+
+                  const hasValidImage = banner.image_url && (banner.image_url.startsWith('http') || banner.image_url.startsWith('/'));
+
+                  return (
+                    <div
+                      key={banner.id || index}
+                      className={`absolute inset-0 transition-opacity duration-700 flex items-stretch ${
+                        index === activeBannerIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                      }`}
+                    >
+                      <div className={`w-full flex flex-col md:flex-row items-stretch justify-between p-6 sm:p-8 text-white bg-gradient-to-r ${style.gradient} relative overflow-hidden flex-1`}>
+                        {/* Decorative circles */}
+                        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-xl pointer-events-none" />
+                        <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/5 blur-lg pointer-events-none" />
+                        
+                        <div className="flex flex-col justify-between relative z-10 max-w-lg text-left">
+                          <div className="space-y-1.5">
+                            <span className={`${style.badge} px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider inline-block`}>
+                              {type}
+                            </span>
+                            <h3 className="text-xl sm:text-2xl font-bold leading-tight tracking-tight drop-shadow-xs">
+                              {banner.title}
+                            </h3>
+                            <p className="text-xs text-white/95 font-medium leading-relaxed drop-shadow-xs">
+                              {banner.description}
+                            </p>
+                          </div>
+                          {banner.link_to_category && (
+                            <button
+                              onClick={() => setSelectedCategory(banner.link_to_category)}
+                              className="bg-white text-slate-900 hover:bg-slate-50 font-bold text-xs px-4 py-2 rounded-lg w-max mt-4 shadow-md cursor-pointer transition-transform duration-200 active:scale-95"
+                            >
+                              Explore {banner.link_to_category} &rarr;
+                            </button>
+                          )}
                         </div>
-                        {banner.link_to_category && (
-                          <button
-                            onClick={() => setSelectedCategory(banner.link_to_category)}
-                            className="bg-white text-slate-900 hover:bg-slate-50 font-semibold text-xs px-3.5 py-1.5 rounded-lg w-max mt-4 shadow-sm cursor-pointer transition-transform duration-200 active:scale-95"
+                        
+                        {/* Right side graphic or image with robust broken-image recovery */}
+                        <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-xs shadow-inner">
+                          {hasValidImage ? (
+                            <img 
+                              src={banner.image_url} 
+                              alt={banner.title} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+
+                          <div 
+                            className="absolute inset-0 flex flex-col items-center justify-center text-center p-4"
+                            style={{ 
+                              display: !hasValidImage ? 'flex' : 'none' 
+                            }}
                           >
-                            Explore {banner.link_to_category}
-                          </button>
-                        )}
-                      </div>
-                      
-                      <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-lg border border-white/10 shadow-sm">
-                        <img 
-                          src={banner.image || banner.image_url} 
-                          alt={banner.title} 
-                          className="w-full h-full object-cover" 
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80';
-                          }}
-                        />
+                            <span className="text-5xl mb-2 animate-bounce">{style.icon}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
+                              {type}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 {activeBanners.length > 1 && (
                   <div className="absolute bottom-4 left-6 z-20 flex space-x-1.5">
