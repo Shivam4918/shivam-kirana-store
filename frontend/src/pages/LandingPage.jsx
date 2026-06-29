@@ -260,7 +260,7 @@ const LandingPage = () => {
       </motion.header>
 
       {/* ══════════════════════════════ HERO ════════════════════════════════ */}
-      <section className="min-h-screen flex items-center relative overflow-hidden pt-36 pb-24 sm:pt-48 sm:pb-36 lg:pt-56 lg:pb-40">
+      <section className="relative overflow-hidden pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-24">
         <MeshBackground />
 
         <div className="max-w-7xl mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
