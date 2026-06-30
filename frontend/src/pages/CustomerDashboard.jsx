@@ -1204,61 +1204,29 @@ const CustomerDashboard = () => {
             </div>
           )}
 
-          {/* Smart Platform Guide & Benefits Grid */}
+          {/* Brand trust badges */}
           <div className="border-t border-slate-200/60 pt-10 pb-8 mt-10">
-            <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px] text-left mb-6 flex items-center space-x-1.5">
-              <span>Smart Platform Features &amp; Guide</span>
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              
-              <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-sm text-left hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 text-[#10B981] flex items-center justify-center mb-4 border border-emerald-100">
-                    <FiBookOpen className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-xs text-slate-900 mb-1.5">Zero-Interest Digital Khata</h4>
-                  <p className="text-[11px] text-slate-450 leading-relaxed font-normal">
-                    Checkout groceries instantly on credit. Settle your outstanding balance statement securely via Razorpay UPI anytime.
-                  </p>
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center text-xs text-slate-400">
+              <div className="flex flex-col items-center space-y-1.5 p-3.5 bg-white border border-slate-200/60 rounded-lg shadow-sm font-semibold">
+                <FiCheck className="text-[#10B981] w-4.5 h-4.5" />
+                <span className="text-slate-700">Secure Payments</span>
               </div>
-
-              <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-sm text-left hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center mb-4 border border-blue-100">
-                    <FiTruck className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-xs text-slate-900 mb-1.5">Express Doorstep Delivery</h4>
-                  <p className="text-[11px] text-slate-450 leading-relaxed font-normal">
-                    Get fresh vegetables, dairy, and household staples delivered from our local sector store in under 12 minutes.
-                  </p>
-                </div>
+              <div className="flex flex-col items-center space-y-1.5 p-3.5 bg-white border border-slate-200/60 rounded-lg shadow-sm font-semibold">
+                <FiCheck className="text-[#10B981] w-4.5 h-4.5" />
+                <span className="text-slate-700">Trusted Local Store</span>
               </div>
-
-              <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-sm text-left hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center mb-4 border border-amber-100">
-                    <FiGift className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-xs text-slate-900 mb-1.5">Loyalty Cashbacks</h4>
-                  <p className="text-[11px] text-slate-450 leading-relaxed font-normal">
-                    Earn redeemable points automatically on every checkout. Apply points to instantly reduce your basket totals.
-                  </p>
-                </div>
+              <div className="flex flex-col items-center space-y-1.5 p-3.5 bg-white border border-slate-200/60 rounded-lg shadow-sm font-semibold">
+                <FiCheck className="text-[#10B981] w-4.5 h-4.5" />
+                <span className="text-slate-700">Digital Khata Ledger</span>
               </div>
-
-              <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-sm text-left hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
-                <div>
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center mb-4 border border-purple-100">
-                    <FiFileText className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-xs text-slate-900 mb-1.5">WhatsApp Statements</h4>
-                  <p className="text-[11px] text-slate-450 leading-relaxed font-normal">
-                    Keep track of transactions. Request instant ledger PDF statements directly to your registered WhatsApp phone number.
-                  </p>
-                </div>
+              <div className="flex flex-col items-center space-y-1.5 p-3.5 bg-white border border-slate-200/60 rounded-lg shadow-sm font-semibold">
+                <FiCheck className="text-[#10B981] w-4.5 h-4.5" />
+                <span className="text-slate-700">Same Day Delivery</span>
               </div>
-
+              <div className="flex flex-col items-center space-y-1.5 p-3.5 bg-white border border-slate-200/60 rounded-lg shadow-sm font-semibold col-span-2 md:col-span-1">
+                <FiCheck className="text-[#10B981] w-4.5 h-4.5" />
+                <span className="text-slate-700">Customer Support</span>
+              </div>
             </div>
           </div>
 
