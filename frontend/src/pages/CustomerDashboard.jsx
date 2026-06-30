@@ -281,6 +281,34 @@ const CustomerDashboard = () => {
     }
   }, [quickViewProduct]);
 
+  // Auto-poll payment status every 3 seconds when a payment request is active
+  useEffect(() => {
+    if (!paymentRequest || paymentRequest.status?.toLowerCase() === 'paid') return;
+
+    let active = true;
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await api.get(`/payments/${paymentRequest.id}/status/`);
+        const statusLower = res.data.status?.toLowerCase();
+        
+        if (active && (statusLower === 'paid' || statusLower === 'completed')) {
+          clearInterval(intervalId);
+          showToast('Payment verified successfully! Balance settled.');
+          setShowSettlementModal(false);
+          setPaymentRequest(null);
+          fetchKhataLedger();
+        }
+      } catch (err) {
+        console.error('Auto-poll status checking failed:', err);
+      }
+    }, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [paymentRequest]);
+
   // Toggle wishlist remotely & locally
   const handleToggleWishlist = async (e, productId) => {
     e.stopPropagation();
