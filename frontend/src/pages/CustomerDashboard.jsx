@@ -489,16 +489,56 @@ const CustomerDashboard = () => {
     ledgerCurrentPage * ledgerPageSize
   );
 
-  // Fallback banners if empty
-  const activeBanners = banners.length > 0 ? banners : [
+  // Curated premium local banners matching production retail applications
+  const premiumLocalBanners = [
     {
-      id: 'default-banner',
+      id: 'local-banner-1',
       title: 'Monsoon Grocery Carnival',
-      description: 'Get Flat 10% discount on wholesale grain flour packs and oils.',
-      tag: 'OFFER',
-      bgGradient: 'from-slate-900 to-slate-800'
+      description: 'Get Flat 10% discount on wholesale grain flour packs and cooking oils.',
+      banner_type: 'OFFER',
+      link_to_category: 'Staples'
+    },
+    {
+      id: 'local-banner-2',
+      title: 'Midnight Munchies & Snacks',
+      description: 'Craving cookies, chocolates or cold drinks? Delivered to your doorstep in 12 mins!',
+      banner_type: 'DISCOUNT',
+      link_to_category: 'Snacks'
+    },
+    {
+      id: 'local-banner-3',
+      title: 'Zero Interest Khata Ledger',
+      description: 'Buy groceries on credit. Clear balance via secure Razorpay UPI payments anytime.',
+      banner_type: 'KHATA',
+      link_to_category: 'Khata Book'
+    },
+    {
+      id: 'local-banner-4',
+      title: 'Fresh Organic Farm Produce',
+      description: 'Directly sourced premium vegetables, fruits and dairy essentials. 100% natural.',
+      banner_type: 'OFFER',
+      link_to_category: 'Dairy & Produce'
+    },
+    {
+      id: 'local-banner-5',
+      title: 'Household Savings Bonanza',
+      description: 'Flat 15% off on detergent packs, dishwashers, and weekly hygiene essentials.',
+      banner_type: 'ANNOUNCEMENT',
+      link_to_category: 'Household'
     }
   ];
+
+  // Merge the database banners with local ones, filtering out local duplicates if title matches, to make exactly 5 items
+  const uniqueBanners = [...banners];
+  premiumLocalBanners.forEach(lb => {
+    if (uniqueBanners.length < 5 && !uniqueBanners.some(b => b.title.toLowerCase().includes(lb.title.toLowerCase().substring(0, 8)))) {
+      uniqueBanners.push(lb);
+    }
+  });
+  while (uniqueBanners.length < 5) {
+    uniqueBanners.push(premiumLocalBanners[uniqueBanners.length % premiumLocalBanners.length]);
+  }
+  const activeBanners = uniqueBanners.slice(0, 5);
 
   const getStockStatus = (qty) => {
     if (qty <= 0) return { text: 'OUT OF STOCK', color: 'bg-rose-50 text-rose-600 border-rose-100' };
@@ -775,17 +815,36 @@ const CustomerDashboard = () => {
                 })}
                 
                 {activeBanners.length > 1 && (
-                  <div className="absolute bottom-4 left-6 z-20 flex space-x-1.5">
-                    {activeBanners.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setActiveBannerIndex(idx)}
-                        className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-                          idx === activeBannerIndex ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'
-                        }`}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    {/* Navigation Dots */}
+                    <div className="absolute bottom-4 left-6 z-20 flex space-x-1.5">
+                      {activeBanners.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setActiveBannerIndex(idx)}
+                          className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
+                            idx === activeBannerIndex ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Navigation Chevrons */}
+                    <button
+                      onClick={() => setActiveBannerIndex(prev => (prev - 1 + activeBanners.length) % activeBanners.length)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-xs"
+                      title="Previous Offer"
+                    >
+                      <FiChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setActiveBannerIndex(prev => (prev + 1) % activeBanners.length)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-xs"
+                      title="Next Offer"
+                    >
+                      <FiChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
               </div>
             )}
