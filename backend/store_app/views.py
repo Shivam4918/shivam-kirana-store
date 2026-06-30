@@ -2144,6 +2144,46 @@ class PaymentRequestStatusView(APIView):
         return Response(serializer.data)
 
 
+class PaymentMockSettleView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, link_id=None):
+        from django.utils import timezone
+        from store_app.models import Transaction
+        from django.db import transaction as db_transaction
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            with db_transaction.atomic():
+                payment_req = PaymentRequest.objects.select_for_update().get(razorpay_payment_link_id=link_id)
+                if payment_req.status == 'PENDING':
+                    payment_req.status = 'PAID'
+                    payment_req.razorpay_payment_id = f"pay_mock_{link_id[:8]}"
+                    payment_req.completed_at = timezone.now()
+                    payment_req.save()
+                    
+                    # Log transaction in ledger
+                    Transaction.objects.create(
+                        khata_profile=payment_req.khata_profile,
+                        transaction_type='DEBIT',
+                        amount=payment_req.amount,
+                        description=f"Online payment settlement (Mock ID: {payment_req.razorpay_payment_link_id})"
+                    )
+                    
+                    # Recalculate ledger balance
+                    payment_req.khata_profile.current_balance -= payment_req.amount
+                    payment_req.khata_profile.total_paid += payment_req.amount
+                    payment_req.khata_profile.save()
+            return Response({"status": "PAID"})
+        except PaymentRequest.DoesNotExist:
+            logger.error(f"Mock settle failed: PaymentRequest not found for link_id {link_id}")
+            return Response({"detail": "Payment request not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception(f"Mock settle failed with error: {str(e)}")
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class PaymentWebhookView(APIView):
     permission_classes = [permissions.AllowAny]
 

@@ -18,6 +18,7 @@ import SupplierManagement from './pages/SupplierManagement';
 import FinancialReports from './pages/FinancialReports';
 import AdvancedReports from './pages/AdvancedReports';
 import ExpiryManager from './pages/ExpiryManager';
+import MockPaymentPage from './pages/MockPaymentPage';
 
 const AppLayout = () => {
   return (
@@ -47,6 +48,7 @@ function App() {
             <Route path="/login" element={<LoginPage defaultTab="login" />} />
             <Route path="/register" element={<LoginPage defaultTab="register" />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/mock-payment" element={<MockPaymentPage />} />
 
             {/* Admin Protected Routes */}
             <Route 

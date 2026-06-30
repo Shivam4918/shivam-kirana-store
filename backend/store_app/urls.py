@@ -6,7 +6,7 @@ from .views import (
     ExpenseViewSet, SupplierViewSet, PurchaseViewSet, NotificationViewSet,
     ProfitLossAnalyticsView, BalanceSheetAnalyticsView, CashFlowAnalyticsView, InventoryAnalyticsView,
     ExportPDFView, ExportExcelView, InvoiceViewSet, GSTSummaryView,
-    PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet,
+    PaymentLinkCreateView, PaymentRequestStatusView, PaymentWebhookView, AdminPaymentRequestViewSet, PaymentMockSettleView,
     CustomerRequestWhatsAppStatementView, WhatsAppLogViewSet,
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
     CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView,
@@ -49,6 +49,7 @@ urlpatterns = [
     path('payments/create-link/', PaymentLinkCreateView.as_view(), name='payment-create-link'),
     path('payments/<int:pk>/status/', PaymentRequestStatusView.as_view(), name='payment-status'),
     path('payments/webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
+    path('payments/mock-settle/<str:link_id>/', PaymentMockSettleView.as_view(), name='payment-mock-settle'),
     
     # Financial Analytics
     path('admin/analytics/pl/', ProfitLossAnalyticsView.as_view(), name='analytics-pl'),

@@ -38,8 +38,13 @@ def create_razorpay_payment_link(amount_decimal, customer_name, customer_email, 
         import uuid
         mock_id = f"plink_{uuid.uuid4().hex[:12]}"
         base_url = callback_url if callback_url else "http://localhost:5174/dashboard/khata"
+        if "/dashboard/khata" in base_url:
+            base_url = base_url.replace("/dashboard/khata", "/mock-payment")
+        elif not base_url.endswith("/mock-payment"):
+            base_url = base_url.rstrip("/") + "/mock-payment"
+            
         sep = "&" if "?" in base_url else "?"
-        mock_url = f"{base_url}{sep}mock_payment_link_id={mock_id}&amount={float(amount_decimal)}"
+        mock_url = f"{base_url}{sep}link_id={mock_id}&amount={float(amount_decimal)}"
         return {
             'id': mock_id,
             'short_url': mock_url,
@@ -98,8 +103,13 @@ def create_razorpay_payment_link(amount_decimal, customer_name, customer_email, 
         import uuid
         mock_id = f"plink_{uuid.uuid4().hex[:12]}"
         base_url = callback_url if callback_url else "http://localhost:5174/dashboard/khata"
+        if "/dashboard/khata" in base_url:
+            base_url = base_url.replace("/dashboard/khata", "/mock-payment")
+        elif not base_url.endswith("/mock-payment"):
+            base_url = base_url.rstrip("/") + "/mock-payment"
+            
         sep = "&" if "?" in base_url else "?"
-        mock_url = f"{base_url}{sep}mock_payment_link_id={mock_id}&amount={float(amount_decimal)}"
+        mock_url = f"{base_url}{sep}link_id={mock_id}&amount={float(amount_decimal)}"
         return {
             'id': mock_id,
             'short_url': mock_url,
