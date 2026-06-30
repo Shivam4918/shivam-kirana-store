@@ -2060,7 +2060,16 @@ class PaymentLinkCreateView(APIView):
         if amount_decimal > profile.current_balance:
             return Response({"detail": f"Amount exceeds your outstanding balance of ₹{profile.current_balance}."}, status=status.HTTP_400_BAD_REQUEST)
 
-        callback_url = "http://localhost:5174/dashboard/khata"
+        # Build callback url dynamically based on request origin to support deployment environments
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            from urllib.parse import urlparse
+            parsed_referer = urlparse(referer)
+            frontend_origin = f"{parsed_referer.scheme}://{parsed_referer.netloc}"
+            callback_url = f"{frontend_origin}/dashboard/khata"
+        else:
+            callback_url = "http://localhost:5174/dashboard/khata"
+
         try:
             link_data = create_razorpay_payment_link(
                 amount_decimal=amount_decimal,
@@ -2095,6 +2104,41 @@ class PaymentRequestStatusView(APIView):
 
         if request.user.role != 'ADMIN' and payment_req.khata_profile.user != request.user:
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+
+        # In mock/sandbox mode, auto-advance pending status to PAID for testing/demo convenience
+        from django.conf import settings
+        if payment_req.status == 'PENDING' and (
+            settings.RAZORPAY_KEY_ID == 'rzp_test_dummy_id' or 
+            settings.RAZORPAY_KEY_SECRET == 'rzp_test_dummy_secret'
+        ):
+            from django.utils import timezone
+            from store_app.models import Transaction
+            from django.db import transaction as db_transaction
+            
+            try:
+                with db_transaction.atomic():
+                    payment_req = PaymentRequest.objects.select_for_update().get(pk=pk)
+                    if payment_req.status == 'PENDING':
+                        payment_req.status = 'PAID'
+                        payment_req.razorpay_payment_id = f"pay_mock_{pk}"
+                        payment_req.completed_at = timezone.now()
+                        payment_req.save()
+                        
+                        # Log transaction in ledger
+                        Transaction.objects.create(
+                            khata_profile=payment_req.khata_profile,
+                            transaction_type='DEBIT',
+                            amount=payment_req.amount,
+                            description=f"Online payment settlement (Mock ID: {payment_req.razorpay_payment_link_id})"
+                        )
+                        
+                        # Recalculate ledger balance
+                        payment_req.khata_profile.current_balance -= payment_req.amount
+                        payment_req.khata_profile.total_paid += payment_req.amount
+                        payment_req.khata_profile.save()
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Error auto-settling mock payment: {str(e)}")
 
         serializer = PaymentRequestSerializer(payment_req)
         return Response(serializer.data)

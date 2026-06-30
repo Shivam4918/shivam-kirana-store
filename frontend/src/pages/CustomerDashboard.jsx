@@ -1868,16 +1868,24 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
 
-                <div className="py-1 flex flex-col items-center justify-center space-y-2">
-                  <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-4 rounded-lg flex items-center justify-center w-36 h-36 relative">
-                    <div className="text-center text-slate-400">
-                      <FiZap className="w-8 h-8 mx-auto text-[#10B981] animate-bounce mb-1.5" />
-                      <span className="text-[9.5px] font-bold uppercase tracking-wider block font-sans">Scan to Pay</span>
-                      <span className="text-[8px] mt-0.5 block font-sans">UPI QR Generated</span>
-                    </div>
+                <div className="py-1 flex flex-col items-center justify-center space-y-3">
+                  <div className="bg-white border border-slate-200 p-2.5 rounded-xl flex items-center justify-center w-36 h-36 relative shadow-inner">
+                    {paymentRequest.razorpay_payment_link_url ? (
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(paymentRequest.razorpay_payment_link_url)}`} 
+                        alt="UPI QR Code" 
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-center text-slate-400">
+                        <FiZap className="w-8 h-8 mx-auto text-[#10B981] animate-bounce mb-1.5" />
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider block font-sans">Scan to Pay</span>
+                        <span className="text-[8px] mt-0.5 block font-sans">UPI QR Generated</span>
+                      </div>
+                    )}
                   </div>
                   <p className="text-[11px] text-slate-405 max-w-xs leading-normal font-normal">
-                    Redirect to Razorpay hosted checkout to pay securely via PhonePe, GPay, Paytm, or UPI.
+                    Scan using PhonePe, GPay, Paytm, or UPI to settle dues instantly.
                   </p>
                 </div>
 

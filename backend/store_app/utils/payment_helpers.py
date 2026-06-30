@@ -37,7 +37,9 @@ def create_razorpay_payment_link(amount_decimal, customer_name, customer_email, 
         logger.info("Using dummy credentials, generating mock link details.")
         import uuid
         mock_id = f"plink_{uuid.uuid4().hex[:12]}"
-        mock_url = f"http://localhost:5174/dashboard/khata?mock_payment_link_id={mock_id}&amount={float(amount_decimal)}"
+        base_url = callback_url if callback_url else "http://localhost:5174/dashboard/khata"
+        sep = "&" if "?" in base_url else "?"
+        mock_url = f"{base_url}{sep}mock_payment_link_id={mock_id}&amount={float(amount_decimal)}"
         return {
             'id': mock_id,
             'short_url': mock_url,
@@ -95,7 +97,9 @@ def create_razorpay_payment_link(amount_decimal, customer_name, customer_email, 
         logger.exception("Error calling Razorpay API, falling back to mock payment details")
         import uuid
         mock_id = f"plink_{uuid.uuid4().hex[:12]}"
-        mock_url = f"http://localhost:5174/dashboard/khata?mock_payment_link_id={mock_id}&amount={float(amount_decimal)}"
+        base_url = callback_url if callback_url else "http://localhost:5174/dashboard/khata"
+        sep = "&" if "?" in base_url else "?"
+        mock_url = f"{base_url}{sep}mock_payment_link_id={mock_id}&amount={float(amount_decimal)}"
         return {
             'id': mock_id,
             'short_url': mock_url,
