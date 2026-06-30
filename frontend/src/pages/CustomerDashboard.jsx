@@ -408,7 +408,7 @@ const CustomerDashboard = () => {
     setSettling(true);
     setPaymentRequest(null);
     try {
-      const res = await api.post('/khata/settle-online/', { amount: parseFloat(settleAmount) });
+      const res = await api.post('/payments/create-link/', { amount: parseFloat(settleAmount) });
       setPaymentRequest(res.data);
       showToast('Secured Razorpay checkout request generated!');
     } catch (err) {
@@ -423,14 +423,15 @@ const CustomerDashboard = () => {
     if (!paymentRequest) return;
     setCheckingStatus(true);
     try {
-      const res = await api.get(`/khata/payment-status/${paymentRequest.razorpay_payment_link_id}/`);
-      if (res.data.status === 'paid') {
+      const res = await api.get(`/payments/${paymentRequest.id}/status/`);
+      const statusLower = res.data.status?.toLowerCase();
+      if (statusLower === 'paid' || statusLower === 'completed') {
         showToast('Payment verified successfully! Balance settled.');
         setShowSettlementModal(false);
         setPaymentRequest(null);
         fetchKhataLedger();
       } else {
-        showToast(`Payment status is still: ${res.data.status?.toUpperCase() || 'pending'}`, 'info');
+        showToast(`Payment status is still: ${res.data.status?.toUpperCase() || 'PENDING'}`, 'info');
       }
     } catch (err) {
       console.error(err);
