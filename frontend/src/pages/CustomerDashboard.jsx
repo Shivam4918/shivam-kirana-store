@@ -5,6 +5,7 @@ import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
 import WishlistDrawer from '../components/WishlistDrawer';
+import SummaryDrawer from '../components/SummaryDrawer';
 import { 
   FiSearch, FiLock, FiUnlock, FiCalendar, FiBookOpen, 
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
@@ -105,6 +106,7 @@ const CustomerDashboard = () => {
   // General notifier state
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   // Payment states
   const [showSettlementModal, setShowSettlementModal] = useState(false);
@@ -131,7 +133,11 @@ const CustomerDashboard = () => {
     const action = params.get('action');
     if (action) {
       navigate(location.pathname, { replace: true });
-      handleQuickAction(action);
+      if (action === 'summary') {
+        setIsSummaryOpen(true);
+      } else {
+        handleQuickAction(action);
+      }
     }
   }, [location.search]);
 
@@ -1208,86 +1214,7 @@ const CustomerDashboard = () => {
         </div>
       )}
 
-      {/* ── MONTHLY SHOPPING SUMMARY ── */}
-      {!summaryLoading && summary && (
-        <div className="bg-white border border-slate-100/80 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_8px_24px_-4px_rgba(0,0,0,0.02)] text-left space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center space-x-2">
-              <FiCalendar className="text-[#10B981] w-4.5 h-4.5 shrink-0" />
-              <h3 className="font-extrabold text-slate-800 text-sm tracking-tight">Monthly Shopping Summary</h3>
-            </div>
-            <span className="text-[10px] bg-slate-50 text-slate-500 font-bold px-2.5 py-1 rounded-full border border-slate-200/50 uppercase tracking-wider font-mono">
-              {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-            </span>
-          </div>
 
-          {(() => {
-            const monthlyData = getMonthlyShoppingSummary();
-            return (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                
-                {/* Monthly Spending */}
-                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
-                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Monthly Spending</span>
-                  <span className="text-lg font-black font-mono text-slate-900 tracking-tight block">₹{monthlyData.monthlySpending}</span>
-                  <span className="text-[8.5px] text-slate-400 block font-normal">Based on current invoices</span>
-                </div>
-
-                {/* Total Savings */}
-                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
-                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Monthly Savings</span>
-                  <span className="text-lg font-black font-mono text-emerald-600 tracking-tight block">₹{monthlyData.totalSavings}</span>
-                  <span className="text-[8.5px] text-emerald-500/80 block font-bold">5% cashback saved 🎉</span>
-                </div>
-
-                {/* Monthly Orders */}
-                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
-                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Monthly Orders</span>
-                  <span className="text-lg font-black font-mono text-slate-900 tracking-tight block">{monthlyData.totalOrders}</span>
-                  <span className="text-[8.5px] text-slate-400 block font-normal">Completed this month</span>
-                </div>
-
-                {/* Reward Points Earned */}
-                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
-                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Points Accrued</span>
-                  <span className="text-lg font-black font-mono text-amber-500 tracking-tight block">+{monthlyData.rewardPointsEarned}</span>
-                  <span className="text-[8.5px] text-slate-400 block font-normal">1 pt per ₹10 spent</span>
-                </div>
-
-                {/* Budget Progress */}
-                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-2 relative group hover:bg-slate-50 transition-colors duration-250 col-span-2 md:col-span-1 flex flex-col justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold">Budget Progress</span>
-                      <button 
-                        onClick={handleEditBudget}
-                        className="text-[9px] text-emerald-600 hover:text-emerald-700 font-extrabold uppercase hover:underline cursor-pointer"
-                        title="Set new budget limit"
-                      >
-                        Set
-                      </button>
-                    </div>
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs font-bold text-slate-700">{monthlyData.monthlyBudgetProgress}%</span>
-                      <span className="text-[8px] text-slate-400 font-semibold font-mono">Limit: ₹{monthlyData.budgetLimit}</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        monthlyData.monthlyBudgetProgress > 90 ? 'bg-rose-500' :
-                        monthlyData.monthlyBudgetProgress > 70 ? 'bg-amber-400' : 'bg-[#10B981]'
-                      }`}
-                      style={{ width: `${monthlyData.monthlyBudgetProgress}%` }}
-                    />
-                  </div>
-                </div>
-
-              </div>
-            );
-          })()}
-        </div>
-      )}
 
       {/* STOREFRONT GROCERY CATALOG VIEW */}
       {!isKhataView && (
@@ -2945,6 +2872,12 @@ const CustomerDashboard = () => {
         setWishlistItems={setWishlistItems}
         setWishlistIds={setWishlistIds}
         showToast={showToast}
+      />
+
+      <SummaryDrawer
+        isOpen={isSummaryOpen}
+        onClose={() => setIsSummaryOpen(false)}
+        monthlyData={getMonthlyShoppingSummary()}
       />
     </div>
   );
