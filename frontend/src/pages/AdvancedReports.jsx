@@ -392,7 +392,7 @@ const AdvancedReports = () => {
                 onChange={(e) => setLogStatusFilter(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 focus:border-[#10B981] rounded-lg py-2 px-3 text-xs font-semibold text-slate-700 outline-none transition-all cursor-pointer"
               >
-                <option value="">All Delivery Statuses</option>
+                <option value="">All Message Statuses</option>
                 <option value="SUCCESS">Success</option>
                 <option value="FAILED">Failed</option>
               </select>

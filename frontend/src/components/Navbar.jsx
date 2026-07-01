@@ -184,17 +184,7 @@ const Navbar = () => {
             <p className="text-[9px] text-slate-400 mt-0.5 font-medium tracking-wide">Smart Retail ERP</p>
           </div>
         </Link>
-
-        {user.role === 'CUSTOMER' && (
-          <div className="hidden md:flex flex-col text-left border-l border-slate-200 pl-4">
-            <span className="text-[9px] font-bold text-[#10B981] tracking-wider uppercase leading-none">Delivery in 12 Mins</span>
-            <div className="flex items-center text-slate-800 text-xs font-semibold mt-1 cursor-pointer group">
-              <FiMapPin className="mr-1 text-slate-400 group-hover:text-[#10B981] transition-colors" />
-              <span>HSR Layout, Sector 6, Bangalore</span>
-              <FiChevronDown className="ml-1 text-slate-400 group-hover:text-slate-700" />
-            </div>
-          </div>
-        )}
+        
       </div>
 
       {/* Central search bar with dynamic autocomplete suggestions */}

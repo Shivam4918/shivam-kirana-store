@@ -103,14 +103,8 @@ export const CartProvider = ({ children }) => {
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const cartSubtotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const cartSavings = cartSubtotal * 0.05; // 5% promotional discount
-  
-  const getDeliveryFee = () => {
-    if (cartSubtotal === 0 || cartSubtotal >= 200) return 0;
-    return 15; // 15 Rupees delivery fee for small orders
-  };
-  const deliveryFee = getDeliveryFee();
 
-  const cartTotal = cartSubtotal - cartSavings + deliveryFee;
+  const cartTotal = cartSubtotal - cartSavings;
 
   const value = {
     cart,
@@ -122,7 +116,6 @@ export const CartProvider = ({ children }) => {
     cartCount,
     cartSubtotal,
     cartSavings,
-    deliveryFee,
     cartTotal,
     redeemPoints,
     setRedeemPoints,

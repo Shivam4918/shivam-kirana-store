@@ -530,7 +530,7 @@ const CustomerDashboard = () => {
     {
       id: 'local-banner-2',
       title: 'Midnight Munchies & Snacks',
-      description: 'Craving cookies, chocolates or cold drinks? Delivered to your doorstep in 12 mins!',
+      description: 'Craving cookies, chocolates or cold drinks? Grab your favorites on digital credit!',
       banner_type: 'DISCOUNT',
       link_to_category: 'Snacks'
     },
@@ -575,9 +575,6 @@ const CustomerDashboard = () => {
     return { text: 'IN STOCK', color: 'bg-emerald-50 text-[#10B981] border-emerald-100' };
   };
 
-  const getDeliveryEstimate = () => {
-    return configs.DELIVERY_TIME || 'Deliver in 12 mins';
-  };
 
   const renderCartButton = (product) => {
     const cartItem = cart.find(item => item.product.id === product.id);
@@ -883,7 +880,7 @@ const CustomerDashboard = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 leading-none">Browse Catalog</h2>
-              <p className="text-slate-505 text-xs sm:text-sm mt-1.5 font-medium">Blinkit-style delivery. Zero immediate payment, checkout on Digital Khata ledger.</p>
+              <p className="text-slate-550 text-xs sm:text-sm mt-1.5 font-medium">Zero immediate payment, check out securely on your Digital Khata ledger.</p>
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
@@ -1174,10 +1171,6 @@ const CustomerDashboard = () => {
                         {p.category || 'General'}
                       </span>
 
-                      <span className="absolute bottom-3 left-3 bg-slate-900/80 text-white text-[9px] font-semibold px-2 py-0.5 rounded flex items-center space-x-1 shadow-sm font-mono">
-                        <FiClock className="w-3 h-3 text-[#10B981]" />
-                        <span>{getDeliveryEstimate()}</span>
-                      </span>
                     </div>
 
                     {/* Details content */}
@@ -1689,10 +1682,6 @@ const CustomerDashboard = () => {
                   <div className="flex items-center space-x-3 text-xs">
                     <span className={`px-2 py-0.5 rounded border ${getStockStatus(quickViewProduct.stock_quantity).color}`}>
                       {getStockStatus(quickViewProduct.stock_quantity).text} (Stock: {quickViewProduct.stock_quantity})
-                    </span>
-                    <span className="text-slate-400 flex items-center space-x-1">
-                      <FiClock className="w-3.5 h-3.5 text-slate-350" />
-                      <span>{getDeliveryEstimate()}</span>
                     </span>
                   </div>
 

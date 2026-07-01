@@ -16,7 +16,6 @@ const CartDrawer = () => {
     clearCart,
     cartSubtotal,
     cartSavings,
-    deliveryFee,
     cartTotal,
     redeemPoints,
     setRedeemPoints,
@@ -51,7 +50,7 @@ const CartDrawer = () => {
         quantity: item.quantity
       }));
 
-      await api.post('/checkout/', {
+      await api.post('/khata/checkout/', {
         items: itemsPayload,
         redeem_points: redeemPoints
       });
@@ -66,9 +65,8 @@ const CartDrawer = () => {
       }, 1500);
 
     } catch (err) {
-      console.error('Checkout error:', err);
-      const detail = err.response?.data?.detail || 'Checkout transaction failed. Please check outstanding limits.';
-      setErrorMsg(detail);
+      console.error(err);
+      setErrorMsg(err.response?.data?.detail || 'Checkout failed. Please try again.');
     } finally {
       setCheckingOut(false);
     }
@@ -81,7 +79,7 @@ const CartDrawer = () => {
 
   // Maximum redeemable discount is either the total points or the subtotal sum
   const pointsRedeemDiscount = redeemPoints ? Math.min(loyaltyPoints, Math.floor(cartSubtotal)) : 0;
-  const finalBillAmount = Math.max(0, cartSubtotal - cartSavings - pointsRedeemDiscount + deliveryFee);
+  const finalBillAmount = Math.max(0, cartSubtotal - cartSavings - pointsRedeemDiscount);
 
   const isOverCreditLimit = (currentBalance + finalBillAmount) > creditLimit;
 
@@ -293,15 +291,7 @@ const CartDrawer = () => {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center text-slate-500">
-                  <span className="flex items-center space-x-1">
-                    <span>Delivery fee</span>
-                    <span className="text-[9px] text-slate-400">(Free above ₹200)</span>
-                  </span>
-                  <span className="font-semibold text-slate-800 font-mono">
-                    {deliveryFee > 0 ? `₹${deliveryFee.toFixed(2)}` : 'FREE'}
-                  </span>
-                </div>
+
 
                 <div className="flex justify-between items-center text-sm font-bold text-slate-900 border-t border-slate-100 pt-2">
                   <span>Grand Total (Khata Due)</span>

@@ -483,7 +483,7 @@ const LandingPage = () => {
             {[
               { emoji: '🌿', title: 'Farm-Fresh Products', desc: 'Handpicked daily from trusted local suppliers. Freshness is our non-negotiable promise.', delay: 0 },
               { emoji: '🔐', title: 'Transparent Digital Khata', desc: 'Every rupee tracked in real-time. No hidden fees, no billing surprises — ever.', delay: 0.05 },
-              { emoji: '⚡', title: 'Superfast Service', desc: 'From order to delivery or credit checkout — everything under 2 minutes.', delay: 0.1 },
+              { emoji: '⚡', title: 'Superfast Service', desc: 'From order placement to credit checkout — everything under 2 minutes.', delay: 0.1 },
               { emoji: '🧾', title: 'Accurate GST Billing', desc: 'Auto-generated tax invoices with HSN codes, CGST/SGST breakdown for every purchase.', delay: 0.15 },
               { emoji: '🤝', title: 'Community First', desc: 'Built for the neighborhood. Every feature is designed to strengthen local bonds.', delay: 0.2 },
               { emoji: '📱', title: 'Always Accessible', desc: 'Access your khata, shop, settle balances, and download reports from any device.', delay: 0.25 },
