@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { CartContext } from '../context/CartContext';
 import BarcodeScanner from '../components/BarcodeScanner';
+import WishlistDrawer from '../components/WishlistDrawer';
 import { 
   FiSearch, FiLock, FiUnlock, FiCalendar, FiBookOpen, 
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
@@ -78,8 +79,9 @@ const CustomerDashboard = () => {
   const [recommendations, setRecommendations] = useState([]);
 
   // Wishlist states
+  const [wishlistItems, setWishlistItems] = useState([]);
   const [wishlistIds, setWishlistIds] = useState(new Set());
-  const [showWishlistOnly, setShowWishlistOnly] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
   // Product quick-view overlay states
   const [quickViewProduct, setQuickViewProduct] = useState(null);
@@ -206,11 +208,12 @@ const CustomerDashboard = () => {
     }
   };
 
-  // 6. Fetch user's wishlist IDs
+  // 6. Fetch user's wishlist details
   const fetchWishlist = async () => {
     try {
       const res = await api.get('/wishlist/');
-      const ids = new Set(res.data.map(item => item.product.id));
+      setWishlistItems(res.data);
+      const ids = new Set(res.data.map(item => item.product).filter(Boolean));
       setWishlistIds(ids);
     } catch (err) {
       console.error('Error fetching wishlist:', err);
@@ -309,22 +312,16 @@ const CustomerDashboard = () => {
     };
   }, [paymentRequest]);
 
-  // Toggle wishlist remotely & locally
   const handleToggleWishlist = async (e, productId) => {
     e.stopPropagation();
     try {
       const res = await api.post('/wishlist/toggle/', { product_id: productId });
-      setWishlistIds(prev => {
-        const next = new Set(prev);
-        if (res.data.status === 'added') {
-          next.add(productId);
-          showToast('Product added to wishlist.');
-        } else {
-          next.delete(productId);
-          showToast('Product removed from wishlist.');
-        }
-        return next;
-      });
+      if (res.data.status === 'added') {
+        showToast('Product added to wishlist.');
+      } else {
+        showToast('Product removed from wishlist.');
+      }
+      fetchWishlist();
     } catch (err) {
       console.error('Wishlist error:', err);
       showToast('Error toggling wishlist.', 'error');
@@ -496,9 +493,8 @@ const CustomerDashboard = () => {
       (p.barcode && p.barcode.toLowerCase().includes(q));
     
     const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-    const matchesWishlist = !showWishlistOnly || wishlistIds.has(p.id);
 
-    return matchesQuery && matchesCategory && matchesWishlist;
+    return matchesQuery && matchesCategory;
   });
 
   const sortedProducts = [...searchedProducts].sort((a, b) => {
@@ -921,21 +917,22 @@ const CustomerDashboard = () => {
               </div>
 
               <button
-                onClick={() => setShowWishlistOnly(!showWishlistOnly)}
-                className={`p-2 rounded-lg border transition-all duration-200 shadow-sm cursor-pointer flex items-center justify-center ${
-                  showWishlistOnly 
-                    ? 'bg-rose-50 border-rose-100 text-rose-600' 
-                    : 'bg-white border-slate-200 text-slate-400 hover:text-rose-500'
-                }`}
-                title="View wishlisted items only"
+                onClick={() => setIsWishlistOpen(true)}
+                className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:bg-rose-50/50 transition-all duration-205 shadow-sm cursor-pointer flex items-center justify-center relative active:scale-95"
+                title="View Wishlist"
               >
-                <FiHeart className={`w-4 h-4 ${showWishlistOnly ? 'fill-current' : ''}`} />
+                <FiHeart className={`w-4 h-4 ${wishlistItems.length > 0 ? 'fill-current text-rose-500' : ''}`} />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center border border-white font-mono animate-in zoom-in-50">
+                    {wishlistItems.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
 
           {/* Catalog Row Subsections (Buy Again, Best Sellers, Trending, Recommended) */}
-          {!showWishlistOnly && !searchQuery && (
+          {!searchQuery && (
             <div className="space-y-6">
               
               {/* Buy Again section */}
@@ -1936,6 +1933,15 @@ const CustomerDashboard = () => {
           </div>
         </div>
       )}
+
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        wishlistItems={wishlistItems}
+        setWishlistItems={setWishlistItems}
+        setWishlistIds={setWishlistIds}
+        showToast={showToast}
+      />
     </div>
   );
 };

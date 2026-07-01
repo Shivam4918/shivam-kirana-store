@@ -2602,6 +2602,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
             return Response({"status": "removed", "detail": f"Removed {product.name} from wishlist."})
         return Response({"status": "added", "detail": f"Added {product.name} to wishlist."})
 
+    @action(detail=False, methods=['post'], url_path='clear')
+    def clear(self, request):
+        WishlistItem.objects.filter(user=request.user).delete()
+        return Response({"status": "cleared", "detail": "Successfully cleared wishlist."})
+
 
 class PromotionalBannerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PromotionalBanner.objects.filter(is_active=True).order_by('order', '-created_at')

@@ -402,15 +402,28 @@ class ProductReview(models.Model):
 
 class WishlistItem(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='wishlist_items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='wishlisted_by')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='wishlisted_by')
+    product_name = models.CharField(max_length=255, blank=True, null=True)
+    product_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    product_image = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('user', 'product')
         ordering = ['-created_at']
 
+    def save(self, *args, **kwargs):
+        if self.product:
+            if not self.product_name:
+                self.product_name = self.product.name
+            if not self.product_price:
+                self.product_price = self.product.price
+            if not self.product_image:
+                self.product_image = self.product.image
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.user.username} - {self.product.name}"
+        return f"{self.user.username} - {self.product_name or 'Deleted Product'}"
 
 
 class PromotionalBanner(models.Model):
