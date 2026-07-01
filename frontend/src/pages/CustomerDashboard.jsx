@@ -66,6 +66,7 @@ const CustomerDashboard = () => {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [invoices, setInvoices] = useState([]);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
   
   // Autocomplete search states
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -367,6 +368,35 @@ const CustomerDashboard = () => {
         break;
     }
   };
+
+  const handleViewProduct = (p) => {
+    setQuickViewProduct(p);
+    try {
+      const raw = localStorage.getItem('recently-viewed-ids');
+      let storedIds = raw ? JSON.parse(raw) : [];
+      storedIds = [p.id, ...storedIds.filter(id => Number(id) !== Number(p.id))].slice(0, 10);
+      localStorage.setItem('recently-viewed-ids', JSON.stringify(storedIds));
+      
+      const matched = storedIds.map(id => products.find(prod => Number(prod.id) === Number(id))).filter(Boolean);
+      setRecentlyViewed(matched);
+    } catch (err) {
+      console.error('Error saving recently viewed product:', err);
+    }
+  };
+
+  // Sync recently viewed once products load
+  useEffect(() => {
+    if (products && products.length > 0) {
+      try {
+        const raw = localStorage.getItem('recently-viewed-ids');
+        const ids = raw ? JSON.parse(raw) : [];
+        const matched = ids.map(id => products.find(p => Number(p.id) === Number(id))).filter(Boolean);
+        setRecentlyViewed(matched);
+      } catch (err) {
+        console.error('Error loading recently viewed products:', err);
+      }
+    }
+  }, [products]);
 
   // Sync profile details if changing tabs
   useEffect(() => {
@@ -722,6 +752,22 @@ const CustomerDashboard = () => {
     };
   };
 
+  const getSeasonalProducts = () => {
+    if (!products || products.length === 0) return [];
+    const seasonal = products.filter(p => 
+      p.category?.toLowerCase() === 'oils' || 
+      p.category?.toLowerCase() === 'spices' ||
+      p.name?.toLowerCase().includes('oil') ||
+      p.name?.toLowerCase().includes('tea')
+    );
+    return seasonal.length > 0 ? seasonal : products.slice(0, 4);
+  };
+
+  const getPopularNearYou = () => {
+    if (!products || products.length === 0) return [];
+    const popular = products.filter(p => Number(p.id) % 2 === 0);
+    return popular.length > 0 ? popular : products.slice(1, 5);
+  };
 
   const renderCartButton = (product) => {
     const cartItem = cart.find(item => item.product.id === product.id);
@@ -1264,7 +1310,7 @@ const CustomerDashboard = () => {
                       } = getProductDesignDetails(p);
 
                       return (
-                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
                           <button 
                             onClick={(e) => handleToggleWishlist(e, p.id)}
                             className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
@@ -1331,7 +1377,7 @@ const CustomerDashboard = () => {
                       } = getProductDesignDetails(p);
 
                       return (
-                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
                           <button 
                             onClick={(e) => handleToggleWishlist(e, p.id)}
                             className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
@@ -1389,7 +1435,7 @@ const CustomerDashboard = () => {
                       } = getProductDesignDetails(p);
 
                       return (
-                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
                           <button 
                             onClick={(e) => handleToggleWishlist(e, p.id)}
                             className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
@@ -1447,7 +1493,7 @@ const CustomerDashboard = () => {
                       } = getProductDesignDetails(p);
 
                       return (
-                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
                           <button 
                             onClick={(e) => handleToggleWishlist(e, p.id)}
                             className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
@@ -1488,6 +1534,198 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* Recently Viewed Section */}
+              <div className="space-y-3 text-left">
+                <div className="flex items-center space-x-1.5">
+                  <FiClock className="text-indigo-500 w-4 h-4 shrink-0" />
+                  <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Recently Viewed</h3>
+                </div>
+                {recentlyViewed.length > 0 ? (
+                  <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                    {recentlyViewed.map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              {renderCartButton(p)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="w-full py-8 border border-dashed border-slate-200/80 rounded-2xl flex flex-col items-center justify-center text-center px-4 bg-slate-50/30">
+                    <FiClock className="w-5 h-5 text-slate-400 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">No recently viewed items yet</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Products you explore will show up here.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Seasonal Products Section */}
+              <div className="space-y-3 text-left">
+                <div className="flex items-center space-x-1.5">
+                  <FiStar className="text-orange-500 w-4 h-4 shrink-0" />
+                  <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">✨ Seasonal Special Offers</h3>
+                </div>
+                {getSeasonalProducts().length > 0 ? (
+                  <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                    {getSeasonalProducts().map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              {renderCartButton(p)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="w-full py-8 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center px-4 bg-slate-50/30">
+                    <FiStar className="w-5 h-5 text-slate-400 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">No seasonal specials available</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Seasonal updates will display here.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Popular Near You Section */}
+              <div className="space-y-3 text-left">
+                <div className="flex items-center space-x-1.5">
+                  <FiMapPin className="text-[#10B981] w-4 h-4 shrink-0" />
+                  <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">🔥 Popular Near You</h3>
+                </div>
+                {getPopularNearYou().length > 0 ? (
+                  <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                    {getPopularNearYou().map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              {renderCartButton(p)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="w-full py-8 border border-dashed border-slate-200/80 rounded-2xl flex flex-col items-center justify-center text-center px-4 bg-slate-50/30">
+                    <FiMapPin className="w-5 h-5 text-slate-400 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">No localized popular items found</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Local trending updates will display here.</p>
+                  </div>
+                )}
+              </div>
               
             </div>
           )}
@@ -1545,7 +1783,7 @@ const CustomerDashboard = () => {
                   <div 
                     key={p.id} 
                     className="bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-350 group flex flex-col h-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-lg hover:shadow-slate-100 hover:-translate-y-1 relative cursor-pointer" 
-                    onClick={() => setQuickViewProduct(p)}
+                    onClick={() => handleViewProduct(p)}
                   >
                     {/* Wishlist item toggle overlay */}
                     <button 
