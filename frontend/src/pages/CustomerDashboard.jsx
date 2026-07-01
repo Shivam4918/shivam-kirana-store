@@ -1066,150 +1066,155 @@ const CustomerDashboard = () => {
 
       {/* ── STATS / OVERVIEW BAR ── */}
       {!summaryLoading && summary && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 text-left font-medium">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left font-medium">
           
-          {/* Left Side: Standard Stats Cards */}
-          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
-            
-            {/* Total Orders */}
-            <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-blue-500" />
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Total Orders</span>
-                <div className="w-9 h-9 bg-blue-50/80 rounded-xl text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                  <FiShoppingBag className="w-4 h-4" />
-                </div>
+          {/* Card 1: Completed Orders */}
+          <div className="bg-gradient-to-br from-white to-slate-50/20 border border-slate-100 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden flex flex-col justify-between h-[155px] cursor-default">
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] text-slate-400 uppercase tracking-widest font-black">Total Orders</span>
+              <div className="w-9 h-9 bg-blue-50/80 rounded-xl text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105 duration-200 border border-blue-100/50">
+                <FiShoppingBag className="w-4.5 h-4.5" />
               </div>
-              <span className="text-2xl font-extrabold font-mono text-slate-900 tracking-tight block">{summary.total_orders || 0}</span>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Completed store checkouts</p>
             </div>
-
-            {/* Khata Outstanding */}
-            <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-rose-500" />
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Khata Outstanding</span>
-                <div className="w-9 h-9 bg-rose-50/80 rounded-xl text-rose-500 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                  <FiLock className="w-4 h-4" />
-                </div>
+            <div className="flex items-baseline space-x-1.5 mt-2">
+              <span className="text-2xl font-black font-mono text-slate-900 tracking-tight">{summary.total_orders || 0}</span>
+              <div className="flex items-center space-x-0.5 text-emerald-600 text-[10px] font-extrabold bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                <span>↑ 12%</span>
               </div>
-              <span className="text-2xl font-extrabold font-mono text-rose-600 tracking-tight block">₹{parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0).toFixed(2)}</span>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Unpaid store balance due</p>
             </div>
-
-            {/* Credit Limit */}
-            <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden col-span-2 sm:col-span-1">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-slate-800" />
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Credit Limit</span>
-                <div className="w-9 h-9 bg-slate-100/80 rounded-xl text-slate-700 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                  <FiUnlock className="w-4 h-4" />
-                </div>
-              </div>
-              <span className="text-2xl font-extrabold font-mono text-slate-850 tracking-tight block">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
-              <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Assigned digital credit limit</p>
+            <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100/50">
+              <p className="text-[10px] text-slate-450 leading-none">Completed checkouts</p>
+              {/* Tiny SVG sparkline */}
+              <svg className="w-12 h-4 text-blue-500 shrink-0" viewBox="0 0 50 20">
+                <path d="M0 15 Q 12 5, 25 10 T 50 2" fill="transparent" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
             </div>
-
           </div>
 
-          {/* Right Side: Premium Loyalty Dashboard Card */}
-          <div className="lg:col-span-5 xl:col-span-4 bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 border border-slate-850 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden group">
-            {/* Decorative background glows */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/15 transition-all duration-550" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/15 transition-all duration-550" />
-            
-            {(() => {
-              const pts = parseInt(summary.loyalty_points || 0);
-              const status = getLoyaltyStatus(pts);
-              
-              // Calculate points needed and milestones
-              let pointsNeeded = 0;
-              let nextTier = '';
-              let progressPercent = 0;
-              let perkExplanation = '';
-
-              if (pts < 500) {
-                pointsNeeded = 500 - pts;
-                nextTier = 'Silver Pro';
-                progressPercent = Math.min(100, Math.max(0, (pts / 500) * 100));
-                perkExplanation = 'Earn 1x points on store checkout. Reach 500 points for Silver Pro and unlock early transaction fee waivers.';
-              } else if (pts < 1500) {
-                pointsNeeded = 1500 - pts;
-                nextTier = 'Gold Elite';
-                progressPercent = Math.min(100, Math.max(0, ((pts - 500) / 1000) * 100));
-                perkExplanation = 'Silver Pro status activated! Earn 1.5x points on checkouts + unlock weekly special discount slots.';
-              } else if (pts < 3000) {
-                pointsNeeded = 3000 - pts;
-                nextTier = 'Platinum Club';
-                progressPercent = Math.min(100, Math.max(0, ((pts - 1500) / 1500) * 100));
-                perkExplanation = 'Gold Elite status activated! Earn 2.0x points on checkouts + zero payment gateway convenience fees.';
-              } else {
-                pointsNeeded = 0;
-                nextTier = '';
-                progressPercent = 100;
-                perkExplanation = 'Platinum Club Member! Earn max 2.5x points on checkouts + dedicated premium WhatsApp notifications support.';
-              }
-
-              return (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Loyalty Dashboard</span>
-                      <h4 className="text-base font-extrabold text-white tracking-tight flex items-center">
-                        {status.tier}
-                        <span className="ml-2 inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      </h4>
-                    </div>
-                    <div className="w-9 h-9 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-400/20 flex items-center justify-center shadow-inner">
-                      <FiGift className="w-4.5 h-4.5" />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <span className="text-2xl font-black font-mono text-emerald-400">{pts}</span>
-                      <span className="text-slate-400 text-xs font-semibold ml-1">pts</span>
-                    </div>
-                    {pointsNeeded > 0 ? (
-                      <span className="text-[10px] text-slate-400 font-semibold font-sans">
-                        {pointsNeeded} pts to {nextTier}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-emerald-400 font-bold font-sans">
-                        Max Tier Reached! 🎉
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="w-full bg-slate-800/80 rounded-full h-2 overflow-hidden border border-slate-700/50">
-                      <div 
-                        className="bg-gradient-to-r from-emerald-400 to-teal-400 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[8px] text-slate-500 font-bold px-0.5">
-                      <span className={pts < 500 ? 'text-emerald-400' : ''}>Bronze</span>
-                      <span className={(pts >= 500 && pts < 1500) ? 'text-emerald-400' : ''}>Silver (500)</span>
-                      <span className={(pts >= 1500 && pts < 3000) ? 'text-emerald-400' : ''}>Gold (1.5k)</span>
-                      <span className={pts >= 3000 ? 'text-emerald-400' : ''}>Platinum (3k)</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-800/80 flex items-start space-x-2">
-                    <div className="p-1 bg-slate-800/50 rounded-lg text-slate-450 border border-slate-750 shrink-0 mt-0.5">
-                      <FiInfo className="w-3 h-3 text-slate-450" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[8px] uppercase tracking-wider text-slate-450 font-extrabold">Active Tier Perks</p>
-                      <p className="text-[10px] text-slate-350 font-normal leading-relaxed mt-0.5">{perkExplanation}</p>
-                    </div>
+          {/* Card 2: Khata Outstanding */}
+          {(() => {
+            const balance = parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0);
+            const limit = parseFloat(summary.credit_limit || 0);
+            const remaining = Math.max(0, limit - balance);
+            return (
+              <div className="bg-gradient-to-br from-white to-slate-50/20 border border-slate-100 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden flex flex-col justify-between h-[155px] cursor-default">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] text-slate-400 uppercase tracking-widest font-black">Khata Outstanding</span>
+                  <div className="w-9 h-9 bg-rose-50/80 rounded-xl text-rose-500 flex items-center justify-center transition-transform group-hover:scale-105 duration-200 border border-rose-100/50">
+                    <FiLock className="w-4.5 h-4.5" />
                   </div>
                 </div>
-              );
-            })()}
+                <div className="flex items-baseline space-x-1.5 mt-2">
+                  <span className={`text-2xl font-black font-mono tracking-tight ${balance > 0 ? 'text-rose-600' : 'text-slate-900'}`}>₹{balance.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100/50">
+                  <p className="text-[10px] text-slate-455 leading-none">Remaining limit: ₹{remaining.toFixed(2)}</p>
+                  {balance > 0 && (
+                    <button
+                      onClick={() => {
+                        setSettleAmount(balance.toFixed(2));
+                        setShowSettlementModal(true);
+                      }}
+                      className="text-[9px] bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-2.5 py-1 rounded-lg transition-colors cursor-pointer active:scale-95 shadow-xs"
+                    >
+                      Pay Now
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
-          </div>
+          {/* Card 3: Credit Limit */}
+          {(() => {
+            const balance = parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0);
+            const limit = parseFloat(summary.credit_limit || 0);
+            const available = Math.max(0, limit - balance);
+            const usagePercent = limit > 0 ? Math.min(100, Math.round((balance / limit) * 100)) : 0;
+            return (
+              <div className="bg-gradient-to-br from-white to-slate-50/20 border border-slate-100 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden flex flex-col justify-between h-[155px] cursor-default">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] text-slate-400 uppercase tracking-widest font-black">Credit Limit</span>
+                  <div className="w-9 h-9 bg-slate-100/80 rounded-xl text-slate-700 flex items-center justify-center transition-transform group-hover:scale-105 duration-200 border border-slate-200/50">
+                    <FiUnlock className="w-4.5 h-4.5" />
+                  </div>
+                </div>
+                <div className="space-y-1.5 mt-2">
+                  <span className="text-2xl font-black font-mono text-slate-850 tracking-tight block">₹{limit.toFixed(2)}</span>
+                  <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        usagePercent > 80 ? 'bg-rose-500' : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${usagePercent}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100/50 text-[10px] text-slate-450 leading-none">
+                  <span>Available: ₹{available.toFixed(2)}</span>
+                  <span className="font-bold font-mono">{usagePercent}% used</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Card 4: Loyalty Dashboard */}
+          {(() => {
+            const pts = parseInt(summary.loyalty_points || 0);
+            const status = getLoyaltyStatus(pts);
+            let pointsNeeded = 0;
+            let nextTier = '';
+            let progressPercent = 0;
+
+            if (pts < 500) {
+              pointsNeeded = 500 - pts;
+              nextTier = 'Silver Pro';
+              progressPercent = Math.min(100, Math.max(0, (pts / 500) * 100));
+            } else if (pts < 1500) {
+              pointsNeeded = 1500 - pts;
+              nextTier = 'Gold Elite';
+              progressPercent = Math.min(100, Math.max(0, ((pts - 500) / 1000) * 100));
+            } else if (pts < 3000) {
+              pointsNeeded = 3000 - pts;
+              nextTier = 'Platinum Club';
+              progressPercent = Math.min(100, Math.max(0, ((pts - 1500) / 1500) * 100));
+            } else {
+              pointsNeeded = 0;
+              nextTier = '';
+              progressPercent = 100;
+            }
+
+            return (
+              <div 
+                className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 border border-slate-850 rounded-2xl p-4 text-white shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-[155px] cursor-default"
+                title={pointsNeeded > 0 ? `${pointsNeeded} points to next tier ${nextTier}` : 'Maximum membership tier reached!'}
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/15 transition-all duration-500" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] text-slate-400 uppercase tracking-widest font-black">Loyalty Dashboard</span>
+                  <div className="w-9 h-9 bg-emerald-500/10 rounded-xl text-emerald-450 border border-emerald-450/20 flex items-center justify-center shadow-inner">
+                    <FiGift className="w-4.5 h-4.5" />
+                  </div>
+                </div>
+                <div className="space-y-1.5 mt-2 text-left">
+                  <h4 className="text-xs font-bold text-white tracking-tight flex items-center">
+                    {status.tier}
+                    <span className="ml-2 inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  </h4>
+                  <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-emerald-400 to-teal-400 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-850/60 text-[10px] text-slate-400 leading-none">
+                  <span className="font-bold text-emerald-400 font-mono">{pts} pts</span>
+                  <span>{pointsNeeded > 0 ? `${pointsNeeded} pts to ${nextTier}` : 'Max Tier!'}</span>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
       )}
