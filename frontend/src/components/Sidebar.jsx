@@ -1,13 +1,15 @@
 import { useContext, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { 
   FiTrendingUp, FiDatabase, FiUsers, FiShoppingBag, FiBookOpen, 
-  FiFileText, FiTruck, FiDollarSign, FiClock, FiChevronLeft, FiChevronRight 
+  FiFileText, FiTruck, FiDollarSign, FiClock, FiChevronLeft, FiChevronRight,
+  FiZap, FiChevronDown, FiRefreshCw, FiHeart, FiMaximize
 } from 'react-icons/fi';
 
 const Sidebar = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -15,6 +17,13 @@ const Sidebar = () => {
       return false;
     }
   });
+
+  const [isQuickActionsExpanded, setIsQuickActionsExpanded] = useState(false);
+
+  const triggerQuickAction = (action) => {
+    const targetPath = (action === 'order-history') ? '/dashboard/khata' : '/dashboard';
+    navigate(`${targetPath}?action=${action}`);
+  };
 
   const toggleCollapse = () => {
     setIsCollapsed(prev => {
@@ -97,6 +106,80 @@ const Sidebar = () => {
             )}
           </NavLink>
         ))}
+
+        {user.role === 'CUSTOMER' && (
+          <div className="pt-2 border-t border-slate-100 mt-2">
+            {!isCollapsed ? (
+              <div className="space-y-1">
+                {/* Collapsible Trigger */}
+                <button
+                  onClick={() => setIsQuickActionsExpanded(prev => !prev)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-semibold text-xs transition-all duration-200 border border-transparent hover:bg-slate-50 text-slate-505 hover:text-slate-900 cursor-pointer`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="shrink-0 text-slate-400">
+                      <FiZap className="w-4.5 h-4.5" />
+                    </div>
+                    <span>Quick Actions</span>
+                  </div>
+                  <div className={`transition-transform duration-200 text-slate-400 ${isQuickActionsExpanded ? 'rotate-180' : ''}`}>
+                    <FiChevronDown className="w-3.5 h-3.5" />
+                  </div>
+                </button>
+
+                {/* Submenu links with height transition */}
+                <div 
+                  className={`overflow-hidden transition-all duration-300 ease-in-out pl-3.5 space-y-1 ${
+                    isQuickActionsExpanded ? 'max-h-52 opacity-100 mt-1.5' : 'max-h-0 opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <button
+                    onClick={() => triggerQuickAction('buy-again')}
+                    className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-semibold text-[11px] text-slate-505 hover:bg-slate-50 hover:text-[#10B981] transition-all duration-150 cursor-pointer text-left"
+                  >
+                    <FiRefreshCw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Buy Again</span>
+                  </button>
+                  <button
+                    onClick={() => triggerQuickAction('wishlist')}
+                    className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-semibold text-[11px] text-slate-505 hover:bg-slate-50 hover:text-rose-500 transition-all duration-150 cursor-pointer text-left"
+                  >
+                    <FiHeart className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Wishlist</span>
+                  </button>
+                  <button
+                    onClick={() => triggerQuickAction('scan-barcode')}
+                    className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-semibold text-[11px] text-slate-505 hover:bg-slate-50 hover:text-blue-500 transition-all duration-150 cursor-pointer text-left"
+                  >
+                    <FiMaximize className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Scan Barcode</span>
+                  </button>
+                  <button
+                    onClick={() => triggerQuickAction('order-history')}
+                    className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-semibold text-[11px] text-slate-505 hover:bg-slate-50 hover:text-amber-500 transition-all duration-150 cursor-pointer text-left"
+                  >
+                    <FiClock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Order History</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsCollapsed(false);
+                  setIsQuickActionsExpanded(true);
+                }}
+                className="w-full flex items-center justify-center p-2.5 rounded-lg border border-transparent hover:bg-slate-50 text-slate-505 hover:text-[#10B981] transition-all relative group cursor-pointer"
+                title="Quick Actions"
+              >
+                <FiZap className="w-4.5 h-4.5" />
+                <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 shadow-md whitespace-nowrap z-50">
+                  Quick Actions
+                </div>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -124,6 +124,17 @@ const CustomerDashboard = () => {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+
+  // Sync actions from URL parameters (triggered from sidebar)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    if (action) {
+      navigate(location.pathname, { replace: true });
+      handleQuickAction(action);
+    }
+  }, [location.search]);
+
   // Sync searchQuery with URL query parameter
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -956,6 +967,34 @@ const CustomerDashboard = () => {
               <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed">
                 We're glad to have you back at Shivam Kirana Store. Here is your shopping profile status and credit summaries at a glance.
               </p>
+              
+              {/* Compact Quick Actions Row */}
+              <div className="flex flex-wrap gap-2.5 pt-3">
+                <button
+                  onClick={() => handleQuickAction('buy-again')}
+                  className="bg-white/10 hover:bg-white/20 hover:text-[#10B981] text-white border border-white/10 hover:border-[#10B981]/25 font-extrabold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1.5"
+                  title="Scroll to reorder section"
+                >
+                  <FiRefreshCw className="w-3.5 h-3.5 text-emerald-450 shrink-0" />
+                  <span>Buy Again</span>
+                </button>
+                <button
+                  onClick={() => handleQuickAction('wishlist')}
+                  className="bg-white/10 hover:bg-white/20 hover:text-rose-400 text-white border border-white/10 hover:border-rose-500/25 font-extrabold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1.5"
+                  title="Open wishlist drawer"
+                >
+                  <FiHeart className="w-3.5 h-3.5 text-rose-455 shrink-0" />
+                  <span>Wishlist</span>
+                </button>
+                <button
+                  onClick={() => handleQuickAction('scan-barcode')}
+                  className="bg-white/10 hover:bg-white/20 hover:text-blue-400 text-white border border-white/10 hover:border-blue-500/25 font-extrabold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1.5"
+                  title="Open barcode scanner camera"
+                >
+                  <FiMaximize className="w-3.5 h-3.5 text-blue-455 shrink-0" />
+                  <span>Scan Barcode</span>
+                </button>
+              </div>
             </div>
 
             {/* Right section: Glassmorphic summary grid */}
@@ -1016,76 +1055,6 @@ const CustomerDashboard = () => {
 
           </div>
 
-        </div>
-      )}
-
-      {/* ── QUICK ACTIONS PANEL ── */}
-      {!summaryLoading && summary && (
-        <div className="space-y-3.5 text-left animate-in fade-in slide-in-from-top-4 duration-350">
-          <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Quick Access Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            
-            {/* Buy Again */}
-            <button
-              onClick={() => handleQuickAction('buy-again')}
-              className="bg-white border border-slate-100 hover:border-emerald-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-emerald-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-10 h-10 bg-emerald-50 rounded-xl text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-emerald-100/70 transition-all duration-205">
-                <FiRefreshCw className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-800">Buy Again</span>
-              <span className="text-[9px] text-slate-400 mt-1 font-medium">Reorder items</span>
-            </button>
-
-            {/* Wishlist */}
-            <button
-              onClick={() => handleQuickAction('wishlist')}
-              className="bg-white border border-slate-100 hover:border-rose-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-rose-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-10 h-10 bg-rose-50 rounded-xl text-rose-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-rose-100/70 transition-all duration-205">
-                <FiHeart className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-800">Wishlist</span>
-              <span className="text-[9px] text-slate-400 mt-1 font-medium">Liked products</span>
-            </button>
-
-            {/* Scan Barcode */}
-            <button
-              onClick={() => handleQuickAction('scan-barcode')}
-              className="bg-white border border-slate-100 hover:border-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-blue-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-10 h-10 bg-blue-50 rounded-xl text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-blue-100/70 transition-all duration-205">
-                <FiMaximize className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-800">Scan Barcode</span>
-              <span className="text-[9px] text-slate-400 mt-1 font-medium">Quick add to cart</span>
-            </button>
-
-            {/* Order History */}
-            <button
-              onClick={() => handleQuickAction('order-history')}
-              className="bg-white border border-slate-100 hover:border-amber-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-amber-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-10 h-10 bg-amber-50 rounded-xl text-amber-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-amber-100/70 transition-all duration-205">
-                <FiClock className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-800">Order History</span>
-              <span className="text-[9px] text-slate-400 mt-1 font-medium">Review invoices</span>
-            </button>
-
-            {/* Digital Khata */}
-            <button
-              onClick={() => handleQuickAction('digital-khata')}
-              className="bg-white border border-slate-100 hover:border-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-purple-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-10 h-10 bg-purple-50 rounded-xl text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-purple-100/70 transition-all duration-205">
-                <FiBookOpen className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-800">Digital Khata</span>
-              <span className="text-[9px] text-slate-400 mt-1 font-medium">Check balance book</span>
-            </button>
-
-          </div>
         </div>
       )}
 
