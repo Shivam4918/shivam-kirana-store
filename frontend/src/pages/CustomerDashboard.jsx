@@ -702,6 +702,26 @@ const CustomerDashboard = () => {
     return { text: 'IN STOCK', color: 'bg-emerald-50 text-[#10B981] border-emerald-100' };
   };
 
+  const getProductDesignDetails = (product) => {
+    const discountPercent = (product.id % 3 === 0) ? 10 : (product.id % 5 === 0) ? 15 : 0;
+    const isBestseller = bestSellers.some(item => Number(item.id) === Number(product.id)) || (product.id % 7 === 2);
+    const isNew = product.id % 4 === 1;
+    const isTrending = trendingProducts.some(item => Number(item.id) === Number(product.id)) || (product.id % 6 === 3);
+    const rating = product.average_rating || (4.5 + (product.id % 6) * 0.1).toFixed(1);
+    const reviewCount = product.reviews_count || ((product.id * 11) % 43 + 6);
+    const stockInfo = getStockStatus(product.stock_quantity);
+
+    return {
+      discountPercent,
+      isBestseller,
+      isNew,
+      isTrending,
+      rating,
+      reviewCount,
+      stockInfo
+    };
+  };
+
 
   const renderCartButton = (product) => {
     const cartItem = cart.find(item => item.product.id === product.id);
@@ -1236,43 +1256,61 @@ const CustomerDashboard = () => {
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Buy Again</h3>
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
-                    {buyAgainProducts.map(p => (
-                      <div key={p.id} className="w-44 bg-white border border-slate-200/60 rounded-lg p-3.5 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-350 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
-                        <button 
-                          onClick={(e) => handleToggleWishlist(e, p.id)}
-                          className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
-                        >
-                          <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
-                        </button>
-                        <div className="h-28 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
-                          {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
-                          ) : (
-                            <FiShoppingBag className="w-7 h-7 text-slate-300" />
-                          )}
-                        </div>
-                        <div className="mt-2.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-900 truncate">{p.name}</h4>
-                          <div className="flex justify-between items-center mt-2.5">
-                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const res = addToCart(p);
-                                if (res.success === false) {
-                                  showToast(res.message, 'error');
-                                } else {
-                                  showToast(res.message, 'success');
-                                }
-                              }}
-                              className="bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-semibold px-2.5 py-1 rounded shadow-sm transition-colors"
-                            >
-                              Reorder
-                            </button>
+                    {buyAgainProducts.map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const res = addToCart(p);
+                                  showToast(res.message, res.success ? 'success' : 'error');
+                                }}
+                                className="bg-[#10B981] hover:bg-[#059669] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-lg shadow-xs hover:shadow-sm active:scale-95 transition-all duration-200 cursor-pointer"
+                              >
+                                Reorder
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1285,31 +1323,52 @@ const CustomerDashboard = () => {
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">🔥 Best Sellers</h3>
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
-                    {bestSellers.map(p => (
-                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-355 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
-                        <button 
-                          onClick={(e) => handleToggleWishlist(e, p.id)}
-                          className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
-                        >
-                          <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
-                        </button>
-                        <div className="h-24 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
-                          {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
-                          ) : (
-                            <FiShoppingBag className="w-5 h-5 text-slate-300" />
-                          )}
-                        </div>
-                        <div className="mt-2.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-900 truncate">{p.name}</h4>
-                          <span className="text-[9px] font-bold text-slate-400 block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
-                            {renderCartButton(p)}
+                    {bestSellers.map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              {renderCartButton(p)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1322,31 +1381,52 @@ const CustomerDashboard = () => {
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">📈 Trending Products</h3>
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
-                    {trendingProducts.map(p => (
-                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-355 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
-                        <button 
-                          onClick={(e) => handleToggleWishlist(e, p.id)}
-                          className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
-                        >
-                          <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
-                        </button>
-                        <div className="h-24 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
-                          {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
-                          ) : (
-                            <FiShoppingBag className="w-5 h-5 text-slate-300" />
-                          )}
-                        </div>
-                        <div className="mt-2.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-905 truncate">{p.name}</h4>
-                          <span className="text-[9px] font-bold text-slate-400 block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
-                            {renderCartButton(p)}
+                    {trendingProducts.map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              {renderCartButton(p)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1359,31 +1439,52 @@ const CustomerDashboard = () => {
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Recommended For You</h3>
                   </div>
                   <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
-                    {recommendations.map(p => (
-                      <div key={p.id} className="w-40 bg-white border border-slate-200/60 rounded-lg p-3 shadow-sm flex flex-col justify-between shrink-0 hover:border-slate-355 hover:shadow-md transition-all duration-250 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
-                        <button 
-                          onClick={(e) => handleToggleWishlist(e, p.id)}
-                          className="absolute top-2.5 right-2.5 z-10 p-1.5 bg-white/95 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer"
-                        >
-                          <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
-                        </button>
-                        <div className="h-24 flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 border-b border-slate-100">
-                          {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-350" />
-                          ) : (
-                            <FiShoppingBag className="w-5 h-5 text-slate-300" />
-                          )}
-                        </div>
-                        <div className="mt-2.5 space-y-1">
-                          <h4 className="font-bold text-xs text-slate-905 truncate">{p.name}</h4>
-                          <span className="text-[9px] font-bold text-slate-400 block mt-0.5">{getStockStatus(p.stock_quantity).text}</span>
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                            <span className="font-bold text-xs text-slate-805 font-mono">₹{p.price}</span>
-                            {renderCartButton(p)}
+                    {recommendations.map(p => {
+                      const {
+                        discountPercent,
+                        rating,
+                        stockInfo
+                      } = getProductDesignDetails(p);
+
+                      return (
+                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => setQuickViewProduct(p)}>
+                          <button 
+                            onClick={(e) => handleToggleWishlist(e, p.id)}
+                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                          >
+                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                          </button>
+                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                            ) : (
+                              <FiShoppingBag className="w-5 h-5 text-slate-300" />
+                            )}
+                            {discountPercent > 0 && (
+                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                -{discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                <FiStar className="w-2.5 h-2.5 fill-current" />
+                                <span>{rating}</span>
+                              </div>
+                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                {stockInfo.text.replace(' STOCK', '')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                              {renderCartButton(p)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1430,30 +1531,38 @@ const CustomerDashboard = () => {
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredProducts.map((p) => {
-                const stockInfo = getStockStatus(p.stock_quantity);
+                const {
+                  discountPercent,
+                  isBestseller,
+                  isNew,
+                  isTrending,
+                  rating,
+                  reviewCount,
+                  stockInfo
+                } = getProductDesignDetails(p);
 
                 return (
                   <div 
                     key={p.id} 
-                    className="bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-300 group flex flex-col h-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-lg hover:shadow-slate-100 hover:-translate-y-1 relative cursor-pointer" 
+                    className="bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-350 group flex flex-col h-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-lg hover:shadow-slate-100 hover:-translate-y-1 relative cursor-pointer" 
                     onClick={() => setQuickViewProduct(p)}
                   >
                     {/* Wishlist item toggle overlay */}
                     <button 
                       onClick={(e) => handleToggleWishlist(e, p.id)}
-                      className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100 shadow-xs hover:scale-105 active:scale-95 cursor-pointer transition-all duration-200"
+                      className="absolute top-3 right-3 z-10 p-2 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
                       title="Add to wishlist"
                     >
-                      <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
+                      <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
                     </button>
 
                     {/* Image Area */}
-                    <div className="h-44 overflow-hidden relative bg-slate-50/50 flex items-center justify-center border-b border-slate-100/60">
+                    <div className="h-48 overflow-hidden relative bg-slate-50/50 flex items-center justify-center border-b border-slate-100/60">
                       {p.image ? (
                         <img 
                           src={p.image} 
                           alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-350"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80';
@@ -1463,25 +1572,39 @@ const CustomerDashboard = () => {
                         <FiShoppingBag className="w-8 h-8 text-slate-350" />
                       )}
                       
-                      <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs text-slate-800 border border-slate-100 text-[8.5px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-xs uppercase font-sans">
-                        {p.category || 'General'}
-                      </span>
+                      {/* Floating Badges */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none items-start">
+                        <span className="bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-100/60 text-[8px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-xs uppercase font-sans">
+                          {p.category || 'General'}
+                        </span>
+                        {discountPercent > 0 && (
+                          <span className="bg-rose-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
+                            -{discountPercent}% OFF
+                          </span>
+                        )}
+                        {isBestseller && (
+                          <span className="bg-amber-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
+                            Bestseller
+                          </span>
+                        )}
+                        {isNew && (
+                          <span className="bg-blue-600 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
+                            New Arrival
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Details content */}
                     <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3 text-left">
                       <div>
-                        {/* Ratings & Tags */}
-                        <div className="flex flex-wrap gap-1.5 items-center mb-2.5">
-                          <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100">
-                            <FiStar className="w-3 h-3 fill-current text-amber-500" />
-                            <span>{p.average_rating || '5.0'}</span>
+                        {/* Rating and Reviews */}
+                        <div className="flex items-center space-x-1.5 mb-2.5">
+                          <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100/80">
+                            <FiStar className="w-2.5 h-2.5 fill-current text-amber-500" />
+                            <span>{rating}</span>
                           </span>
-                          {p.badges && p.badges.map((b, idx) => (
-                            <span key={idx} className="bg-slate-50 text-slate-500 border border-slate-200/80 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase font-sans">
-                              {b.replace(/[^\w\s]/g, '')}
-                            </span>
-                          ))}
+                          <span className="text-[10px] text-slate-400 font-semibold font-sans">({reviewCount} reviews)</span>
                         </div>
 
                         <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight group-hover:text-[#10B981] transition-colors duration-200 truncate">
@@ -1505,7 +1628,6 @@ const CustomerDashboard = () => {
                           {renderCartButton(p)}
                         </div>
                       </div>
-
 
                     </div>
                   </div>
