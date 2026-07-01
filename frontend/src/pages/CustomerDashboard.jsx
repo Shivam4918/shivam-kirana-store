@@ -10,7 +10,8 @@ import {
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
   FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, 
   FiStar, FiZap, FiRefreshCw, FiSend, FiHeart, FiGift, FiClock, FiHome, 
-  FiLayers, FiInfo, FiChevronLeft, FiChevronRight, FiCheckCircle, FiMapPin, FiPhoneCall, FiMaximize
+  FiLayers, FiInfo, FiChevronLeft, FiChevronRight, FiCheckCircle, FiMapPin, FiPhoneCall, FiMaximize,
+  FiShield, FiAward, FiFileText
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
@@ -2157,6 +2158,59 @@ const CustomerDashboard = () => {
               <p className="text-slate-400 text-xs max-w-sm">We couldn't find any products matching your active filters or wishlist selection.</p>
             </div>
           )}
+
+          {/* Trust & Safety Badges Panel */}
+          <div className="mt-10 border-t border-slate-200/50 pt-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="bg-white border border-slate-100 hover:border-emerald-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#10B981] flex items-center justify-center mb-2.5 transition-colors group-hover:bg-[#10B981] group-hover:text-white border border-emerald-100/30">
+                  <FiCheckCircle className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-800 tracking-tight">Fresh Products</h4>
+                <p className="text-[10px] text-slate-405 mt-1 leading-tight font-medium">Picked daily & quality verified</p>
+              </div>
+
+              <div className="bg-white border border-slate-100 hover:border-emerald-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center mb-2.5 transition-colors group-hover:bg-blue-500 group-hover:text-white border border-blue-100/30">
+                  <FiShield className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-800 tracking-tight">Secure Payments</h4>
+                <p className="text-[10px] text-slate-405 mt-1 leading-tight font-medium">Encrypted settle checkout</p>
+              </div>
+
+              <div className="bg-white border border-slate-100 hover:border-emerald-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center mb-2.5 transition-colors group-hover:bg-purple-500 group-hover:text-white border border-purple-100/30">
+                  <FiBookOpen className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-800 tracking-tight">Digital Khata</h4>
+                <p className="text-[10px] text-slate-405 mt-1 leading-tight font-medium">Transparent credit ledger log</p>
+              </div>
+
+              <div className="bg-white border border-slate-100 hover:border-emerald-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center mb-2.5 transition-colors group-hover:bg-amber-500 group-hover:text-white border border-amber-100/30">
+                  <FiFileText className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-800 tracking-tight">GST Billing</h4>
+                <p className="text-[10px] text-slate-405 mt-1 leading-tight font-medium">Authentic bills & GST invoice</p>
+              </div>
+
+              <div className="bg-white border border-slate-100 hover:border-emerald-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center mb-2.5 transition-colors group-hover:bg-rose-500 group-hover:text-white border border-rose-100/30">
+                  <FiHeart className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-800 tracking-tight">Trusted Local Store</h4>
+                <p className="text-[10px] text-slate-405 mt-1 leading-tight font-medium">Serving HSR layout daily</p>
+              </div>
+
+              <div className="bg-white border border-slate-100 hover:border-emerald-100 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-2.5 transition-colors group-hover:bg-orange-500 group-hover:text-white border border-orange-100/30">
+                  <FiAward className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-800 tracking-tight">Quality Checked</h4>
+                <p className="text-[10px] text-slate-405 mt-1 leading-tight font-medium">100% genuine grocery brands</p>
+              </div>
+            </div>
+          </div>
 
           {/* Store Info & Support Panel */}
           <div className="border-t border-slate-200/60 pt-10 pb-8 mt-10">
