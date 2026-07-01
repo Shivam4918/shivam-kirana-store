@@ -230,11 +230,11 @@ const Navbar = () => {
           <div className="bg-[#10B981] p-2 rounded-lg text-white shadow-sm flex items-center justify-center">
             <FiShoppingBag className="w-5 h-5" />
           </div>
-          <div className="hidden xs:block text-left">
-            <h1 className="font-semibold text-sm sm:text-base tracking-tight text-slate-900 leading-none">
-              Shivam <span className="text-[#10B981] font-bold">Kirana</span>
+          <div className="flex flex-col text-left">
+            <h1 className="font-extrabold text-xs sm:text-sm md:text-base tracking-tight text-slate-900 leading-none">
+              Shivam <span className="text-[#10B981]">Kirana Store</span>
             </h1>
-            <p className="text-[9px] text-slate-400 mt-0.5 font-medium tracking-wide">Smart Retail ERP</p>
+            <p className="text-[9px] text-slate-400 mt-1 font-medium tracking-wide">Smart Retail ERP</p>
           </div>
         </Link>
         
