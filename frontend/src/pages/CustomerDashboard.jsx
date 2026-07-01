@@ -594,7 +594,7 @@ const CustomerDashboard = () => {
   const filteredProducts = sortedProducts;
 
   // Pagination for Khata transactions
-  const txList = khataProfile?.transactions || [];
+  const txList = khataProfile?.transactions ? [...khataProfile.transactions].reverse() : [];
   const totalLedgerPages = Math.ceil(txList.length / ledgerPageSize);
   const paginatedTransactions = txList.slice(
     (ledgerCurrentPage - 1) * ledgerPageSize,
