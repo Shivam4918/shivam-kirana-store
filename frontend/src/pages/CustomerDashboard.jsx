@@ -61,6 +61,7 @@ const CustomerDashboard = () => {
   const [banners, setBanners] = useState([]);
   const [bannersLoading, setBannersLoading] = useState(true);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [countdownTime, setCountdownTime] = useState({ hours: 11, minutes: 59, seconds: 59 });
   const [configs, setConfigs] = useState({});
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -417,12 +418,31 @@ const CustomerDashboard = () => {
 
   // Rotator for banners
   useEffect(() => {
-    if (banners.length <= 1) return;
     const interval = setInterval(() => {
-      setActiveBannerIndex(prev => (prev + 1) % banners.length);
-    }, 5000);
+      setActiveBannerIndex(prev => (prev + 1) % 5);
+    }, 6000);
     return () => clearInterval(interval);
-  }, [banners]);
+  }, []);
+
+  // Real-time ticking countdown timer for Special Offers
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const diff = endOfDay.getTime() - now.getTime();
+      if (diff > 0) {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setCountdownTime({ hours, minutes, seconds });
+      } else {
+        setCountdownTime({ hours: 11, minutes: 59, seconds: 59 });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Load reviews on quickViewProduct load
   const fetchReviews = async (productId) => {
@@ -1367,45 +1387,62 @@ const CustomerDashboard = () => {
                   return (
                     <div
                       key={banner.id || index}
-                      className={`absolute inset-0 transition-opacity duration-700 flex items-stretch ${
-                        index === activeBannerIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                      className={`absolute inset-0 transition-all duration-1000 ease-in-out transform flex items-stretch ${
+                        index === activeBannerIndex 
+                          ? 'opacity-100 scale-100 translate-x-0 z-10' 
+                          : 'opacity-0 scale-95 translate-x-4 pointer-events-none z-0'
                       }`}
                     >
                       <div className={`w-full flex flex-col md:flex-row items-stretch justify-between p-6 sm:p-8 text-white bg-gradient-to-r ${style.gradient} relative overflow-hidden flex-1`}>
                         {/* Decorative circles */}
-                        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-xl pointer-events-none" />
+                        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-xl pointer-events-none animate-pulse" />
                         <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/5 blur-lg pointer-events-none" />
                         
                         <div className="flex flex-col justify-between relative z-10 max-w-lg text-left">
-                          <div className="space-y-1.5">
-                            <span className={`${style.badge} px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider inline-block`}>
+                          <div className="space-y-2">
+                            <span className={`${style.badge} px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block border border-white/10`}>
                               {type}
                             </span>
-                            <h3 className="text-xl sm:text-2xl font-bold leading-tight tracking-tight drop-shadow-xs">
+                            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-none tracking-tight drop-shadow-sm font-sans">
                               {banner.title}
                             </h3>
-                            <p className="text-xs text-white/95 font-medium leading-relaxed drop-shadow-xs">
+                            <p className="text-xs sm:text-sm text-white/90 font-medium leading-relaxed drop-shadow-xs max-w-md">
                               {banner.description}
                             </p>
+
+                            {/* Offer countdown timer */}
+                            {type === 'OFFER' && (
+                              <div className="flex items-center space-x-2.5 mt-3 bg-black/15 backdrop-blur-xs px-3 py-1.5 rounded-full w-max border border-white/10 shadow-sm">
+                                <span className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-300">Ends In:</span>
+                                <div className="flex items-center space-x-1 font-mono text-xs font-black text-white">
+                                  <span className="bg-black/20 px-1.5 py-0.5 rounded">{String(countdownTime.hours).padStart(2, '0')}h</span>
+                                  <span className="text-white/60 animate-pulse">:</span>
+                                  <span className="bg-black/20 px-1.5 py-0.5 rounded">{String(countdownTime.minutes).padStart(2, '0')}m</span>
+                                  <span className="text-white/60 animate-pulse">:</span>
+                                  <span className="bg-black/20 px-1.5 py-0.5 rounded text-emerald-300">{String(countdownTime.seconds).padStart(2, '0')}s</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
+
                           {banner.link_to_category && (
                             <button
                               onClick={() => setSelectedCategory(banner.link_to_category)}
-                              className="bg-white text-slate-900 hover:bg-slate-50 font-extrabold text-xs px-5 py-2.5 rounded-xl w-max mt-4 shadow-md hover:shadow-lg hover:shadow-black/5 cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1"
+                              className="bg-white hover:bg-slate-50 text-slate-900 font-extrabold text-xs px-5 py-2.5 rounded-xl w-max mt-4 shadow-lg hover:shadow-xl hover:shadow-black/10 cursor-pointer transition-all duration-300 active:scale-95 flex items-center space-x-2 group/btn"
                             >
                               <span>Explore {banner.link_to_category}</span>
-                              <span className="font-sans">&rarr;</span>
+                              <span className="transform group-hover/btn:translate-x-1 transition-transform duration-200 font-sans font-black">&rarr;</span>
                             </button>
                           )}
                         </div>
                         
                         {/* Right side graphic or image with robust broken-image recovery */}
-                        <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xs shadow-inner">
+                        <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-tr from-white/10 to-white/5 backdrop-blur-md shadow-2xl">
                           {hasValidImage ? (
                             <img 
                               src={banner.image_url} 
                               alt={banner.title} 
-                              className="w-full h-full object-cover" 
+                              className="w-full h-full object-cover transform hover:scale-105 transition-all duration-700" 
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -1414,15 +1451,19 @@ const CustomerDashboard = () => {
                           ) : null}
 
                           <div 
-                            className="absolute inset-0 flex flex-col items-center justify-center text-center p-4"
+                            className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-950/10"
                             style={{ 
                               display: !hasValidImage ? 'flex' : 'none' 
                             }}
                           >
-                            <span className="text-5xl mb-2 animate-bounce">{style.icon}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
-                              {type}
+                            <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-3xl shadow-lg border border-white/25 mb-3 transform hover:rotate-12 transition-all duration-300 select-none">
+                              {style.icon}
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full border border-white/10 shadow-sm backdrop-blur-xs">
+                              Limited Deal
                             </span>
+                            <div className="absolute -top-10 -left-10 w-24 h-24 rounded-full bg-emerald-400/20 blur-xl pointer-events-none" />
+                            <div className="absolute -bottom-10 -right-10 w-24 h-24 rounded-full bg-cyan-400/20 blur-xl pointer-events-none" />
                           </div>
                         </div>
                       </div>
@@ -1438,8 +1479,8 @@ const CustomerDashboard = () => {
                         <button
                           key={idx}
                           onClick={() => setActiveBannerIndex(idx)}
-                          className={`h-1.5 rounded-full transition-all duration-350 cursor-pointer ${
-                            idx === activeBannerIndex ? 'bg-white w-5 shadow-sm' : 'bg-white/40 w-1.5 hover:bg-white/60'
+                          className={`h-1.5 rounded-full transition-all duration-500 cursor-pointer ${
+                            idx === activeBannerIndex ? 'bg-white w-6 shadow-md' : 'bg-white/40 w-1.5 hover:bg-white/60'
                           }`}
                         />
                       ))}
@@ -1448,14 +1489,14 @@ const CustomerDashboard = () => {
                     {/* Navigation Chevrons */}
                     <button
                       onClick={() => setActiveBannerIndex(prev => (prev - 1 + activeBanners.length) % activeBanners.length)}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-sm"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-sm shadow-md"
                       title="Previous Offer"
                     >
                       <FiChevronLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setActiveBannerIndex(prev => (prev + 1) % activeBanners.length)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-sm"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-sm shadow-md"
                       title="Next Offer"
                     >
                       <FiChevronRight className="w-4 h-4" />
