@@ -1011,54 +1011,149 @@ const CustomerDashboard = () => {
 
       {/* ── STATS / OVERVIEW BAR ── */}
       {!summaryLoading && summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left font-medium">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 text-left font-medium">
           
-          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-blue-500" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Total Orders</span>
-              <div className="w-9 h-9 bg-blue-50/80 rounded-xl text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                <FiShoppingBag className="w-4 h-4" />
+          {/* Left Side: Standard Stats Cards */}
+          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            
+            {/* Total Orders */}
+            <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-blue-500" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Total Orders</span>
+                <div className="w-9 h-9 bg-blue-50/80 rounded-xl text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
+                  <FiShoppingBag className="w-4 h-4" />
+                </div>
               </div>
+              <span className="text-2xl font-extrabold font-mono text-slate-900 tracking-tight block">{summary.total_orders || 0}</span>
+              <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Completed store checkouts</p>
             </div>
-            <span className="text-2xl font-extrabold font-mono text-slate-900 tracking-tight block">{summary.total_orders || 0}</span>
-            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Completed store checkouts</p>
+
+            {/* Khata Outstanding */}
+            <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-rose-500" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Khata Outstanding</span>
+                <div className="w-9 h-9 bg-rose-50/80 rounded-xl text-rose-500 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
+                  <FiLock className="w-4 h-4" />
+                </div>
+              </div>
+              <span className="text-2xl font-extrabold font-mono text-rose-600 tracking-tight block">₹{parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0).toFixed(2)}</span>
+              <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Unpaid store balance due</p>
+            </div>
+
+            {/* Credit Limit */}
+            <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden col-span-2 sm:col-span-1">
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-slate-800" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Credit Limit</span>
+                <div className="w-9 h-9 bg-slate-100/80 rounded-xl text-slate-700 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
+                  <FiUnlock className="w-4 h-4" />
+                </div>
+              </div>
+              <span className="text-2xl font-extrabold font-mono text-slate-850 tracking-tight block">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
+              <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Assigned digital credit limit</p>
+            </div>
+
           </div>
 
-          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-[#10B981]" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Loyalty Points</span>
-              <div className="w-9 h-9 bg-emerald-50/80 rounded-xl text-[#10B981] flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                <FiGift className="w-4 h-4" />
-              </div>
-            </div>
-            <span className="text-2xl font-extrabold font-mono text-[#10B981] tracking-tight block">{summary.loyalty_points || 0}</span>
-            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Redeemable on checkout</p>
-          </div>
+          {/* Right Side: Premium Loyalty Dashboard Card */}
+          <div className="lg:col-span-5 xl:col-span-4 bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 border border-slate-850 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden group">
+            {/* Decorative background glows */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/15 transition-all duration-550" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/15 transition-all duration-550" />
+            
+            {(() => {
+              const pts = parseInt(summary.loyalty_points || 0);
+              const status = getLoyaltyStatus(pts);
+              
+              // Calculate points needed and milestones
+              let pointsNeeded = 0;
+              let nextTier = '';
+              let progressPercent = 0;
+              let perkExplanation = '';
 
-          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-rose-500" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Khata Outstanding</span>
-              <div className="w-9 h-9 bg-rose-50/80 rounded-xl text-rose-500 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                <FiLock className="w-4 h-4" />
-              </div>
-            </div>
-            <span className="text-2xl font-extrabold font-mono text-rose-600 tracking-tight block">₹{parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0).toFixed(2)}</span>
-            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Unpaid store balance due</p>
-          </div>
+              if (pts < 500) {
+                pointsNeeded = 500 - pts;
+                nextTier = 'Silver Pro';
+                progressPercent = Math.min(100, Math.max(0, (pts / 500) * 100));
+                perkExplanation = 'Earn 1x points on store checkout. Reach 500 points for Silver Pro and unlock early transaction fee waivers.';
+              } else if (pts < 1500) {
+                pointsNeeded = 1500 - pts;
+                nextTier = 'Gold Elite';
+                progressPercent = Math.min(100, Math.max(0, ((pts - 500) / 1000) * 100));
+                perkExplanation = 'Silver Pro status activated! Earn 1.5x points on checkouts + unlock weekly special discount slots.';
+              } else if (pts < 3000) {
+                pointsNeeded = 3000 - pts;
+                nextTier = 'Platinum Club';
+                progressPercent = Math.min(100, Math.max(0, ((pts - 1500) / 1500) * 100));
+                perkExplanation = 'Gold Elite status activated! Earn 2.0x points on checkouts + zero payment gateway convenience fees.';
+              } else {
+                pointsNeeded = 0;
+                nextTier = '';
+                progressPercent = 100;
+                perkExplanation = 'Platinum Club Member! Earn max 2.5x points on checkouts + dedicated premium WhatsApp notifications support.';
+              }
 
-          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-slate-800" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Credit Limit</span>
-              <div className="w-9 h-9 bg-slate-100/80 rounded-xl text-slate-700 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
-                <FiUnlock className="w-4 h-4" />
-              </div>
-            </div>
-            <span className="text-2xl font-extrabold font-mono text-slate-850 tracking-tight block">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
-            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Assigned digital credit limit</p>
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Loyalty Dashboard</span>
+                      <h4 className="text-base font-extrabold text-white tracking-tight flex items-center">
+                        {status.tier}
+                        <span className="ml-2 inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      </h4>
+                    </div>
+                    <div className="w-9 h-9 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-400/20 flex items-center justify-center shadow-inner">
+                      <FiGift className="w-4.5 h-4.5" />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <span className="text-2xl font-black font-mono text-emerald-400">{pts}</span>
+                      <span className="text-slate-400 text-xs font-semibold ml-1">pts</span>
+                    </div>
+                    {pointsNeeded > 0 ? (
+                      <span className="text-[10px] text-slate-400 font-semibold font-sans">
+                        {pointsNeeded} pts to {nextTier}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-bold font-sans">
+                        Max Tier Reached! 🎉
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="w-full bg-slate-800/80 rounded-full h-2 overflow-hidden border border-slate-700/50">
+                      <div 
+                        className="bg-gradient-to-r from-emerald-400 to-teal-400 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[8px] text-slate-500 font-bold px-0.5">
+                      <span className={pts < 500 ? 'text-emerald-400' : ''}>Bronze</span>
+                      <span className={(pts >= 500 && pts < 1500) ? 'text-emerald-400' : ''}>Silver (500)</span>
+                      <span className={(pts >= 1500 && pts < 3000) ? 'text-emerald-400' : ''}>Gold (1.5k)</span>
+                      <span className={pts >= 3000 ? 'text-emerald-400' : ''}>Platinum (3k)</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800/80 flex items-start space-x-2">
+                    <div className="p-1 bg-slate-800/50 rounded-lg text-slate-450 border border-slate-750 shrink-0 mt-0.5">
+                      <FiInfo className="w-3 h-3 text-slate-450" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[8px] uppercase tracking-wider text-slate-450 font-extrabold">Active Tier Perks</p>
+                      <p className="text-[10px] text-slate-350 font-normal leading-relaxed mt-0.5">{perkExplanation}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
           </div>
 
         </div>
