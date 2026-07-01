@@ -63,6 +63,8 @@ const CustomerDashboard = () => {
   const [configs, setConfigs] = useState({});
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [invoices, setInvoices] = useState([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
   
   // Autocomplete search states
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -210,6 +212,24 @@ const CustomerDashboard = () => {
     }
   };
 
+  const fetchInvoices = async () => {
+    setInvoicesLoading(true);
+    try {
+      const res = await api.get('/invoices/');
+      setInvoices(res.data);
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+    } finally {
+      setInvoicesLoading(false);
+    }
+  };
+
+  const refreshDashboardData = () => {
+    fetchKhataLedger();
+    fetchSummary();
+    fetchInvoices();
+  };
+
   // 6. Fetch user's wishlist details
   const fetchWishlist = async () => {
     try {
@@ -257,22 +277,26 @@ const CustomerDashboard = () => {
   };
 
   const getLastOrderDate = () => {
-    if (!khataProfile?.transactions || khataProfile.transactions.length === 0) {
-      return 'No orders yet';
-    }
-    const lastCreditTx = khataProfile.transactions.find(tx => tx.transaction_type === 'CREDIT');
-    if (lastCreditTx) {
-      return new Date(lastCreditTx.created_at).toLocaleDateString(undefined, {
+    if (invoicesLoading) return 'Loading...';
+    if (invoices && invoices.length > 0) {
+      return new Date(invoices[0].created_at).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
     }
-    return new Date(khataProfile.transactions[0].created_at).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    // Fallback to credit transactions if invoices are empty
+    if (khataProfile?.transactions && khataProfile.transactions.length > 0) {
+      const lastCreditTx = khataProfile.transactions.find(tx => tx.transaction_type === 'CREDIT');
+      if (lastCreditTx) {
+        return new Date(lastCreditTx.created_at).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+    }
+    return 'No orders yet';
   };
 
   const getFavoriteCategory = () => {
@@ -282,7 +306,7 @@ const CustomerDashboard = () => {
     const categoriesCount = {};
     khataProfile.transactions.forEach(tx => {
       if (tx.product) {
-        const prod = products.find(p => p.id === tx.product);
+        const prod = products.find(p => Number(p.id) === Number(tx.product));
         if (prod && prod.category) {
           categoriesCount[prod.category] = (categoriesCount[prod.category] || 0) + 1;
         }
@@ -309,6 +333,7 @@ const CustomerDashboard = () => {
     fetchSummary();
     fetchWishlist();
     fetchStorefrontRows();
+    fetchInvoices();
   }, []);
 
   // Sync mobile tabs with isKhataView
@@ -361,7 +386,7 @@ const CustomerDashboard = () => {
           showToast('Payment verified successfully! Balance settled.');
           setShowSettlementModal(false);
           setPaymentRequest(null);
-          fetchKhataLedger();
+          refreshDashboardData();
         }
       } catch (err) {
         console.error('Auto-poll status checking failed:', err);
@@ -516,7 +541,7 @@ const CustomerDashboard = () => {
         showToast('Payment verified successfully! Balance settled.');
         setShowSettlementModal(false);
         setPaymentRequest(null);
-        fetchKhataLedger();
+        refreshDashboardData();
       } else {
         showToast(`Payment status is still: ${res.data.status?.toUpperCase() || 'PENDING'}`, 'info');
       }
@@ -719,63 +744,63 @@ const CustomerDashboard = () => {
 
       {/* ── PERSONALIZED WELCOME CARD ── */}
       {!summaryLoading && summary && (
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-800 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800 text-left animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-800 text-white rounded-3xl p-5 sm:p-7 shadow-xl relative overflow-hidden border border-slate-800 text-left animate-in fade-in slide-in-from-top-4 duration-300">
           
           {/* Subtle grid pattern or shapes in background for premium look */}
           <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
           <div className="absolute left-1/3 bottom-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mb-8 pointer-events-none" />
 
-          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             
             {/* Left section: Greeting */}
-            <div className="space-y-2 max-w-xl">
-              <span className="bg-emerald-500/25 border border-emerald-400/20 text-emerald-300 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest font-sans inline-flex items-center space-x-1">
-                <FiStar className="w-3 h-3 text-emerald-400 fill-current animate-pulse" />
+            <div className="space-y-1.5 max-w-xl">
+              <span className="bg-emerald-500/25 border border-emerald-400/20 text-emerald-300 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-widest font-sans inline-flex items-center space-x-1">
+                <FiStar className="w-2.5 h-2.5 text-emerald-400 fill-current animate-pulse" />
                 <span>Premium Customer Dashboard</span>
               </span>
               
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mt-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white mt-1">
                 {getGreeting()}, <span className="text-emerald-400 capitalize">{user?.username || 'Valued Customer'}</span>!
               </h1>
               
-              <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
+              <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed">
                 We're glad to have you back at Shivam Kirana Store. Here is your shopping profile status and credit summaries at a glance.
               </p>
             </div>
 
             {/* Right section: Glassmorphic summary grid */}
-            <div className="grid grid-cols-2 gap-4 sm:gap-6 w-full lg:w-auto shrink-0 min-w-[320px] sm:min-w-[400px]">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full lg:w-[48%] xl:w-[45%] shrink-0">
               
               {/* Last Order Date */}
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
-                <div className="p-2.5 bg-blue-500/20 rounded-xl text-blue-300 border border-blue-400/10">
-                  <FiCalendar className="w-4.5 h-4.5" />
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                <div className="p-2 sm:p-2.5 bg-blue-500/20 rounded-xl text-blue-300 border border-blue-400/10 shrink-0">
+                  <FiCalendar className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div className="text-left font-sans">
-                  <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Last Order</p>
-                  <p className="text-xs font-bold text-white mt-0.5">{getLastOrderDate()}</p>
+                <div className="text-left font-sans min-w-0">
+                  <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Last Order</p>
+                  <p className="text-xs font-bold text-white mt-0.5 truncate">{getLastOrderDate()}</p>
                 </div>
               </div>
 
               {/* Total Savings */}
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
-                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-300 border border-emerald-400/10">
-                  <FiZap className="w-4.5 h-4.5" />
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                <div className="p-2 sm:p-2.5 bg-emerald-500/20 rounded-xl text-emerald-300 border border-emerald-400/10 shrink-0">
+                  <FiZap className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div className="text-left font-sans">
-                  <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Total Savings</p>
-                  <p className="text-xs font-bold text-white mt-0.5 font-mono font-extrabold">₹{summary.total_savings || '0.00'}</p>
+                <div className="text-left font-sans min-w-0">
+                  <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Total Savings</p>
+                  <p className="text-xs font-bold text-white mt-0.5 font-mono font-extrabold truncate">₹{summary.total_savings || '0.00'}</p>
                 </div>
               </div>
 
               {/* Favorite Category */}
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
-                <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-300 border border-amber-400/10">
-                  <FiShoppingBag className="w-4.5 h-4.5" />
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                <div className="p-2 sm:p-2.5 bg-amber-500/20 rounded-xl text-amber-300 border border-amber-400/10 shrink-0">
+                  <FiShoppingBag className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div className="text-left font-sans">
-                  <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Favorite Type</p>
-                  <p className="text-xs font-bold text-white mt-0.5 capitalize">{getFavoriteCategory()}</p>
+                <div className="text-left font-sans min-w-0">
+                  <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Favorite Type</p>
+                  <p className="text-xs font-bold text-white mt-0.5 capitalize truncate">{getFavoriteCategory()}</p>
                 </div>
               </div>
 
@@ -783,13 +808,13 @@ const CustomerDashboard = () => {
               {(() => {
                 const status = getLoyaltyStatus(summary.loyalty_points);
                 return (
-                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
-                    <div className="p-2.5 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-400/10">
-                      <FiGift className="w-4.5 h-4.5" />
+                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                    <div className="p-2 sm:p-2.5 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-400/10 shrink-0">
+                      <FiGift className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                     </div>
-                    <div className="text-left font-sans">
-                      <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Loyalty status</p>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase mt-1 ${status.color}`}>
+                    <div className="text-left font-sans min-w-0">
+                      <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Loyalty status</p>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase mt-1 truncate ${status.color}`}>
                         {status.tier}
                       </span>
                     </div>
@@ -1471,7 +1496,7 @@ const CustomerDashboard = () => {
               </div>
 
               <button
-                onClick={fetchKhataLedger}
+                onClick={refreshDashboardData}
                 className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 Refresh Account Status
@@ -1485,7 +1510,7 @@ const CustomerDashboard = () => {
               <h3 className="text-slate-800 font-bold text-sm">Unable to load ledger</h3>
               <p className="text-slate-400 text-xs max-w-xs leading-normal">We couldn't retrieve your Khata ledger profile at this time. Please check your connection and retry.</p>
               <button 
-                onClick={fetchKhataLedger}
+                onClick={refreshDashboardData}
                 className="bg-slate-900 hover:bg-slate-850 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:shadow cursor-pointer transition-all duration-200 active:scale-95"
               >
                 Retry Loading
