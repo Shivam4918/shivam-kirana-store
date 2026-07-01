@@ -12,7 +12,7 @@ const api = axios.create({
 // Attach access token to every outgoing request if it exists
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,7 +38,7 @@ api.interceptors.response.use(
       !originalRequest.url.includes('/auth/token/refresh/')
     ) {
       originalRequest._retry = true;
-      const refreshToken = sessionStorage.getItem('refresh_token');
+      const refreshToken = localStorage.getItem('refresh_token');
       
       if (refreshToken) {
         try {
@@ -47,9 +47,9 @@ api.interceptors.response.use(
           });
           
           if (res.status === 200) {
-            sessionStorage.setItem('access_token', res.data.access);
+            localStorage.setItem('access_token', res.data.access);
             if (res.data.refresh) {
-              sessionStorage.setItem('refresh_token', res.data.refresh);
+              localStorage.setItem('refresh_token', res.data.refresh);
             }
             
             // Re-configure header and replay request
@@ -57,11 +57,18 @@ api.interceptors.response.use(
             return api(originalRequest);
           }
         } catch (refreshError) {
-          // Token refresh failed, wipe credentials and force reload/logout
-          sessionStorage.removeItem('access_token');
-          sessionStorage.removeItem('refresh_token');
-          sessionStorage.removeItem('user');
-          window.location.href = '/';
+          // Token refresh failed. Only force logout if the server explicitly rejected the refresh token (400 or 401)
+          if (refreshError.response && (refreshError.response.status === 400 || refreshError.response.status === 401)) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            
+            // Sync logout event across other tabs
+            localStorage.setItem('logout-event', Date.now().toString());
+            localStorage.removeItem('logout-event');
+            
+            window.location.href = '/login?expired=true';
+          }
           return Promise.reject(refreshError);
         }
       }

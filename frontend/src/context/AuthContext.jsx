@@ -5,8 +5,8 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const storedUser = sessionStorage.getItem('user');
-    const token = sessionStorage.getItem('access_token');
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('access_token');
     if (storedUser && token) {
       try {
         return JSON.parse(storedUser);
@@ -18,31 +18,22 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading] = useState(false);
 
-  // Sync logout event across tabs & handle pagehide
+  // Sync logout event across tabs
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'logout-event') {
-        sessionStorage.clear();
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
         setUser(null);
         window.location.href = '/login';
       }
     };
-    
-    const handlePageHide = () => {
-      // Reliable tab-close or browser-close detection: if we are logged in, trigger sendBeacon logout
-      const token = sessionStorage.getItem('access_token');
-      if (token) {
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth/logout/`;
-        navigator.sendBeacon(url);
-      }
-    };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('pagehide', handlePageHide);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('pagehide', handlePageHide);
     };
   }, []);
 
@@ -55,9 +46,9 @@ export const AuthProvider = ({ children }) => {
       
       const { access, refresh, user: userData } = res.data;
       
-      sessionStorage.setItem('access_token', access);
-      sessionStorage.setItem('refresh_token', refresh);
-      sessionStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      localStorage.setItem('user', JSON.stringify(userData));
       
       setUser(userData);
       return { success: true };
@@ -95,9 +86,9 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Server logout failed:', err);
     }
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
     setUser(null);
     
     // Trigger storage event for other open tabs
