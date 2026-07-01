@@ -877,7 +877,7 @@ const CustomerDashboard = () => {
       {!summaryLoading && summary && (
         <div className="space-y-3.5 text-left animate-in fade-in slide-in-from-top-4 duration-350">
           <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Quick Access Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             
             {/* Buy Again */}
             <button
@@ -937,18 +937,6 @@ const CustomerDashboard = () => {
               </div>
               <span className="text-xs font-bold text-slate-800">Digital Khata</span>
               <span className="text-[9px] text-slate-400 mt-1 font-medium">Check balance book</span>
-            </button>
-
-            {/* Payments */}
-            <button
-              onClick={() => handleQuickAction('payments')}
-              className="bg-white border border-slate-100 hover:border-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-indigo-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
-            >
-              <div className="w-10 h-10 bg-indigo-50 rounded-xl text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-indigo-100/70 transition-all duration-205">
-                <FiZap className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-800">Payments</span>
-              <span className="text-[9px] text-slate-400 mt-1 font-medium">Settle balance</span>
             </button>
 
           </div>
