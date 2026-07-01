@@ -916,7 +916,7 @@ const CustomerDashboard = () => {
   };
 
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto bg-[#F8FAFC] text-[#111827] flex flex-col justify-start relative text-left pb-20 md:pb-8">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto bg-[#F8FAFC] text-[#111827] flex flex-col justify-start relative text-left pb-20 md:pb-8 animate-in fade-in duration-500">
       
       {/* Toast Alert */}
       {toast.show && (
@@ -1322,7 +1322,7 @@ const CustomerDashboard = () => {
 
       {/* STOREFRONT GROCERY CATALOG VIEW */}
       {!isKhataView && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
           
           {/* Quick outstanding alert strip */}
           {!khataLoading && khataProfile && parseFloat(khataProfile.current_balance) > 0 && (
@@ -2215,7 +2215,7 @@ const CustomerDashboard = () => {
       )}
       {/* Digital Khata Ledger View */}
       {isKhataView && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-1 block">Account Ledger</span>
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-none">Digital Khata Ledger Book</h2>
