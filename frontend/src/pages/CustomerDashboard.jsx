@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { CartContext } from '../context/CartContext';
+import { AuthContext } from '../context/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
 import WishlistDrawer from '../components/WishlistDrawer';
 import { 
@@ -26,7 +27,8 @@ const CustomerDashboard = () => {
   const location = useLocation();
   const isKhataView = location.pathname.includes('/khata');
 
-  // Consume Global Cart
+  // Consume Auth & Cart Contexts
+  const { user } = useContext(AuthContext);
   const { 
     cart, 
     addToCart, 
@@ -236,6 +238,66 @@ const CustomerDashboard = () => {
     } catch (err) {
       console.error('Error fetching storefront rows:', err);
     }
+  };
+
+  // Helper calculations for personalized welcome section
+  const getGreeting = () => {
+    const hours = new Date().getHours();
+    if (hours < 12) return 'Good Morning';
+    if (hours < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const getLoyaltyStatus = (points) => {
+    const pts = parseInt(points || 0);
+    if (pts >= 3000) return { tier: 'Platinum Club', color: 'text-purple-400 bg-purple-950/40 border-purple-500/20' };
+    if (pts >= 1500) return { tier: 'Gold Elite', color: 'text-amber-400 bg-amber-950/40 border-amber-500/20' };
+    if (pts >= 500) return { tier: 'Silver Pro', color: 'text-slate-300 bg-slate-800/40 border-slate-700/20' };
+    return { tier: 'Bronze Member', color: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/20' };
+  };
+
+  const getLastOrderDate = () => {
+    if (!khataProfile?.transactions || khataProfile.transactions.length === 0) {
+      return 'No orders yet';
+    }
+    const lastCreditTx = khataProfile.transactions.find(tx => tx.transaction_type === 'CREDIT');
+    if (lastCreditTx) {
+      return new Date(lastCreditTx.created_at).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+    return new Date(khataProfile.transactions[0].created_at).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getFavoriteCategory = () => {
+    if (!khataProfile?.transactions || khataProfile.transactions.length === 0) {
+      return 'Groceries';
+    }
+    const categoriesCount = {};
+    khataProfile.transactions.forEach(tx => {
+      if (tx.product) {
+        const prod = products.find(p => p.id === tx.product);
+        if (prod && prod.category) {
+          categoriesCount[prod.category] = (categoriesCount[prod.category] || 0) + 1;
+        }
+      }
+    });
+    
+    let favCat = 'Groceries';
+    let maxCount = 0;
+    Object.entries(categoriesCount).forEach(([cat, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        favCat = cat;
+      }
+    });
+    return favCat;
   };
 
   // Sync profile details if changing tabs
@@ -652,6 +714,93 @@ const CustomerDashboard = () => {
         }`}>
           {toast.type === 'success' ? <FiCheck className="w-4 h-4" /> : <FiAlertCircle className="w-4 h-4" />}
           <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* ── PERSONALIZED WELCOME CARD ── */}
+      {!summaryLoading && summary && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-800 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden border border-slate-800 text-left animate-in fade-in slide-in-from-top-4 duration-300">
+          
+          {/* Subtle grid pattern or shapes in background for premium look */}
+          <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+          <div className="absolute left-1/3 bottom-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mb-8 pointer-events-none" />
+
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            
+            {/* Left section: Greeting */}
+            <div className="space-y-2 max-w-xl">
+              <span className="bg-emerald-500/25 border border-emerald-400/20 text-emerald-300 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest font-sans inline-flex items-center space-x-1">
+                <FiStar className="w-3 h-3 text-emerald-400 fill-current animate-pulse" />
+                <span>Premium Customer Dashboard</span>
+              </span>
+              
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mt-2">
+                {getGreeting()}, <span className="text-emerald-400 capitalize">{user?.username || 'Valued Customer'}</span>!
+              </h1>
+              
+              <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
+                We're glad to have you back at Shivam Kirana Store. Here is your shopping profile status and credit summaries at a glance.
+              </p>
+            </div>
+
+            {/* Right section: Glassmorphic summary grid */}
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 w-full lg:w-auto shrink-0 min-w-[320px] sm:min-w-[400px]">
+              
+              {/* Last Order Date */}
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
+                <div className="p-2.5 bg-blue-500/20 rounded-xl text-blue-300 border border-blue-400/10">
+                  <FiCalendar className="w-4.5 h-4.5" />
+                </div>
+                <div className="text-left font-sans">
+                  <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Last Order</p>
+                  <p className="text-xs font-bold text-white mt-0.5">{getLastOrderDate()}</p>
+                </div>
+              </div>
+
+              {/* Total Savings */}
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
+                <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-300 border border-emerald-400/10">
+                  <FiZap className="w-4.5 h-4.5" />
+                </div>
+                <div className="text-left font-sans">
+                  <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Total Savings</p>
+                  <p className="text-xs font-bold text-white mt-0.5 font-mono font-extrabold">₹{summary.total_savings || '0.00'}</p>
+                </div>
+              </div>
+
+              {/* Favorite Category */}
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
+                <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-300 border border-amber-400/10">
+                  <FiShoppingBag className="w-4.5 h-4.5" />
+                </div>
+                <div className="text-left font-sans">
+                  <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Favorite Type</p>
+                  <p className="text-xs font-bold text-white mt-0.5 capitalize">{getFavoriteCategory()}</p>
+                </div>
+              </div>
+
+              {/* Loyalty Status Tier */}
+              {(() => {
+                const status = getLoyaltyStatus(summary.loyalty_points);
+                return (
+                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center space-x-3.5 shadow-sm hover:bg-white/10 transition-colors duration-200">
+                    <div className="p-2.5 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-400/10">
+                      <FiGift className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="text-left font-sans">
+                      <p className="text-[9px] uppercase tracking-wider text-slate-450 font-extrabold font-sans">Loyalty status</p>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase mt-1 ${status.color}`}>
+                        {status.tier}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+            </div>
+
+          </div>
+
         </div>
       )}
 
