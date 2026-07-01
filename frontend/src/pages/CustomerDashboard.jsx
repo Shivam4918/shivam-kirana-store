@@ -580,7 +580,7 @@ const CustomerDashboard = () => {
       return (
         <button
           disabled
-          className="bg-slate-100 text-slate-400 font-semibold px-3 py-1.5 rounded-lg text-xs cursor-not-allowed border border-slate-200"
+          className="bg-slate-50 text-slate-450 font-bold px-3 py-1.5 rounded-xl text-xs cursor-not-allowed border border-slate-200/60"
         >
           Sold Out
         </button>
@@ -595,7 +595,7 @@ const CustomerDashboard = () => {
             const res = addToCart(product);
             showToast(res.message, res.success ? 'success' : 'error');
           }}
-          className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-3 py-1.5 rounded-lg text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+          className="bg-[#10B981] hover:bg-[#059669] text-white font-extrabold px-4.5 py-1.5 rounded-xl text-xs shadow-xs hover:shadow-sm active:scale-95 transition-all duration-200 cursor-pointer"
         >
           Add +
         </button>
@@ -604,7 +604,7 @@ const CustomerDashboard = () => {
 
     return (
       <div 
-        className="flex items-center space-x-1 border border-slate-200 bg-white rounded-lg p-0.5"
+        className="flex items-center space-x-1 border border-slate-200/80 bg-white rounded-xl p-1 shadow-xs"
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -616,11 +616,11 @@ const CustomerDashboard = () => {
               updateQuantity(product.id, cartItem.quantity - 1);
             }
           }}
-          className="p-1 hover:bg-slate-50 text-slate-500 rounded cursor-pointer"
+          className="p-1 hover:bg-slate-50 hover:text-slate-900 text-slate-400 rounded-lg cursor-pointer transition-colors duration-150"
         >
           <FiMinus className="w-3 h-3" />
         </button>
-        <span className="text-xs font-mono font-bold text-slate-800 px-1.5 min-w-[16px] text-center">
+        <span className="text-xs font-mono font-extrabold text-slate-800 px-1.5 min-w-[20px] text-center">
           {cartItem.quantity}
         </span>
         <button
@@ -630,7 +630,7 @@ const CustomerDashboard = () => {
               showToast(res.message, 'error');
             }
           }}
-          className="p-1 hover:bg-slate-50 text-slate-550 rounded cursor-pointer"
+          className="p-1 hover:bg-slate-50 hover:text-slate-900 text-slate-400 rounded-lg cursor-pointer transition-colors duration-150"
         >
           <FiPlus className="w-3 h-3" />
         </button>
@@ -659,48 +659,52 @@ const CustomerDashboard = () => {
       {!summaryLoading && summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left font-medium">
           
-          <div className="bg-white border-l-4 border-l-blue-500 border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Total Orders</span>
-              <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-blue-500" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Total Orders</span>
+              <div className="w-9 h-9 bg-blue-50/80 rounded-xl text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
                 <FiShoppingBag className="w-4 h-4" />
               </div>
             </div>
-            <span className="text-xl font-bold font-mono text-slate-900 block">{summary.total_orders || 0}</span>
-            <p className="text-[10px] text-slate-400 mt-1">Completed store checkouts</p>
+            <span className="text-2xl font-extrabold font-mono text-slate-900 tracking-tight block">{summary.total_orders || 0}</span>
+            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Completed store checkouts</p>
           </div>
 
-          <div className="bg-white border-l-4 border-l-[#10B981] border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Loyalty Points</span>
-              <div className="p-1.5 bg-emerald-50 rounded-lg text-[#10B981]">
+          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-[#10B981]" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Loyalty Points</span>
+              <div className="w-9 h-9 bg-emerald-50/80 rounded-xl text-[#10B981] flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
                 <FiGift className="w-4 h-4" />
               </div>
             </div>
-            <span className="text-xl font-bold font-mono text-[#10B981] block">{summary.loyalty_points || 0}</span>
-            <p className="text-[10px] text-slate-400 mt-1">Redeemable on checkout</p>
+            <span className="text-2xl font-extrabold font-mono text-[#10B981] tracking-tight block">{summary.loyalty_points || 0}</span>
+            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Redeemable on checkout</p>
           </div>
 
-          <div className="bg-white border-l-4 border-l-rose-500 border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Khata Outstanding</span>
-              <div className="p-1.5 bg-rose-50 rounded-lg text-rose-500">
+          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-rose-500" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Khata Outstanding</span>
+              <div className="w-9 h-9 bg-rose-50/80 rounded-xl text-rose-500 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
                 <FiLock className="w-4 h-4" />
               </div>
             </div>
-            <span className="text-xl font-bold font-mono text-rose-600 block">₹{parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0).toFixed(2)}</span>
-            <p className="text-[10px] text-slate-400 mt-1">Unpaid store balance due</p>
+            <span className="text-2xl font-extrabold font-mono text-rose-600 tracking-tight block">₹{parseFloat(summary.current_balance !== undefined ? summary.current_balance : summary.khata_balance || 0).toFixed(2)}</span>
+            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Unpaid store balance due</p>
           </div>
 
-          <div className="bg-white border-l-4 border-l-slate-800 border-slate-200/60 rounded-lg p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Credit Limit</span>
-              <div className="p-1.5 bg-slate-100 rounded-lg text-slate-700">
+          <div className="bg-gradient-to-br from-white to-slate-50/30 border border-slate-100 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.015)] hover:shadow-md hover:shadow-slate-100/60 transition-all duration-300 hover:-translate-y-0.5 relative group overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-slate-800" />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-extrabold">Credit Limit</span>
+              <div className="w-9 h-9 bg-slate-100/80 rounded-xl text-slate-700 flex items-center justify-center transition-transform group-hover:scale-105 duration-200">
                 <FiUnlock className="w-4 h-4" />
               </div>
             </div>
-            <span className="text-xl font-bold font-mono text-slate-800 block">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
-            <p className="text-[10px] text-slate-400 mt-1">Assigned digital credit limit</p>
+            <span className="text-2xl font-extrabold font-mono text-slate-850 tracking-tight block">₹{parseFloat(summary.credit_limit || 0).toFixed(2)}</span>
+            <p className="text-[10px] text-slate-400 mt-1.5 font-normal">Assigned digital credit limit</p>
           </div>
 
         </div>
@@ -736,7 +740,7 @@ const CustomerDashboard = () => {
           )}
 
           {/* Premium auto-sliding banner carousel */}
-          <div className="relative rounded-xl overflow-hidden shadow-md group h-44 sm:h-52 bg-slate-100 flex items-stretch">
+          <div className="relative rounded-2xl overflow-hidden shadow-lg shadow-slate-100/50 group h-48 sm:h-56 bg-slate-100 flex items-stretch border border-slate-100/80">
             {bannersLoading ? (
               <div className="w-full h-full animate-pulse bg-slate-200"></div>
             ) : (
@@ -798,15 +802,16 @@ const CustomerDashboard = () => {
                           {banner.link_to_category && (
                             <button
                               onClick={() => setSelectedCategory(banner.link_to_category)}
-                              className="bg-white text-slate-900 hover:bg-slate-50 font-bold text-xs px-4 py-2 rounded-lg w-max mt-4 shadow-md cursor-pointer transition-transform duration-200 active:scale-95"
+                              className="bg-white text-slate-900 hover:bg-slate-50 font-extrabold text-xs px-5 py-2.5 rounded-xl w-max mt-4 shadow-md hover:shadow-lg hover:shadow-black/5 cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1"
                             >
-                              Explore {banner.link_to_category} &rarr;
+                              <span>Explore {banner.link_to_category}</span>
+                              <span className="font-sans">&rarr;</span>
                             </button>
                           )}
                         </div>
                         
                         {/* Right side graphic or image with robust broken-image recovery */}
-                        <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-xs shadow-inner">
+                        <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xs shadow-inner">
                           {hasValidImage ? (
                             <img 
                               src={banner.image_url} 
@@ -839,13 +844,13 @@ const CustomerDashboard = () => {
                 {activeBanners.length > 1 && (
                   <>
                     {/* Navigation Dots */}
-                    <div className="absolute bottom-4 left-6 z-20 flex space-x-1.5">
+                    <div className="absolute bottom-4 left-8 z-20 flex space-x-2">
                       {activeBanners.map((_, idx) => (
                         <button
                           key={idx}
                           onClick={() => setActiveBannerIndex(idx)}
-                          className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-                            idx === activeBannerIndex ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'
+                          className={`h-1.5 rounded-full transition-all duration-350 cursor-pointer ${
+                            idx === activeBannerIndex ? 'bg-white w-5 shadow-sm' : 'bg-white/40 w-1.5 hover:bg-white/60'
                           }`}
                         />
                       ))}
@@ -854,14 +859,14 @@ const CustomerDashboard = () => {
                     {/* Navigation Chevrons */}
                     <button
                       onClick={() => setActiveBannerIndex(prev => (prev - 1 + activeBanners.length) % activeBanners.length)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-xs"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-sm"
                       title="Previous Offer"
                     >
                       <FiChevronLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setActiveBannerIndex(prev => (prev + 1) % activeBanners.length)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-xs"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border border-white/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90 backdrop-blur-sm"
                       title="Next Offer"
                     >
                       <FiChevronRight className="w-4 h-4" />
@@ -1105,10 +1110,10 @@ const CustomerDashboard = () => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4.5 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap border cursor-pointer transition-all hover:-translate-y-0.5 ${
+                  className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 shadow-xs ${
                     selectedCategory === cat
                       ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                      : 'bg-white text-slate-500 hover:text-slate-900 border-slate-205/60 hover:border-slate-350'
+                      : 'bg-white text-slate-500 hover:text-slate-850 border-slate-200/85 hover:border-slate-300 hover:bg-slate-50/40'
                   }`}
                 >
                   {cat}
@@ -1121,10 +1126,16 @@ const CustomerDashboard = () => {
           {productsLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-white border border-slate-200/60 rounded-lg p-5 h-[320px] shadow-sm animate-pulse space-y-4">
-                  <div className="w-full h-40 bg-slate-100 rounded-lg"></div>
-                  <div className="h-4 bg-slate-100 rounded w-2/3"></div>
-                  <div className="h-3 bg-slate-100 rounded w-1/2"></div>
+                <div key={i} className="bg-white border border-slate-100 rounded-2xl p-5 h-[340px] shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] animate-pulse flex flex-col justify-between">
+                  <div className="w-full h-40 bg-slate-100/70 rounded-xl"></div>
+                  <div className="space-y-2 mt-4">
+                    <div className="h-4 bg-slate-100/70 rounded w-2/3"></div>
+                    <div className="h-3 bg-slate-100/70 rounded w-1/2"></div>
+                  </div>
+                  <div className="flex justify-between items-center pt-4 border-t border-slate-50 mt-auto">
+                    <div className="h-6 bg-slate-100/70 rounded w-1/4"></div>
+                    <div className="h-7 bg-slate-100/70 rounded w-1/3"></div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1136,20 +1147,20 @@ const CustomerDashboard = () => {
                 return (
                   <div 
                     key={p.id} 
-                    className="bg-white border border-slate-200/60 hover:border-slate-300 rounded-lg overflow-hidden transition-all duration-250 group flex flex-col h-full shadow-sm hover:shadow-md hover:-translate-y-0.5 relative cursor-pointer" 
+                    className="bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-300 group flex flex-col h-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-lg hover:shadow-slate-100 hover:-translate-y-1 relative cursor-pointer" 
                     onClick={() => setQuickViewProduct(p)}
                   >
                     {/* Wishlist item toggle overlay */}
                     <button 
                       onClick={(e) => handleToggleWishlist(e, p.id)}
-                      className="absolute top-3 right-3 z-10 p-1.5 bg-white/95 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-150 shadow-sm cursor-pointer transition-colors"
+                      className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100 shadow-xs hover:scale-105 active:scale-95 cursor-pointer transition-all duration-200"
                       title="Add to wishlist"
                     >
                       <FiHeart className={`w-3.5 h-3.5 ${wishlistIds.has(p.id) ? 'fill-current text-rose-500' : ''}`} />
                     </button>
 
                     {/* Image Area */}
-                    <div className="h-44 overflow-hidden relative bg-slate-50 flex items-center justify-center border-b border-slate-100">
+                    <div className="h-44 overflow-hidden relative bg-slate-50/50 flex items-center justify-center border-b border-slate-100/60">
                       {p.image ? (
                         <img 
                           src={p.image} 
@@ -1161,52 +1172,52 @@ const CustomerDashboard = () => {
                           }}
                         />
                       ) : (
-                        <FiShoppingBag className="w-8 h-8 text-slate-300" />
+                        <FiShoppingBag className="w-8 h-8 text-slate-350" />
                       )}
                       
-                      <span className="absolute top-3 left-3 bg-white/95 text-slate-800 border border-slate-200 text-[9px] font-bold tracking-wider px-2 py-0.5 rounded shadow-sm uppercase font-mono">
+                      <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-xs text-slate-800 border border-slate-100 text-[8.5px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-xs uppercase font-sans">
                         {p.category || 'General'}
                       </span>
-
                     </div>
 
                     {/* Details content */}
-                    <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3.5 text-left">
+                    <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3 text-left">
                       <div>
                         {/* Ratings & Tags */}
                         <div className="flex flex-wrap gap-1.5 items-center mb-2.5">
-                          <span className="bg-amber-50 text-amber-600 text-[9.5px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100">
+                          <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100">
                             <FiStar className="w-3 h-3 fill-current text-amber-500" />
                             <span>{p.average_rating || '5.0'}</span>
                           </span>
                           {p.badges && p.badges.map((b, idx) => (
-                            <span key={idx} className="bg-slate-50 text-slate-500 border border-slate-200 text-[8.5px] font-bold px-1.5 py-0.5 rounded uppercase">
+                            <span key={idx} className="bg-slate-50 text-slate-500 border border-slate-200/80 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase font-sans">
                               {b.replace(/[^\w\s]/g, '')}
                             </span>
                           ))}
                         </div>
 
-                        <h3 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight group-hover:text-[#10B981] transition-colors truncate">
+                        <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight group-hover:text-[#10B981] transition-colors duration-200 truncate">
                           {p.name}
                         </h3>
-                        <p className="text-[10.5px] text-slate-400 mt-1 font-medium leading-normal line-clamp-2">
+                        <p className="text-[10px] text-slate-400 mt-1 font-medium leading-normal line-clamp-2">
                           {p.description || 'Fresh selected local grocery items.'}
                         </p>
                       </div>
 
                       {/* Pricing margins & actions */}
-                      <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between mt-auto">
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
                         <div className="text-left font-mono">
                           <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold border font-sans mb-1.5 ${stockInfo.color}`}>
                             {stockInfo.text}
                           </span>
-                          <p className="font-bold text-sm sm:text-base text-slate-900 leading-none">₹{p.price}</p>
+                          <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-none">₹{p.price}</p>
                         </div>
 
                         <div className="text-right">
                           {renderCartButton(p)}
                         </div>
                       </div>
+
 
                     </div>
                   </div>
@@ -1271,87 +1282,85 @@ const CustomerDashboard = () => {
 
             </div>
           </div>
-
         </div>
       )}
-
       {/* Digital Khata Ledger View */}
       {isKhataView && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 leading-none">Digital Khata Ledger Book</h2>
-            <p className="text-slate-505 text-xs sm:text-sm mt-1.5 font-medium font-medium">Track your balance liabilities, outstanding credit orders, and official payment logs.</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-1 block">Account Ledger</span>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-none">Digital Khata Ledger Book</h2>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1.5 font-normal">Track your balance liabilities, outstanding credit orders, and official payment logs.</p>
           </div>
 
           {khataLoading ? (
             <div className="space-y-6 animate-pulse">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="bg-white border border-slate-200/60 rounded-lg p-6 h-28 shadow-sm"></div>
+                  <div key={i} className="bg-white border border-slate-100 rounded-2xl p-6 h-28 shadow-sm"></div>
                 ))}
               </div>
-              <div className="bg-white border border-slate-200/60 rounded-lg p-6 h-60 shadow-sm"></div>
+              <div className="bg-white border border-slate-100 rounded-2xl p-6 h-60 shadow-sm"></div>
             </div>
           ) : khataLocked ? (
-            <div className="max-w-md mx-auto bg-white border border-rose-100 rounded-lg p-8 sm:p-10 text-center space-y-6 shadow-sm mt-6">
-              <div className="mx-auto w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100">
+            <div className="max-w-md mx-auto bg-white border border-rose-100/70 rounded-2xl p-8 sm:p-10 text-center space-y-6 shadow-md shadow-rose-100/10 mt-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="mx-auto w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100 shadow-xs">
                 <FiLock className="w-5 h-5" />
               </div>
 
               <div className="space-y-2 text-center">
-                <h3 className="text-lg font-semibold text-slate-950 tracking-tight">Personal Khata Locked</h3>
+                <h3 className="text-lg font-extrabold text-slate-950 tracking-tight">Personal Khata Locked</h3>
                 <p className="text-slate-400 text-xs leading-relaxed max-w-sm mx-auto font-medium">
                   Your shop credit access has been temporarily suspended by Shivam. Please contact the store management to settle unpaid debts and unlock your account.
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200/60 rounded-lg p-5 max-w-xs mx-auto font-mono">
-                <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-1 font-sans">Ledger Balance Liability</p>
-                <p className="text-2xl font-semibold text-rose-600">₹{parseFloat(lockedBalance).toFixed(2)}</p>
-                <p className="text-[9px] text-slate-400 mt-2 font-sans">Payments must be cleared directly at the checkout counter.</p>
+              <div className="bg-rose-50/30 border border-rose-100/50 rounded-2xl p-5 max-w-xs mx-auto font-mono">
+                <p className="text-[9px] text-slate-450 uppercase tracking-widest font-bold mb-1.5 font-sans">Ledger Balance Liability</p>
+                <p className="text-3xl font-extrabold text-rose-600">₹{parseFloat(lockedBalance).toFixed(2)}</p>
+                <p className="text-[9px] text-slate-400 mt-2 font-sans font-medium">Payments must be cleared directly at the checkout counter.</p>
               </div>
 
               <button
                 onClick={fetchKhataLedger}
-                className="bg-white hover:bg-slate-50 text-slate-707 border border-slate-200 px-4.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95"
+                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 Refresh Account Status
               </button>
             </div>
           ) : !khataProfile ? (
-            <div className="bg-white border border-slate-200 rounded-lg py-16 px-4 flex flex-col items-center justify-center space-y-4 text-center shadow-sm">
-              <div className="bg-slate-50 p-3.5 rounded-lg text-slate-400">
+            <div className="bg-white border border-slate-100 rounded-2xl py-16 px-4 flex flex-col items-center justify-center space-y-4 text-center shadow-sm">
+              <div className="bg-slate-50 p-3.5 rounded-xl text-slate-400">
                 <FiBookOpen className="w-6 h-6" />
               </div>
-              <h3 className="text-slate-805 font-semibold text-sm">Unable to load ledger</h3>
+              <h3 className="text-slate-800 font-bold text-sm">Unable to load ledger</h3>
               <p className="text-slate-400 text-xs max-w-xs leading-normal">We couldn't retrieve your Khata ledger profile at this time. Please check your connection and retry.</p>
               <button 
                 onClick={fetchKhataLedger}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm cursor-pointer transition-all"
+                className="bg-slate-900 hover:bg-slate-850 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:shadow cursor-pointer transition-all duration-200 active:scale-95"
               >
                 Retry Loading
               </button>
             </div>
           ) : (
             <div className="space-y-6 animate-in fade-in duration-200">
-              
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
                 
                 {/* Balance liability Card */}
-                <div className="bg-white border border-slate-200/60 rounded-lg p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+                <div className="bg-white border border-slate-100 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remaining Debt</span>
+                    <span className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider">Remaining Debt</span>
                     <span className="bg-rose-50 text-rose-500 p-1.5 rounded-lg border border-rose-100">
                       <FiLock className="w-3.5 h-3.5" />
                     </span>
                   </div>
                   <div className="mt-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <span className="text-2xl sm:text-3xl font-semibold text-rose-600 font-mono">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>
-                      <p className="text-[9.5px] text-slate-400 mt-1 font-light leading-none">Unpaid outstanding store credit balance</p>
+                      <span className="text-2xl sm:text-3xl font-extrabold text-rose-600 font-mono tracking-tight">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>
+                      <p className="text-[10px] text-slate-400 mt-1 font-normal leading-normal">Unpaid outstanding store credit balance</p>
                     </div>
-                    <div className="flex flex-col space-y-2 mt-4 font-semibold">
+                    <div className="flex flex-col space-y-2 mt-5 font-bold">
                       {parseFloat(khataProfile.current_balance) > 0 && (
                         <button
                           onClick={() => {
@@ -1359,7 +1368,7 @@ const CustomerDashboard = () => {
                             setShowSettlementModal(true);
                             setPaymentRequest(null);
                           }}
-                          className="w-full bg-[#10B981] hover:bg-[#059669] text-white text-[11px] py-2 rounded-lg shadow-sm transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1"
+                          className="w-full bg-[#10B981] hover:bg-[#059669] text-white text-[11px] font-bold py-2.5 rounded-xl shadow-xs hover:shadow transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1.5"
                         >
                           <FiZap className="w-3.5 h-3.5 shrink-0" />
                           <span>Settle Balance Online</span>
@@ -1369,7 +1378,7 @@ const CustomerDashboard = () => {
                       <button
                         onClick={handleRequestWhatsAppStatement}
                         disabled={requestingStatement}
-                        className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] py-1.5 rounded-lg shadow-sm transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1 disabled:opacity-50"
+                        className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-bold py-2 rounded-xl shadow-xs transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-50"
                       >
                         <FiSend className="w-3 h-3 text-[#10B981]" />
                         <span>{requestingStatement ? 'Sending statement…' : 'Send to WhatsApp'}</span>
@@ -1379,41 +1388,40 @@ const CustomerDashboard = () => {
                 </div>
 
                 {/* Total Credit Card */}
-                <div className="bg-white border border-slate-200/60 rounded-lg p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+                <div className="bg-white border border-slate-100 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Credit purchases</span>
+                    <span className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider">Total Credit purchases</span>
                     <span className="bg-slate-50 text-slate-500 p-1.5 rounded-lg border border-slate-200/50">
                       <FiArrowUpRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                   <div className="mt-4">
-                    <span className="text-2xl sm:text-3xl font-semibold text-slate-900 font-mono">₹{parseFloat(khataProfile.total_credit).toFixed(2)}</span>
-                    <p className="text-[9.5px] text-slate-400 mt-1 font-light leading-none">Sum of all grocery credits issued</p>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono tracking-tight">₹{parseFloat(khataProfile.total_credit).toFixed(2)}</span>
+                    <p className="text-[10px] text-slate-400 mt-1 font-normal leading-normal">Sum of all grocery credits issued</p>
                   </div>
                 </div>
 
                 {/* Total Paid Card */}
-                <div className="bg-white border border-slate-200/60 rounded-lg p-6 relative overflow-hidden flex flex-col justify-between shadow-sm">
+                <div className="bg-white border border-slate-100 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total settled</span>
+                    <span className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider">Total settled</span>
                     <span className="bg-emerald-50 text-[#10B981] p-1.5 rounded-lg border border-emerald-100">
                       <FiArrowDownLeft className="w-3.5 h-3.5" />
                     </span>
                   </div>
                   <div className="mt-4">
-                    <span className="text-2xl sm:text-3xl font-semibold text-[#10B981] font-mono">₹{parseFloat(khataProfile.total_paid).toFixed(2)}</span>
-                    <p className="text-[9.5px] text-slate-405 mt-1 font-light leading-none">Total payments settled by cash or UPI</p>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-[#10B981] font-mono tracking-tight">₹{parseFloat(khataProfile.total_paid).toFixed(2)}</span>
+                    <p className="text-[10px] text-slate-450 mt-1 font-normal leading-normal">Total payments settled by cash or UPI</p>
                   </div>
                 </div>
-
               </div>
 
               {/* Credit Limit Utilization Card */}
               {khataProfile.credit_limit !== undefined && (
-                <div className="bg-white border border-slate-200/60 rounded-lg p-5 shadow-sm text-left">
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs text-left">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Credit Limit Utilization</span>
+                      <span className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Credit Limit Utilization</span>
                       <span className="text-xs text-slate-400 mt-0.5 block font-medium">Your store credit allowance</span>
                     </div>
                     <div className="text-right font-mono">
@@ -1443,7 +1451,7 @@ const CustomerDashboard = () => {
                     <span className={`text-[9.5px] font-bold ${
                       (parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100 >= 80 ? 'text-amber-600' : 'text-[#10B981]'
                     }`}>
-                      {Math.min(100, ((parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 105)).toFixed(1)}% used
+                      {Math.min(100, ((parseFloat(khataProfile.current_balance) / parseFloat(khataProfile.credit_limit)) * 100)).toFixed(1)}% used
                     </span>
                     <span className="text-[9.5px] font-medium">
                       ₹{parseFloat(khataProfile.current_balance).toFixed(2)} outstanding
@@ -1453,9 +1461,9 @@ const CustomerDashboard = () => {
               )}
 
               {/* Transactions Ledger Table */}
-              <div className="bg-white border border-slate-200/60 rounded-lg overflow-hidden shadow-sm">
-                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 text-left">
-                  <h3 className="font-semibold text-slate-905 text-sm uppercase tracking-wider text-[10px]">Ledger Statement Book</h3>
+              <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 text-left">
+                  <h3 className="font-extrabold text-slate-450 text-[10px] uppercase tracking-wider">Ledger Statement Book</h3>
                   <div className="inline-flex items-center space-x-1.5 text-xs text-[#10B981] bg-emerald-50/50 px-2.5 py-0.5 rounded-full border border-emerald-100 font-bold">
                     <FiUnlock className="w-3.5 h-3.5" />
                     <span>Unlocked Ledger Access</span>
@@ -1466,7 +1474,7 @@ const CustomerDashboard = () => {
                   <div className="overflow-x-auto text-left">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-200/60 text-[9.5px] uppercase font-bold tracking-wider text-slate-400 bg-slate-50/50">
+                        <tr className="border-b border-slate-200/60 text-[9.5px] uppercase font-extrabold tracking-wider text-slate-400 bg-slate-50/50">
                           <th className="py-3 px-5">Date</th>
                           <th className="py-3 px-5">Description</th>
                           <th className="py-3 px-5">Product Details</th>
@@ -1478,7 +1486,7 @@ const CustomerDashboard = () => {
                       </thead>
                       <tbody>
                         {paginatedTransactions.map((tx) => (
-                          <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-xs">
+                          <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50/30 transition-colors text-xs">
                             <td className="py-3.5 px-5 font-mono text-slate-400">
                               <span className="flex items-center space-x-1.5">
                                 <FiCalendar className="text-slate-350 w-3.5 h-3.5" />
@@ -1516,7 +1524,7 @@ const CustomerDashboard = () => {
                               {tx.invoice ? (
                                 <button
                                   onClick={() => handleDownloadInvoice(tx.invoice, tx.id)}
-                                  className="text-[#10B981] hover:text-[#059669] font-semibold text-[10px] bg-slate-50 border border-slate-200 hover:bg-slate-100 px-2.5 py-1 rounded transition-colors cursor-pointer"
+                                  className="text-[#10B981] hover:text-[#059669] font-extrabold text-[9px] uppercase tracking-wider bg-slate-50 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-xs"
                                 >
                                   Download PDF
                                 </button>
