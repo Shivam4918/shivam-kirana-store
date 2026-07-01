@@ -769,6 +769,65 @@ const CustomerDashboard = () => {
     return popular.length > 0 ? popular : products.slice(1, 5);
   };
 
+  const getMonthlyShoppingSummary = () => {
+    if (invoicesLoading || !invoices) {
+      return {
+        totalOrders: 0,
+        monthlySpending: 0,
+        totalSavings: 0,
+        monthlyBudgetProgress: 0,
+        budgetLimit: 10000,
+        rewardPointsEarned: 0
+      };
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const monthlyInvoices = invoices.filter(inv => {
+      const date = new Date(inv.created_at);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    const totalOrders = monthlyInvoices.length;
+    const monthlySpending = monthlyInvoices.reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
+    const totalSavings = monthlySpending * 0.05;
+
+    let budgetLimit = 10000;
+    try {
+      const stored = localStorage.getItem('monthly-budget-limit');
+      if (stored) budgetLimit = parseFloat(stored);
+    } catch {}
+
+    const monthlyBudgetProgress = budgetLimit > 0 ? Math.min(100, (monthlySpending / budgetLimit) * 100) : 0;
+    const rewardPointsEarned = Math.floor(monthlySpending / 10);
+
+    return {
+      totalOrders,
+      monthlySpending: roundToTwo(monthlySpending),
+      totalSavings: roundToTwo(totalSavings),
+      monthlyBudgetProgress: Math.round(monthlyBudgetProgress),
+      budgetLimit,
+      rewardPointsEarned
+    };
+  };
+
+  const roundToTwo = (num) => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
+
+  const handleEditBudget = () => {
+    const val = prompt('Enter your monthly shopping budget limit (₹):', '10000');
+    if (val !== null) {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed) && parsed > 0) {
+        localStorage.setItem('monthly-budget-limit', parsed.toString());
+        refreshDashboardData();
+      }
+    }
+  };
+
   const renderCartButton = (product) => {
     const cartItem = cart.find(item => item.product.id === product.id);
     const isOutOfStock = product.stock_quantity <= 0;
@@ -1156,6 +1215,87 @@ const CustomerDashboard = () => {
 
           </div>
 
+        </div>
+      )}
+
+      {/* ── MONTHLY SHOPPING SUMMARY ── */}
+      {!summaryLoading && summary && (
+        <div className="bg-white border border-slate-100/80 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_8px_24px_-4px_rgba(0,0,0,0.02)] text-left space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center space-x-2">
+              <FiCalendar className="text-[#10B981] w-4.5 h-4.5 shrink-0" />
+              <h3 className="font-extrabold text-slate-800 text-sm tracking-tight">Monthly Shopping Summary</h3>
+            </div>
+            <span className="text-[10px] bg-slate-50 text-slate-500 font-bold px-2.5 py-1 rounded-full border border-slate-200/50 uppercase tracking-wider font-mono">
+              {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+
+          {(() => {
+            const monthlyData = getMonthlyShoppingSummary();
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                
+                {/* Monthly Spending */}
+                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
+                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Monthly Spending</span>
+                  <span className="text-lg font-black font-mono text-slate-900 tracking-tight block">₹{monthlyData.monthlySpending}</span>
+                  <span className="text-[8.5px] text-slate-400 block font-normal">Based on current invoices</span>
+                </div>
+
+                {/* Total Savings */}
+                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
+                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Monthly Savings</span>
+                  <span className="text-lg font-black font-mono text-emerald-600 tracking-tight block">₹{monthlyData.totalSavings}</span>
+                  <span className="text-[8.5px] text-emerald-500/80 block font-bold">5% cashback saved 🎉</span>
+                </div>
+
+                {/* Monthly Orders */}
+                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
+                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Monthly Orders</span>
+                  <span className="text-lg font-black font-mono text-slate-900 tracking-tight block">{monthlyData.totalOrders}</span>
+                  <span className="text-[8.5px] text-slate-400 block font-normal">Completed this month</span>
+                </div>
+
+                {/* Reward Points Earned */}
+                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-1 relative group hover:bg-slate-50 transition-colors duration-250">
+                  <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold block">Points Accrued</span>
+                  <span className="text-lg font-black font-mono text-amber-500 tracking-tight block">+{monthlyData.rewardPointsEarned}</span>
+                  <span className="text-[8.5px] text-slate-400 block font-normal">1 pt per ₹10 spent</span>
+                </div>
+
+                {/* Budget Progress */}
+                <div className="bg-slate-50/40 border border-slate-105/60 rounded-xl p-3.5 space-y-2 relative group hover:bg-slate-50 transition-colors duration-250 col-span-2 md:col-span-1 flex flex-col justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-slate-450 uppercase tracking-wider font-extrabold">Budget Progress</span>
+                      <button 
+                        onClick={handleEditBudget}
+                        className="text-[9px] text-emerald-600 hover:text-emerald-700 font-extrabold uppercase hover:underline cursor-pointer"
+                        title="Set new budget limit"
+                      >
+                        Set
+                      </button>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs font-bold text-slate-700">{monthlyData.monthlyBudgetProgress}%</span>
+                      <span className="text-[8px] text-slate-400 font-semibold font-mono">Limit: ₹{monthlyData.budgetLimit}</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        monthlyData.monthlyBudgetProgress > 90 ? 'bg-rose-500' :
+                        monthlyData.monthlyBudgetProgress > 70 ? 'bg-amber-400' : 'bg-[#10B981]'
+                      }`}
+                      style={{ width: `${monthlyData.monthlyBudgetProgress}%` }}
+                    />
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
         </div>
       )}
 
