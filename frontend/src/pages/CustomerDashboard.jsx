@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
@@ -10,7 +10,7 @@ import {
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
   FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, 
   FiStar, FiZap, FiRefreshCw, FiSend, FiHeart, FiGift, FiClock, FiHome, 
-  FiLayers, FiInfo, FiChevronLeft, FiChevronRight, FiCheckCircle, FiMapPin, FiPhoneCall
+  FiLayers, FiInfo, FiChevronLeft, FiChevronRight, FiCheckCircle, FiMapPin, FiPhoneCall, FiMaximize
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
@@ -25,6 +25,7 @@ const cleanPhoneForWhatsApp = (phone) => {
 
 const CustomerDashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isKhataView = location.pathname.includes('/khata');
 
   // Consume Auth & Cart Contexts
@@ -322,6 +323,49 @@ const CustomerDashboard = () => {
       }
     });
     return favCat;
+  };
+
+  const handleQuickAction = (actionName) => {
+    switch (actionName) {
+      case 'buy-again':
+        if (isKhataView) {
+          navigate('/dashboard');
+          setTimeout(() => {
+            document.getElementById('buy-again-section')?.scrollIntoView({ behavior: 'smooth' });
+          }, 250);
+        } else {
+          document.getElementById('buy-again-section')?.scrollIntoView({ behavior: 'smooth' });
+        }
+        break;
+      case 'wishlist':
+        setIsWishlistOpen(true);
+        break;
+      case 'scan-barcode':
+        setShowBarcodeScanner(true);
+        break;
+      case 'order-history':
+        if (!isKhataView) {
+          navigate('/dashboard/khata');
+          setTimeout(() => {
+            document.getElementById('ledger-table-section')?.scrollIntoView({ behavior: 'smooth' });
+          }, 250);
+        } else {
+          document.getElementById('ledger-table-section')?.scrollIntoView({ behavior: 'smooth' });
+        }
+        break;
+      case 'digital-khata':
+        navigate('/dashboard/khata');
+        break;
+      case 'payments':
+        if (khataProfile) {
+          setSettleAmount(parseFloat(khataProfile.current_balance || 0).toFixed(2));
+          setShowSettlementModal(true);
+          setPaymentRequest(null);
+        }
+        break;
+      default:
+        break;
+    }
   };
 
   // Sync profile details if changing tabs
@@ -829,6 +873,88 @@ const CustomerDashboard = () => {
         </div>
       )}
 
+      {/* ── QUICK ACTIONS PANEL ── */}
+      {!summaryLoading && summary && (
+        <div className="space-y-3.5 text-left animate-in fade-in slide-in-from-top-4 duration-350">
+          <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Quick Access Actions</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            
+            {/* Buy Again */}
+            <button
+              onClick={() => handleQuickAction('buy-again')}
+              className="bg-white border border-slate-100 hover:border-emerald-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-emerald-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-emerald-100/70 transition-all duration-205">
+                <FiRefreshCw className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-slate-800">Buy Again</span>
+              <span className="text-[9px] text-slate-400 mt-1 font-medium">Reorder items</span>
+            </button>
+
+            {/* Wishlist */}
+            <button
+              onClick={() => handleQuickAction('wishlist')}
+              className="bg-white border border-slate-100 hover:border-rose-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-rose-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-rose-50 rounded-xl text-rose-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-rose-100/70 transition-all duration-205">
+                <FiHeart className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-slate-800">Wishlist</span>
+              <span className="text-[9px] text-slate-400 mt-1 font-medium">Liked products</span>
+            </button>
+
+            {/* Scan Barcode */}
+            <button
+              onClick={() => handleQuickAction('scan-barcode')}
+              className="bg-white border border-slate-100 hover:border-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-blue-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-blue-50 rounded-xl text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-blue-100/70 transition-all duration-205">
+                <FiMaximize className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-slate-800">Scan Barcode</span>
+              <span className="text-[9px] text-slate-400 mt-1 font-medium">Quick add to cart</span>
+            </button>
+
+            {/* Order History */}
+            <button
+              onClick={() => handleQuickAction('order-history')}
+              className="bg-white border border-slate-100 hover:border-amber-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-amber-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-amber-50 rounded-xl text-amber-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-amber-100/70 transition-all duration-205">
+                <FiClock className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-slate-800">Order History</span>
+              <span className="text-[9px] text-slate-400 mt-1 font-medium">Review invoices</span>
+            </button>
+
+            {/* Digital Khata */}
+            <button
+              onClick={() => handleQuickAction('digital-khata')}
+              className="bg-white border border-slate-100 hover:border-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-purple-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-purple-50 rounded-xl text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-purple-100/70 transition-all duration-205">
+                <FiBookOpen className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-slate-800">Digital Khata</span>
+              <span className="text-[9px] text-slate-400 mt-1 font-medium">Check balance book</span>
+            </button>
+
+            {/* Payments */}
+            <button
+              onClick={() => handleQuickAction('payments')}
+              className="bg-white border border-slate-100 hover:border-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-[0_1px_3px_rgba(0,0,0,0.01),0_4px_12px_rgba(0,0,0,0.01)] hover:shadow-md hover:shadow-indigo-50/20 hover:-translate-y-1 active:scale-98 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-indigo-50 rounded-xl text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-indigo-100/70 transition-all duration-205">
+                <FiZap className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-slate-800">Payments</span>
+              <span className="text-[9px] text-slate-400 mt-1 font-medium">Settle balance</span>
+            </button>
+
+          </div>
+        </div>
+      )}
+
       {/* ── STATS / OVERVIEW BAR ── */}
       {!summaryLoading && summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left font-medium">
@@ -1116,7 +1242,7 @@ const CustomerDashboard = () => {
               
               {/* Buy Again section */}
               {buyAgainProducts.length > 0 && (
-                <div className="space-y-3 text-left">
+                <div id="buy-again-section" className="space-y-3 text-left">
                   <div className="flex items-center space-x-1.5">
                     <FiRefreshCw className="text-[#10B981] w-4 h-4 shrink-0" />
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Buy Again</h3>
@@ -1635,7 +1761,7 @@ const CustomerDashboard = () => {
               )}
 
               {/* Transactions Ledger Table */}
-              <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+              <div id="ledger-table-section" className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 text-left">
                   <h3 className="font-extrabold text-slate-450 text-[10px] uppercase tracking-wider">Ledger Statement Book</h3>
                   <div className="inline-flex items-center space-x-1.5 text-xs text-[#10B981] bg-emerald-50/50 px-2.5 py-0.5 rounded-full border border-emerald-100 font-bold">
