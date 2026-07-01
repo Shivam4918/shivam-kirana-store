@@ -11,7 +11,7 @@ import {
   FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2, FiAlertCircle, FiCheck, FiFilter, 
   FiStar, FiZap, FiRefreshCw, FiSend, FiHeart, FiGift, FiClock, FiHome, 
   FiLayers, FiInfo, FiChevronLeft, FiChevronRight, FiCheckCircle, FiMapPin, FiPhoneCall, FiMaximize,
-  FiShield, FiAward, FiFileText
+  FiShield, FiAward, FiFileText, FiFacebook, FiInstagram, FiTwitter, FiYoutube, FiMail
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 
@@ -2211,55 +2211,6 @@ const CustomerDashboard = () => {
               </div>
             </div>
           </div>
-
-          {/* Store Info & Support Panel */}
-          <div className="border-t border-slate-200/60 pt-10 pb-8 mt-10">
-            <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-stretch justify-between gap-6">
-              
-              {/* Timing & Address Column */}
-              <div className="flex-1 flex gap-4 text-left">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-[#10B981] flex items-center justify-center border border-emerald-100 shrink-0 shadow-xs">
-                  <FiMapPin className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-slate-800">Shivam Kirana Store</h4>
-                  <p className="text-xs text-slate-500 font-medium">HSR Layout, Sector 6, Bangalore</p>
-                  <div className="flex items-center space-x-1.5 text-xs text-slate-550 pt-1 font-medium">
-                    <FiClock className="w-3.5 h-3.5 text-[#10B981]" />
-                    <span>Open Daily: 7:00 AM - 11:00 PM</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Divider for desktop */}
-              <div className="hidden lg:block w-[1px] bg-slate-200/80 my-1" />
-
-              {/* Instant WhatsApp Support Column */}
-              <div className="flex-1 flex gap-4 text-left justify-between items-center">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-green-50 text-emerald-600 flex items-center justify-center border border-green-100 shrink-0 shadow-xs">
-                    <FaWhatsapp className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-800">WhatsApp Helpdesk</h4>
-                    <p className="text-xs text-slate-500 font-medium">Questions about bills or your active ledger?</p>
-                    <p className="text-[10px] text-slate-400">Instant answers from our store operator.</p>
-                  </div>
-                </div>
-                
-                <a
-                  href={`https://wa.me/${cleanPhoneForWhatsApp(configs.SUPPORT_PHONE || '919876543210')}?text=Hello%20Shivam%20Kirana%20Store,%20I%20have%20a%20question%20regarding%20my%20dashboard.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-[#25D366] hover:bg-[#20ba56] text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs hover:shadow transition-all duration-200 active:scale-95 flex items-center space-x-1.5 cursor-pointer shrink-0"
-                >
-                  <FaWhatsapp className="w-4 h-4" />
-                  <span>Chat Now</span>
-                </a>
-              </div>
-
-            </div>
-          </div>
         </div>
       )}
       {/* Digital Khata Ledger View */}
@@ -2782,6 +2733,104 @@ const CustomerDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Premium Global Footer */}
+      <footer className="border-t border-slate-200/50 pt-12 pb-6 mt-12 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          
+          {/* Column 1: Store Info & Social Links */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="bg-[#10B981] p-1.5 rounded-lg text-white shadow-xs flex items-center justify-center">
+                <FiShoppingBag className="w-4 h-4" />
+              </div>
+              <span className="font-extrabold text-slate-900 text-sm tracking-tight">Shivam Kirana Store</span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Your trusted local neighborhood grocery store. Settle balance, track orders, and shop on credit securely using your Digital Khata.
+            </p>
+            <div className="flex items-center space-x-3 pt-2">
+              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                <FiFacebook className="w-4 h-4" />
+              </a>
+              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                <FiInstagram className="w-4 h-4" />
+              </a>
+              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                <FiTwitter className="w-4 h-4" />
+              </a>
+              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                <FiYoutube className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Column 2: Contact Details */}
+          <div className="space-y-3.5">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Details</h4>
+            <div className="space-y-2.5 text-xs text-slate-500 font-medium">
+              <p className="flex items-center space-x-2">
+                <FiMapPin className="text-[#10B981] w-4 h-4 shrink-0" />
+                <span>HSR Layout, Sector 6, Bangalore</span>
+              </p>
+              <p className="flex items-center space-x-2">
+                <FiPhoneCall className="text-[#10B981] w-4 h-4 shrink-0" />
+                <span>+91 {configs.SUPPORT_PHONE || '98765 43210'}</span>
+              </p>
+              <p className="flex items-center space-x-2">
+                <FiMail className="text-[#10B981] w-4 h-4 shrink-0" />
+                <span>support@shivamkiranastore.com</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Column 3: Business Hours & Support */}
+          <div className="space-y-3.5">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Business Hours</h4>
+            <div className="space-y-2.5 text-xs text-slate-500 font-medium">
+              <p className="flex items-center space-x-2">
+                <FiClock className="text-[#10B981] w-4 h-4 shrink-0" />
+                <span>Open Daily: 7:00 AM - 11:00 PM</span>
+              </p>
+              <div className="pt-1.5">
+                <a
+                  href={`https://wa.me/${cleanPhoneForWhatsApp(configs.SUPPORT_PHONE || '919876543210')}?text=Hello%20Shivam%20Kirana%20Store,%20I%20have%20a%20question%20regarding%20my%20dashboard.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#25D366] hover:bg-[#20ba56] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all duration-200 active:scale-95 flex items-center space-x-1.5 w-max cursor-pointer"
+                >
+                  <FaWhatsapp className="w-4 h-4" />
+                  <span>WhatsApp Helpdesk</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 4: Quick Links */}
+          <div className="space-y-3.5">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Links</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-550 font-bold">
+              <button onClick={() => setIsKhataView(false)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Catalog</button>
+              <button onClick={() => setIsKhataView(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Khata Book</button>
+              <button onClick={() => setIsWishlistOpen(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Wishlist</button>
+              <button onClick={() => setShowBarcodeScanner(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Scanner</button>
+              <button onClick={() => showToast('Privacy Policy: All customer transaction logs and ledger limits are encrypted and stored safely.')} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Privacy Policy</button>
+              <button onClick={() => showToast('Terms of Service: All shop credits must be settled within the monthly payment cycle.')} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Terms & Conditions</button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Divider & Copyright */}
+        <div className="border-t border-slate-200/50 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-405 font-medium">
+          <p>© {new Date().getFullYear()} Shivam Kirana Store. All rights reserved.</p>
+          <div className="flex items-center space-x-4 mt-2 sm:mt-0 font-bold">
+            <button onClick={() => showToast('Privacy Policy: All customer transaction logs and ledger limits are encrypted and stored safely.')} className="hover:text-[#10B981] transition-colors duration-200 cursor-pointer">Privacy Policy</button>
+            <span>•</span>
+            <button onClick={() => showToast('Terms of Service: All shop credits must be settled within the monthly payment cycle.')} className="hover:text-[#10B981] transition-colors duration-200 cursor-pointer">Terms & Conditions</button>
+          </div>
+        </div>
+      </footer>
 
       {/* Online Payments settlement UPI QR Modal */}
       {showSettlementModal && (
