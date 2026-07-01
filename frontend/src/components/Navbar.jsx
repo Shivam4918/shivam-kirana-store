@@ -33,6 +33,8 @@ const Navbar = () => {
   const [searchVal, setSearchVal] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [products, setProducts] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('recentSearches') || '[]');
@@ -121,6 +123,7 @@ const Navbar = () => {
 
   const handleSearchChange = (val) => {
     setSearchVal(val);
+    setActiveSuggestionIndex(-1);
     const params = new URLSearchParams(location.search);
     if (val) {
       params.set('search', val);
@@ -135,6 +138,17 @@ const Navbar = () => {
       navigate(`/dashboard?${params.toString()}`, { replace: true });
     }
   };
+
+  // Simulated search loading spinner trigger
+  useEffect(() => {
+    if (searchVal) {
+      setSearchLoading(true);
+      const timer = setTimeout(() => setSearchLoading(false), 250);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchVal]);
 
   const selectSuggestion = (query) => {
     handleSearchChange(query);
@@ -152,7 +166,11 @@ const Navbar = () => {
     setRecentSearches([]);
   };
 
-  if (!user) return null;
+  // Derive unique categories matching query
+  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const filteredCategories = uniqueCategories.filter(cat => 
+    searchVal && cat.toLowerCase().includes(searchVal.toLowerCase())
+  ).slice(0, 3);
 
   const filteredSuggestions = products.filter(p => {
     const q = searchVal.toLowerCase();
@@ -161,6 +179,41 @@ const Navbar = () => {
       (p.category && p.category.toLowerCase().includes(q))
     );
   }).slice(0, 5);
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions) return;
+
+    // Combine all selectable suggestions
+    const allSuggestions = [
+      ...filteredCategories.map(cat => ({ type: 'category', value: cat })),
+      ...filteredSuggestions.map(p => ({ type: 'product', value: p.name }))
+    ];
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => 
+        prev < allSuggestions.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => 
+        prev > 0 ? prev - 1 : allSuggestions.length - 1
+      );
+    } else if (e.key === 'Enter') {
+      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < allSuggestions.length) {
+        e.preventDefault();
+        selectSuggestion(allSuggestions[activeSuggestionIndex].value);
+      } else if (searchVal.trim()) {
+        e.preventDefault();
+        selectSuggestion(searchVal.trim());
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+    }
+  };
+
+  if (!user) return null;
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -191,21 +244,29 @@ const Navbar = () => {
       {user.role === 'CUSTOMER' && (
         <div ref={searchContainerRef} className="flex-1 max-w-lg mx-4 sm:mx-8 relative hidden sm:block">
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <FiSearch className="w-4 h-4" />
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#10B981]">
+              {searchLoading ? (
+                <svg className="animate-spin h-4 w-4 text-[#10B981]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <FiSearch className="w-4 h-4 text-slate-405" />
+              )}
             </span>
             <input
               type="text"
               value={searchVal}
               onFocus={() => setShowSuggestions(true)}
               onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Search bread, milk, fresh oil, wheat atta..."
               className="w-full bg-slate-50 border border-slate-200 focus:border-[#10B981] focus:bg-white rounded-lg py-2 pl-9 pr-8 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:ring-2 focus:ring-emerald-500/10"
             />
             {searchVal && (
               <button 
                 onClick={() => handleSearchChange('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-405 hover:text-slate-700 cursor-pointer"
               >
                 <FiX className="w-4 h-4" />
               </button>
@@ -214,61 +275,117 @@ const Navbar = () => {
 
           {/* Autocomplete dropdown overlay */}
           {showSuggestions && (
-            <div className="absolute left-0 mt-1.5 w-full bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2 text-left text-xs">
+            <div className="absolute left-0 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2.5 text-left text-xs animate-in fade-in slide-in-from-top-1 duration-200">
               {!searchVal ? (
-                <>
+                <div className="space-y-4 p-1">
                   {recentSearches.length > 0 && (
-                    <div className="mb-2">
-                      <div className="flex justify-between items-center px-2 py-1 text-[9px] text-slate-400 uppercase font-bold tracking-wider">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center px-1 text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">
                         <span>Recent Searches</span>
-                        <button onClick={clearHistory} className="text-rose-500 hover:underline cursor-pointer lowercase">clear</button>
+                        <button onClick={clearHistory} className="text-rose-500 hover:text-rose-600 hover:underline cursor-pointer lowercase font-bold">clear all</button>
                       </div>
-                      {recentSearches.map((s, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => selectSuggestion(s)}
-                          className="w-full flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-50 rounded text-slate-700 font-medium cursor-pointer"
-                        >
-                          <FiClock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{s}</span>
-                        </button>
-                      ))}
+                      <div className="space-y-0.5">
+                        {recentSearches.map((s, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => selectSuggestion(s)}
+                            className="w-full flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-xl text-slate-700 font-bold transition-all duration-150 cursor-pointer text-left"
+                          >
+                            <FiClock className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="truncate">{s}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                   <div>
-                    <div className="px-2 py-1 text-[9px] text-slate-400 uppercase font-bold tracking-wider">Popular Searches</div>
-                    <div className="flex flex-wrap gap-1.5 p-1.5">
+                    <div className="px-1 text-[9px] text-slate-400 uppercase font-extrabold tracking-wider mb-2">Popular Searches</div>
+                    <div className="flex flex-wrap gap-2 px-1">
                       {['Milk', 'Eggs', 'Wheat Atta', 'Cooking Oil', 'Bread', 'Butter'].map((tag, idx) => (
                         <button
                           key={idx}
                           onClick={() => selectSuggestion(tag)}
-                          className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-semibold text-slate-700 cursor-pointer"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-105 hover:text-[#10B981] hover:border-slate-300 border border-slate-200 rounded-full text-[10px] font-bold text-slate-700 transition-all duration-200 cursor-pointer active:scale-95"
                         >
                           {tag}
                         </button>
                       ))}
                     </div>
                   </div>
-                </>
+                </div>
               ) : (
-                <div>
-                  <div className="px-2 py-1 text-[9px] text-slate-400 uppercase font-bold tracking-wider border-b border-slate-100 pb-1.5 mb-1.5">
-                    Matching Items
-                  </div>
-                  {filteredSuggestions.length > 0 ? (
-                    filteredSuggestions.map((p) => (
-                      <div
-                        key={p.id}
-                        onClick={() => selectSuggestion(p.name)}
-                        className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-slate-50 rounded cursor-pointer transition-colors"
-                      >
-                        <span className="font-semibold text-slate-800">{p.name}</span>
-                        <span className="font-bold text-slate-400 font-mono">₹{p.price}</span>
+                <div className="space-y-3.5 p-1">
+                  
+                  {/* Category Suggestions */}
+                  {filteredCategories.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="px-1 text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Category Suggestions</div>
+                      <div className="space-y-0.5">
+                        {filteredCategories.map((cat, idx) => {
+                          const isHighlighted = activeSuggestionIndex === idx;
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => selectSuggestion(cat)}
+                              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all duration-150 text-left font-bold cursor-pointer ${
+                                isHighlighted ? 'bg-slate-100 text-[#10B981]' : 'hover:bg-slate-50 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <FiLayers className="w-3.5 h-3.5 text-slate-400" />
+                                <span>{cat}</span>
+                              </div>
+                              <span className="text-[9px] text-slate-400 font-semibold font-mono">category</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                    ))
-                  ) : (
-                    <div className="py-3 text-center text-slate-400 italic">No products matched query.</div>
+                    </div>
                   )}
+
+                  {/* Product Suggestions */}
+                  <div className="space-y-1">
+                    <div className="px-1 text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Product Suggestions</div>
+                    {filteredSuggestions.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {filteredSuggestions.map((p, idx) => {
+                          const flatIdx = filteredCategories.length + idx;
+                          const isHighlighted = activeSuggestionIndex === flatIdx;
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => selectSuggestion(p.name)}
+                              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all duration-150 cursor-pointer ${
+                                isHighlighted ? 'bg-slate-105 text-[#10B981]' : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                                  {p.image ? (
+                                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <FiShoppingBag className="w-3.5 h-3.5 text-slate-350" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 text-left">
+                                  <p className={`font-bold truncate ${isHighlighted ? 'text-[#10B981]' : 'text-slate-800'}`}>{p.name}</p>
+                                  {p.category && (
+                                    <span className="text-[8px] text-slate-400 font-extrabold uppercase tracking-wide">{p.category}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-extrabold text-slate-900 font-mono">₹{p.price}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-3 text-center text-slate-400 italic">No products matched query.</div>
+                    )}
+                  </div>
+
                 </div>
               )}
             </div>
