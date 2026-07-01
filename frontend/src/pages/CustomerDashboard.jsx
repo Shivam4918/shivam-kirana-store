@@ -1225,30 +1225,7 @@ const CustomerDashboard = () => {
       {!isKhataView && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
           
-          {/* Quick outstanding alert strip */}
-          {!khataLoading && khataProfile && parseFloat(khataProfile.current_balance) > 0 && (
-            <div className="bg-rose-50/50 border border-rose-100 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-left">
-              <div className="flex items-start space-x-3">
-                <div className="bg-rose-50 text-rose-600 p-2 rounded-lg border border-rose-100 shrink-0">
-                  <FiLock className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">Pending credit balance statement</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">Outstanding total: <span className="font-bold text-rose-600 font-mono">₹{parseFloat(khataProfile.current_balance).toFixed(2)}</span>. Please clear payables online via UPI checkout.</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setSettleAmount(parseFloat(khataProfile.current_balance).toFixed(2));
-                  setShowSettlementModal(true);
-                  setPaymentRequest(null);
-                }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-1.5 rounded-lg text-xs cursor-pointer transition-colors active:scale-95 shrink-0"
-              >
-                Clear Balance
-              </button>
-            </div>
-          )}
+
 
           {/* Premium auto-sliding banner carousel */}
           <div className="relative rounded-2xl overflow-hidden shadow-lg shadow-slate-100/50 group h-48 sm:h-56 bg-slate-100 flex items-stretch border border-slate-100/80">
