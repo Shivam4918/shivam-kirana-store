@@ -121,6 +121,7 @@ const Sidebar = () => {
           onClick={toggleCollapse}
           className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer ml-auto"
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {isCollapsed ? <FiChevronRight className="w-3.5 h-3.5" /> : <FiChevronLeft className="w-3.5 h-3.5" />}
         </button>
@@ -164,6 +165,8 @@ const Sidebar = () => {
                 <button
                   onClick={() => setIsQuickActionsExpanded(prev => !prev)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-semibold text-xs transition-all duration-200 border border-transparent hover:bg-slate-50 text-slate-505 hover:text-slate-900 cursor-pointer`}
+                  aria-expanded={isQuickActionsExpanded}
+                  aria-label="Toggle Quick Actions"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="shrink-0 text-slate-400">
@@ -220,6 +223,8 @@ const Sidebar = () => {
                       triggerQuickAction('summary');
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-semibold text-xs transition-all duration-200 border border-transparent hover:bg-slate-50 text-slate-550 hover:text-slate-900 cursor-pointer`}
+                    aria-expanded={isSummaryExpanded}
+                    aria-label="Toggle Shopping Summary"
                   >
                     <div className="flex items-center space-x-3">
                       <div className="shrink-0 text-slate-400">
@@ -297,6 +302,7 @@ const Sidebar = () => {
                   }}
                   className="w-full flex items-center justify-center p-2.5 rounded-lg border border-transparent hover:bg-slate-50 text-slate-505 hover:text-[#10B981] transition-all relative group cursor-pointer"
                   title="Quick Actions"
+                  aria-label="Quick Actions"
                 >
                   <FiZap className="w-4.5 h-4.5" />
                   <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 shadow-md whitespace-nowrap z-50">
@@ -311,6 +317,7 @@ const Sidebar = () => {
                   }}
                   className="w-full flex items-center justify-center p-2.5 rounded-lg border border-transparent hover:bg-slate-50 text-slate-550 hover:text-[#10B981] transition-all relative group cursor-pointer"
                   title="Shopping Summary"
+                  aria-label="Shopping Summary"
                 >
                   <FiPieChart className="w-4.5 h-4.5" />
                   <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-slate-900 text-white text-[10px] font-semibold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 shadow-md whitespace-nowrap z-50">

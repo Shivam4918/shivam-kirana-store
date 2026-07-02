@@ -262,11 +262,13 @@ const Navbar = () => {
               onKeyDown={handleKeyDown}
               placeholder="Search bread, milk, fresh oil, wheat atta..."
               className="w-full bg-slate-50 border border-slate-200 focus:border-[#10B981] focus:bg-white rounded-lg py-2 pl-9 pr-8 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:ring-2 focus:ring-emerald-500/10"
+              aria-label="Search products"
             />
             {searchVal && (
               <button 
                 onClick={() => handleSearchChange('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-405 hover:text-slate-700 cursor-pointer"
+                aria-label="Clear search"
               >
                 <FiX className="w-4 h-4" />
               </button>
@@ -408,6 +410,7 @@ const Navbar = () => {
             onClick={() => setIsCartOpen(true)}
             className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white transition-all shadow-sm cursor-pointer active:scale-95 shrink-0"
             title="Shopping Cart"
+            aria-label="Shopping Cart"
           >
             <div className="relative">
               <FiShoppingCart className="w-4 h-4 text-white" />
@@ -427,8 +430,10 @@ const Navbar = () => {
         <div ref={notiRef} className="relative">
           <button
             onClick={() => setNotiDropdownOpen(!notiDropdownOpen)}
-            className="relative p-2 rounded-lg bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 border border-slate-200 transition-colors cursor-pointer"
+            className="relative p-2 rounded-lg bg-white hover:bg-slate-50 text-slate-505 hover:text-slate-800 border border-slate-200 transition-colors cursor-pointer"
             title="Notifications"
+            aria-label="Notifications"
+            aria-expanded={notiDropdownOpen}
           >
             <FiBell className="w-4.5 h-4.5" />
             {unreadCount > 0 && (
@@ -478,6 +483,7 @@ const Navbar = () => {
                         <button
                           onClick={(e) => handleMarkRead(n.id, e)}
                           className="text-slate-300 hover:text-[#10B981] p-0.5"
+                          aria-label="Mark notification as read"
                         >
                           <FiCheck className="w-3 h-3" />
                         </button>
@@ -497,6 +503,8 @@ const Navbar = () => {
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             className="flex items-center space-x-1.5 p-1 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+            aria-label="User Profile"
+            aria-expanded={profileDropdownOpen}
           >
             <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-200">
               <FiUser className="w-3.5 h-3.5 text-slate-655" />

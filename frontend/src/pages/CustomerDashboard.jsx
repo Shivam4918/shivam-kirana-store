@@ -1537,6 +1537,7 @@ const CustomerDashboard = () => {
                 onClick={() => setIsWishlistOpen(true)}
                 className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:bg-rose-50/50 transition-all duration-205 shadow-sm cursor-pointer flex items-center justify-center relative active:scale-95"
                 title="View Wishlist"
+                aria-label="View Wishlist"
               >
                 <FiHeart className={`w-4 h-4 ${wishlistItems.length > 0 ? 'fill-current text-rose-500' : ''}`} />
                 {wishlistItems.length > 0 && (
@@ -1573,6 +1574,7 @@ const CustomerDashboard = () => {
                             <button 
                               onClick={(e) => handleToggleWishlist(e, p.id)}
                               className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                              aria-label="Toggle Wishlist"
                             >
                               <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
                             </button>
@@ -1642,6 +1644,7 @@ const CustomerDashboard = () => {
                             <button 
                               onClick={(e) => handleToggleWishlist(e, p.id)}
                               className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                              aria-label="Toggle Wishlist"
                             >
                               <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
                             </button>
@@ -1750,6 +1753,7 @@ const CustomerDashboard = () => {
                       onClick={(e) => handleToggleWishlist(e, p.id)}
                       className="absolute top-3 right-3 z-10 p-2 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
                       title="Add to wishlist"
+                      aria-label="Add to wishlist"
                     >
                       <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
                     </button>
@@ -2201,6 +2205,7 @@ const CustomerDashboard = () => {
         rel="noreferrer"
         className="fixed bottom-6 left-6 z-40 bg-[#10B981] hover:bg-[#059669] text-white p-3 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95"
         title="WhatsApp Support Contact"
+        aria-label="WhatsApp Support Contact"
       >
         <FaWhatsapp className="w-5 h-5" />
       </a>
@@ -2258,6 +2263,7 @@ const CustomerDashboard = () => {
             <button
               onClick={() => setQuickViewProduct(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all cursor-pointer z-20"
+              aria-label="Close modal"
             >
               <FiX className="w-4 h-4" />
             </button>
@@ -2525,6 +2531,7 @@ const CustomerDashboard = () => {
             <button
               onClick={() => setShowSettlementModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all cursor-pointer"
+              aria-label="Close modal"
             >
               <FiX className="w-4 h-4" />
             </button>
