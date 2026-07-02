@@ -1325,17 +1325,34 @@ class ProfitLossAnalyticsView(APIView):
         gross_profit = total_sales - cogs
         net_profit = gross_profit - total_expenses
         
+        # Fetch all period-relevant transactions and expenses in single queries to prevent N+1 query loops
+        if period == 'daily':
+            start_date = today - timedelta(days=15)
+        elif period == 'weekly':
+            start_date = today - timedelta(weeks=8, days=today.weekday())
+        else:
+            start_date = (today.replace(day=1) - timedelta(days=5*30)).replace(day=1)
+
+        txs_in_period = list(Transaction.objects.filter(
+            created_at__date__gte=start_date,
+            transaction_type='CREDIT'
+        ).select_related('product'))
+        
+        expenses_in_period = list(Expense.objects.filter(
+            expense_date__gte=start_date
+        ))
+
         # Generate trends based on period
         trends = []
         if period == 'daily':
             for i in range(15, -1, -1):
                 day = today - timedelta(days=i)
-                day_sales = Transaction.objects.filter(transaction_type='CREDIT', created_at__date=day).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-                day_expenses = Expense.objects.filter(expense_date=day).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                day_sales = sum(tx.amount for tx in txs_in_period if tx.created_at.date() == day)
+                day_expenses = sum(ex.amount for ex in expenses_in_period if ex.expense_date == day)
                 
                 day_cogs = Decimal('0.00')
-                for tx in sales_txs.filter(created_at__date=day):
-                    if tx.product and tx.quantity:
+                for tx in txs_in_period:
+                    if tx.created_at.date() == day and tx.product and tx.quantity:
                         day_cogs += tx.product.cost_price * tx.quantity
                 day_profit = day_sales - day_cogs - day_expenses
                 
@@ -1350,12 +1367,12 @@ class ProfitLossAnalyticsView(APIView):
                 start_week = today - timedelta(weeks=i, days=today.weekday())
                 end_week = start_week + timedelta(days=6)
                 
-                week_sales = Transaction.objects.filter(transaction_type='CREDIT', created_at__date__gte=start_week, created_at__date__lte=end_week).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-                week_expenses = Expense.objects.filter(expense_date__gte=start_week, expense_date__lte=end_week).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                week_sales = sum(tx.amount for tx in txs_in_period if start_week <= tx.created_at.date() <= end_week)
+                week_expenses = sum(ex.amount for ex in expenses_in_period if start_week <= ex.expense_date <= end_week)
                 
                 week_cogs = Decimal('0.00')
-                for tx in sales_txs.filter(created_at__date__gte=start_week, created_at__date__lte=end_week):
-                    if tx.product and tx.quantity:
+                for tx in txs_in_period:
+                    if start_week <= tx.created_at.date() <= end_week and tx.product and tx.quantity:
                         week_cogs += tx.product.cost_price * tx.quantity
                 week_profit = week_sales - week_cogs - week_expenses
                 
@@ -1371,12 +1388,12 @@ class ProfitLossAnalyticsView(APIView):
                 first_of_target_month = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
                 last_of_target_month = (first_of_target_month + timedelta(days=32)).replace(day=1) - timedelta(days=1)
                 
-                month_sales = Transaction.objects.filter(transaction_type='CREDIT', created_at__date__gte=first_of_target_month, created_at__date__lte=last_of_target_month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-                month_expenses = Expense.objects.filter(expense_date__gte=first_of_target_month, expense_date__lte=last_of_target_month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                month_sales = sum(tx.amount for tx in txs_in_period if first_of_target_month <= tx.created_at.date() <= last_of_target_month)
+                month_expenses = sum(ex.amount for ex in expenses_in_period if first_of_target_month <= ex.expense_date <= last_of_target_month)
                 
                 month_cogs = Decimal('0.00')
-                for tx in sales_txs.filter(created_at__date__gte=first_of_target_month, created_at__date__lte=last_of_target_month):
-                    if tx.product and tx.quantity:
+                for tx in txs_in_period:
+                    if first_of_target_month <= tx.created_at.date() <= last_of_target_month and tx.product and tx.quantity:
                         month_cogs += tx.product.cost_price * tx.quantity
                 month_profit = month_sales - month_cogs - month_expenses
                 
@@ -1500,13 +1517,27 @@ class CashFlowAnalyticsView(APIView):
         net_cash_flow = customer_collections - expenses_paid - supplier_payments
         closing_cash = opening_cash + net_cash_flow
         
+        # Pre-fetch cash flow elements for the 6-day period in single SQL queries to avoid loop DB roundtrips
+        start_date = today - timedelta(days=5)
+        txs_in_period = list(Transaction.objects.filter(
+            created_at__date__gte=start_date,
+            transaction_type='DEBIT'
+        ))
+        expenses_in_period = list(Expense.objects.filter(
+            expense_date__gte=start_date
+        ))
+        supplier_txs_in_period = list(SupplierTransaction.objects.filter(
+            date__gte=start_date,
+            transaction_type='PAYMENT'
+        ))
+
         # Cash Flow details over 6 days
         trends = []
         for i in range(5, -1, -1):
             day = today - timedelta(days=i)
-            day_in = Transaction.objects.filter(transaction_type='DEBIT', created_at__date=day).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            day_expenses = Expense.objects.filter(expense_date=day).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            day_supplier = SupplierTransaction.objects.filter(transaction_type='PAYMENT', date=day).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            day_in = sum(tx.amount for tx in txs_in_period if tx.created_at.date() == day)
+            day_expenses = sum(ex.amount for ex in expenses_in_period if ex.expense_date == day)
+            day_supplier = sum(st.amount for st in supplier_txs_in_period if st.date == day)
             
             trends.append({
                 'day': day.strftime('%a'),
