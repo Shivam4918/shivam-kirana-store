@@ -8,6 +8,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -20,6 +21,12 @@ export default defineConfig({
             }
             if (id.includes('axios')) {
               return 'vendor-axios';
+            }
+            if (id.includes('react-icons')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('zxing')) {
+              return 'vendor-zxing';
             }
             return 'vendor-others';
           }
