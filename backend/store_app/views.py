@@ -1955,9 +1955,12 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = Invoice.objects.select_related('customer__user').prefetch_related(
+            'items__product'
+        ).order_by('-created_at')
         if user.role == 'ADMIN':
-            return Invoice.objects.all().order_by('-created_at')
-        return Invoice.objects.filter(customer__user=user).order_by('-created_at')
+            return base_qs
+        return base_qs.filter(customer__user=user)
 
     @action(detail=True, methods=['get'])
     def pdf(self, request, pk=None):
@@ -2637,11 +2640,13 @@ class CustomerDashboardSummaryView(APIView):
         except KhataProfile.DoesNotExist:
             return Response({"detail": "Khata profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Count total orders (invoices)
-        total_orders = Invoice.objects.filter(customer=khata).count()
-
-        # Compute total savings (5% of each invoice total)
-        grand_total_sum = Invoice.objects.filter(customer=khata).aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
+        # Count total orders and compute total savings in a single batched query
+        invoice_aggregates = Invoice.objects.filter(customer=khata).aggregate(
+            count=Count('id'),
+            total=Sum('grand_total')
+        )
+        total_orders = invoice_aggregates['count'] or 0
+        grand_total_sum = invoice_aggregates['total'] or Decimal('0.00')
         total_savings = float(grand_total_sum) * 0.05
 
         # Recent transactions/purchases

@@ -194,8 +194,18 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+    def _get_prefetched_reviews(self, obj):
+        if not hasattr(obj, '_prefetched_reviews_list'):
+            obj._prefetched_reviews_list = list(obj.reviews.all())
+        return obj._prefetched_reviews_list
+
+    def _get_prefetched_transactions(self, obj):
+        if not hasattr(obj, '_prefetched_transactions_list'):
+            obj._prefetched_transactions_list = list(obj.transactions.all())
+        return obj._prefetched_transactions_list
+
     def get_average_rating(self, obj):
-        reviews = obj.reviews.all()
+        reviews = self._get_prefetched_reviews(obj)
         approved_ratings = [r.rating for r in reviews if getattr(r, 'is_approved', True)]
         if not approved_ratings:
             return 5.0
@@ -203,7 +213,7 @@ class ProductSerializer(serializers.ModelSerializer):
         return round(avg, 1)
 
     def get_total_reviews(self, obj):
-        reviews = obj.reviews.all()
+        reviews = self._get_prefetched_reviews(obj)
         approved_reviews = [r for r in reviews if getattr(r, 'is_approved', True)]
         return len(approved_reviews)
 
@@ -216,14 +226,14 @@ class ProductSerializer(serializers.ModelSerializer):
             badges_list.append("💸 Discount")
         
         # Best Seller if total sold units >= 10 (computed in memory)
-        transactions = obj.transactions.all()
+        transactions = self._get_prefetched_transactions(obj)
         total_sold = sum(t.quantity for t in transactions if t.transaction_type == 'CREDIT' and t.quantity is not None)
         if total_sold >= 10:
             badges_list.append("🔥 Best Seller")
             badges_list.append("⚡ Fast Moving")
             
         # Top Rated if rating is >= 4.5
-        reviews = obj.reviews.all()
+        reviews = self._get_prefetched_reviews(obj)
         approved_ratings = [r.rating for r in reviews if getattr(r, 'is_approved', True)]
         if approved_ratings:
             avg = sum(approved_ratings) / len(approved_ratings)

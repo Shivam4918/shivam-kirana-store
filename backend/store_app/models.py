@@ -33,7 +33,7 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     stock_quantity = models.IntegerField(default=0)
     image = models.TextField(blank=True, null=True)  # Text field for image URL/base64
-    category = models.CharField(max_length=100, blank=True, null=True)
+    category = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     hsn_code = models.CharField(max_length=15, blank=True, null=True)
     barcode = models.CharField(max_length=100, blank=True, null=True, unique=True)
@@ -66,14 +66,14 @@ class Transaction(models.Model):
         ('DEBIT', 'Debit'),
     )
     khata_profile = models.ForeignKey(KhataProfile, on_delete=models.CASCADE, related_name='transactions')
-    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES, db_index=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     quantity = models.IntegerField(null=True, blank=True)
     invoice = models.ForeignKey('Invoice', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     remaining_balance_at_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -265,7 +265,7 @@ class Invoice(models.Model):
     cgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     sgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  # inclusive of GST
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def __str__(self):
         return self.invoice_number
