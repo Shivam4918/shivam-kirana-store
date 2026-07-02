@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { CartContext } from '../context/CartContext';
@@ -682,36 +682,39 @@ const CustomerDashboard = () => {
     }
   };
 
-  // Filter & Search & Sort logic
-  const searchedProducts = products.filter(p => {
-    const q = debouncedQuery.toLowerCase();
-    const matchesQuery = 
-      p.name.toLowerCase().includes(q) || 
-      p.id.toString().includes(q) || 
-      (p.category && p.category.toLowerCase().includes(q)) ||
-      (p.barcode && p.barcode.toLowerCase().includes(q));
-    
-    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+  // Filter & Search & Sort logic (Memoized to prevent calculation during timer ticks)
+  const filteredProducts = useMemo(() => {
+    const searched = products.filter(p => {
+      const q = debouncedQuery.toLowerCase();
+      const matchesQuery = 
+        p.name.toLowerCase().includes(q) || 
+        p.id.toString().includes(q) || 
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q));
+      
+      const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
 
-    return matchesQuery && matchesCategory;
-  });
+      return matchesQuery && matchesCategory;
+    });
 
-  const sortedProducts = [...searchedProducts].sort((a, b) => {
-    if (sortBy === 'name') return a.name.localeCompare(b.name);
-    if (sortBy === 'price-low') return parseFloat(a.price) - parseFloat(b.price);
-    if (sortBy === 'price-high') return parseFloat(b.price) - parseFloat(a.price);
-    return 0;
-  });
+    return [...searched].sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'price-low') return parseFloat(a.price) - parseFloat(b.price);
+      if (sortBy === 'price-high') return parseFloat(b.price) - parseFloat(a.price);
+      return 0;
+    });
+  }, [products, debouncedQuery, selectedCategory, sortBy]);
 
-  const filteredProducts = sortedProducts;
-
-  // Pagination for Khata transactions
-  const txList = khataProfile?.transactions ? [...khataProfile.transactions].reverse() : [];
-  const totalLedgerPages = Math.ceil(txList.length / ledgerPageSize);
-  const paginatedTransactions = txList.slice(
-    (ledgerCurrentPage - 1) * ledgerPageSize,
-    ledgerCurrentPage * ledgerPageSize
-  );
+  // Pagination for Khata transactions (Memoized to avoid reversing array on every render)
+  const { paginatedTransactions, totalLedgerPages } = useMemo(() => {
+    const txList = khataProfile?.transactions ? [...khataProfile.transactions].reverse() : [];
+    const pages = Math.ceil(txList.length / ledgerPageSize);
+    const paginated = txList.slice(
+      (ledgerCurrentPage - 1) * ledgerPageSize,
+      ledgerCurrentPage * ledgerPageSize
+    );
+    return { paginatedTransactions: paginated, totalLedgerPages: pages };
+  }, [khataProfile?.transactions, ledgerCurrentPage, ledgerPageSize]);
 
   // Curated premium local banners matching production retail applications
   const premiumLocalBanners = [
@@ -1322,6 +1325,7 @@ const CustomerDashboard = () => {
                               src={banner.image_url} 
                               alt={banner.title} 
                               className="w-full h-full object-cover transform hover:scale-105 transition-all duration-700" 
+                              loading="lazy"
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -1474,7 +1478,7 @@ const CustomerDashboard = () => {
                           </button>
                           <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
                             {p.image ? (
-                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
                             ) : (
                               <FiShoppingBag className="w-7 h-7 text-slate-300" />
                             )}
@@ -1541,7 +1545,7 @@ const CustomerDashboard = () => {
                           </button>
                           <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
                             {p.image ? (
-                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" />
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
                             ) : (
                               <FiShoppingBag className="w-7 h-7 text-slate-300" />
                             )}
@@ -1654,6 +1658,7 @@ const CustomerDashboard = () => {
                           src={p.image} 
                           alt={p.name}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106"
+                          loading="lazy"
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80';
