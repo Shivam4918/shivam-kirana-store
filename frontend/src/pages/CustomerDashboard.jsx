@@ -25,6 +25,70 @@ const cleanPhoneForWhatsApp = (phone) => {
   return cleaned;
 };
 
+// Viewport-based lazy loading scroll container with custom placeholder skeletons
+const LazyScrollContainer = ({ children, placeholder, rootMargin = '150px' }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [rootMargin]);
+
+  return (
+    <div ref={containerRef}>
+      {isVisible ? children : placeholder}
+    </div>
+  );
+};
+
+// Carousel loader skeleton structure
+const CarouselSkeleton = () => (
+  <div className="space-y-4 py-4 animate-pulse text-left">
+    <div className="h-5 w-32 bg-slate-200/80 rounded-lg"></div>
+    <div className="flex space-x-4 overflow-x-hidden">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="w-44 bg-white border border-slate-100/60 rounded-2xl p-3 shadow-xs space-y-3 flex-shrink-0">
+          <div className="h-28 bg-slate-100 rounded-xl"></div>
+          <div className="h-3.5 w-2/3 bg-slate-150 rounded"></div>
+          <div className="flex justify-between items-center mt-2.5 pt-2">
+            <div className="h-4 w-12 bg-slate-150 rounded"></div>
+            <div className="h-6 w-16 bg-slate-200 rounded-lg"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// Footer loader skeleton
+const FooterSkeleton = () => (
+  <div className="border-t border-slate-200/40 pt-12 pb-6 mt-12 animate-pulse space-y-6 text-left">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="space-y-3">
+          <div className="h-5 w-24 bg-slate-200 rounded"></div>
+          <div className="h-3 w-full bg-slate-100 rounded"></div>
+          <div className="h-3 w-5/6 bg-slate-100 rounded"></div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const CustomerDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -513,16 +577,51 @@ const CustomerDashboard = () => {
 
   const handleToggleWishlist = async (e, productId) => {
     e.stopPropagation();
+    
+    // Find the product in memory from lists to construct the mock item
+    const product = 
+      products.find(p => p.id === productId) || 
+      buyAgainProducts.find(p => p.id === productId) || 
+      recentlyViewed.find(p => p.id === productId);
+
+    if (!product) return;
+
+    // Save previous state for rollback if network fails
+    const prevWishlistIds = new Set(wishlistIds);
+    const prevWishlistItems = [...wishlistItems];
+    
+    const isAdding = !wishlistIds.has(productId);
+    
+    // Optimistic UI update:
+    if (isAdding) {
+      setWishlistIds(prev => {
+        const next = new Set(prev);
+        next.add(productId);
+        return next;
+      });
+      setWishlistItems(prev => [
+        ...prev,
+        { id: `temp-${productId}`, product: productId, product_details: product }
+      ]);
+      showToast('Product added to wishlist.');
+    } else {
+      setWishlistIds(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+      setWishlistItems(prev => prev.filter(item => item.product !== productId));
+      showToast('Product removed from wishlist.');
+    }
+    
     try {
-      const res = await api.post('/wishlist/toggle/', { product_id: productId });
-      if (res.data.status === 'added') {
-        showToast('Product added to wishlist.');
-      } else {
-        showToast('Product removed from wishlist.');
-      }
+      await api.post('/wishlist/toggle/', { product_id: productId });
       fetchWishlist();
     } catch (err) {
       console.error('Wishlist error:', err);
+      // Rollback on error
+      setWishlistIds(prevWishlistIds);
+      setWishlistItems(prevWishlistItems);
       showToast('Error toggling wishlist.', 'error');
     }
   };
@@ -1455,134 +1554,138 @@ const CustomerDashboard = () => {
               
               {/* Buy Again section */}
               {buyAgainProducts.length > 0 && (
-                <div id="buy-again-section" className="space-y-3 text-left">
-                  <div className="flex items-center space-x-1.5">
-                    <FiRefreshCw className="text-[#10B981] w-4 h-4 shrink-0" />
-                    <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Buy Again</h3>
-                  </div>
-                  <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
-                    {buyAgainProducts.map(p => {
-                      const {
-                        discountPercent,
-                        rating,
-                        stockInfo
-                      } = getProductDesignDetails(p);
+                <LazyScrollContainer placeholder={<CarouselSkeleton />}>
+                  <div id="buy-again-section" className="space-y-3 text-left">
+                    <div className="flex items-center space-x-1.5">
+                      <FiRefreshCw className="text-[#10B981] w-4 h-4 shrink-0" />
+                      <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Buy Again</h3>
+                    </div>
+                    <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                      {buyAgainProducts.map(p => {
+                        const {
+                          discountPercent,
+                          rating,
+                          stockInfo
+                        } = getProductDesignDetails(p);
 
-                      return (
-                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
-                          <button 
-                            onClick={(e) => handleToggleWishlist(e, p.id)}
-                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
-                          >
-                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
-                          </button>
-                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
-                            {p.image ? (
-                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
-                            ) : (
-                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
-                            )}
-                            {discountPercent > 0 && (
-                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
-                                -{discountPercent}%
-                              </span>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
-                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
-                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
-                                <FiStar className="w-2.5 h-2.5 fill-current" />
-                                <span>{rating}</span>
+                        return (
+                          <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
+                            <button 
+                              onClick={(e) => handleToggleWishlist(e, p.id)}
+                              className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                            >
+                              <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                            </button>
+                            <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                              {p.image ? (
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
+                              ) : (
+                                <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                              )}
+                              {discountPercent > 0 && (
+                                <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                  -{discountPercent}%
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                              <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                                <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                  <FiStar className="w-2.5 h-2.5 fill-current" />
+                                  <span>{rating}</span>
+                                </div>
+                                <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                  {stockInfo.text.replace(' STOCK', '')}
+                                </span>
                               </div>
-                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
-                                {stockInfo.text.replace(' STOCK', '')}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
-                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const res = addToCart(p);
-                                  showToast(res.message, res.success ? 'success' : 'error');
-                                }}
-                                className="bg-[#10B981] hover:bg-[#059669] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-lg shadow-xs hover:shadow-sm active:scale-95 transition-all duration-200 cursor-pointer"
-                              >
-                                Reorder
-                              </button>
+                              <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                                <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const res = addToCart(p);
+                                    showToast(res.message, res.success ? 'success' : 'error');
+                                  }}
+                                  className="bg-[#10B981] hover:bg-[#059669] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-lg shadow-xs hover:shadow-sm active:scale-95 transition-all duration-200 cursor-pointer"
+                                >
+                                  Reorder
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                </LazyScrollContainer>
               )}
 
               {/* Recently Viewed Section */}
-              <div className="space-y-3 text-left">
-                <div className="flex items-center space-x-1.5">
-                  <FiClock className="text-indigo-500 w-4 h-4 shrink-0" />
-                  <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Recently Viewed</h3>
-                </div>
-                {recentlyViewed.length > 0 ? (
-                  <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
-                    {recentlyViewed.map(p => {
-                      const {
-                        discountPercent,
-                        rating,
-                        stockInfo
-                      } = getProductDesignDetails(p);
+              <LazyScrollContainer placeholder={<CarouselSkeleton />}>
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center space-x-1.5">
+                    <FiClock className="text-indigo-500 w-4 h-4 shrink-0" />
+                    <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Recently Viewed</h3>
+                  </div>
+                  {recentlyViewed.length > 0 ? (
+                    <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                      {recentlyViewed.map(p => {
+                        const {
+                          discountPercent,
+                          rating,
+                          stockInfo
+                        } = getProductDesignDetails(p);
 
-                      return (
-                        <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
-                          <button 
-                            onClick={(e) => handleToggleWishlist(e, p.id)}
-                            className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
-                          >
-                            <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
-                          </button>
-                          <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
-                            {p.image ? (
-                              <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
-                            ) : (
-                              <FiShoppingBag className="w-7 h-7 text-slate-300" />
-                            )}
-                            {discountPercent > 0 && (
-                              <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
-                                -{discountPercent}%
-                              </span>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
-                            <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
-                              <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
-                                <FiStar className="w-2.5 h-2.5 fill-current" />
-                                <span>{rating}</span>
+                        return (
+                          <div key={p.id} className="w-44 bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl p-3 shadow-xs flex flex-col justify-between shrink-0 hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative" onClick={() => handleViewProduct(p)}>
+                            <button 
+                              onClick={(e) => handleToggleWishlist(e, p.id)}
+                              className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+                            >
+                              <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+                            </button>
+                            <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
+                              {p.image ? (
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
+                              ) : (
+                                <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                              )}
+                              {discountPercent > 0 && (
+                                <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
+                                  -{discountPercent}%
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="font-extrabold text-xs text-slate-900 truncate tracking-tight group-hover:text-[#10B981] transition-colors duration-200">{p.name}</h4>
+                              <div className="flex items-center justify-between text-[9px] mt-1 font-sans">
+                                <div className="flex items-center space-x-0.5 text-amber-500 font-bold">
+                                  <FiStar className="w-2.5 h-2.5 fill-current" />
+                                  <span>{rating}</span>
+                                </div>
+                                <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                                  {stockInfo.text.replace(' STOCK', '')}
+                                </span>
                               </div>
-                              <span className={`font-semibold ${stockInfo.color.replace('bg-', 'text-').split(' ')[1]}`}>
-                                {stockInfo.text.replace(' STOCK', '')}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
-                              <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
-                              {renderCartButton(p)}
+                              <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-slate-100">
+                                <span className="font-extrabold text-xs text-slate-955 font-mono">₹{p.price}</span>
+                                {renderCartButton(p)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="w-full py-8 border border-dashed border-slate-200/80 rounded-2xl flex flex-col items-center justify-center text-center px-4 bg-slate-50/30">
-                    <FiClock className="w-5 h-5 text-slate-400 mb-2" />
-                    <p className="text-xs font-bold text-slate-700">No recently viewed items yet</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Products you explore will show up here.</p>
-                  </div>
-                )}
-              </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="w-full py-8 border border-dashed border-slate-200/80 rounded-2xl flex flex-col items-center justify-center text-center px-4 bg-slate-50/30">
+                      <FiClock className="w-5 h-5 text-slate-400 mb-2" />
+                      <p className="text-xs font-bold text-slate-700">No recently viewed items yet</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Products you explore will show up here.</p>
+                    </div>
+                  )}
+                </div>
+              </LazyScrollContainer>
 
             </div>
           )}
@@ -2316,102 +2419,104 @@ const CustomerDashboard = () => {
       )}
 
       {/* Premium Global Footer */}
-      <footer className="border-t border-slate-200/50 pt-12 pb-6 mt-12 text-left">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-          
-          {/* Column 1: Store Info & Social Links */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="bg-[#10B981] p-1.5 rounded-lg text-white shadow-xs flex items-center justify-center">
-                <FiShoppingBag className="w-4 h-4" />
+      <LazyScrollContainer placeholder={<FooterSkeleton />}>
+        <footer className="border-t border-slate-200/50 pt-12 pb-6 mt-12 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+            
+            {/* Column 1: Store Info & Social Links */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <div className="bg-[#10B981] p-1.5 rounded-lg text-white shadow-xs flex items-center justify-center">
+                  <FiShoppingBag className="w-4 h-4" />
+                </div>
+                <span className="font-extrabold text-slate-900 text-sm tracking-tight">Shivam Kirana Store</span>
               </div>
-              <span className="font-extrabold text-slate-900 text-sm tracking-tight">Shivam Kirana Store</span>
-            </div>
-            <p className="text-xs text-slate-500 font-medium leading-relaxed">
-              Your trusted local neighborhood grocery store. Settle balance, track orders, and shop on credit securely using your Digital Khata.
-            </p>
-            <div className="flex items-center space-x-3 pt-2">
-              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
-                <FiFacebook className="w-4 h-4" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
-                <FiInstagram className="w-4 h-4" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
-                <FiTwitter className="w-4 h-4" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
-                <FiYoutube className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-
-          {/* Column 2: Contact Details */}
-          <div className="space-y-3.5">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Details</h4>
-            <div className="space-y-2.5 text-xs text-slate-500 font-medium">
-              <p className="flex items-center space-x-2">
-                <FiMapPin className="text-[#10B981] w-4 h-4 shrink-0" />
-                <span>HSR Layout, Sector 6, Bangalore</span>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                Your trusted local neighborhood grocery store. Settle balance, track orders, and shop on credit securely using your Digital Khata.
               </p>
-              <p className="flex items-center space-x-2">
-                <FiPhoneCall className="text-[#10B981] w-4 h-4 shrink-0" />
-                <span>+91 {configs.SUPPORT_PHONE || '98765 43210'}</span>
-              </p>
-              <p className="flex items-center space-x-2">
-                <FiMail className="text-[#10B981] w-4 h-4 shrink-0" />
-                <span>support@shivamkiranastore.com</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Column 3: Business Hours & Support */}
-          <div className="space-y-3.5">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Business Hours</h4>
-            <div className="space-y-2.5 text-xs text-slate-500 font-medium">
-              <p className="flex items-center space-x-2">
-                <FiClock className="text-[#10B981] w-4 h-4 shrink-0" />
-                <span>Open Daily: 7:00 AM - 11:00 PM</span>
-              </p>
-              <div className="pt-1.5">
-                <a
-                  href={`https://wa.me/${cleanPhoneForWhatsApp(configs.SUPPORT_PHONE || '919876543210')}?text=Hello%20Shivam%20Kirana%20Store,%20I%20have%20a%20question%20regarding%20my%20dashboard.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-[#25D366] hover:bg-[#20ba56] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all duration-200 active:scale-95 flex items-center space-x-1.5 w-max cursor-pointer"
-                >
-                  <FaWhatsapp className="w-4 h-4" />
-                  <span>WhatsApp Helpdesk</span>
+              <div className="flex items-center space-x-3 pt-2">
+                <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                  <FiFacebook className="w-4 h-4" />
+                </a>
+                <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                  <FiInstagram className="w-4 h-4" />
+                </a>
+                <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                  <FiTwitter className="w-4 h-4" />
+                </a>
+                <a href="#" className="p-2 rounded-lg bg-slate-50 hover:bg-[#10B981] text-slate-400 hover:text-white border border-slate-100 hover:border-[#10B981] transition-all duration-300">
+                  <FiYoutube className="w-4 h-4" />
                 </a>
               </div>
             </div>
+
+            {/* Column 2: Contact Details */}
+            <div className="space-y-3.5">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Details</h4>
+              <div className="space-y-2.5 text-xs text-slate-500 font-medium">
+                <p className="flex items-center space-x-2">
+                  <FiMapPin className="text-[#10B981] w-4 h-4 shrink-0" />
+                  <span>HSR Layout, Sector 6, Bangalore</span>
+                </p>
+                <p className="flex items-center space-x-2">
+                  <FiPhoneCall className="text-[#10B981] w-4 h-4 shrink-0" />
+                  <span>+91 {configs.SUPPORT_PHONE || '98765 43210'}</span>
+                </p>
+                <p className="flex items-center space-x-2">
+                  <FiMail className="text-[#10B981] w-4 h-4 shrink-0" />
+                  <span>support@shivamkiranastore.com</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Column 3: Business Hours & Support */}
+            <div className="space-y-3.5">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Business Hours</h4>
+              <div className="space-y-2.5 text-xs text-slate-500 font-medium">
+                <p className="flex items-center space-x-2">
+                  <FiClock className="text-[#10B981] w-4 h-4 shrink-0" />
+                  <span>Open Daily: 7:00 AM - 11:00 PM</span>
+                </p>
+                <div className="pt-1.5">
+                  <a
+                    href={`https://wa.me/${cleanPhoneForWhatsApp(configs.SUPPORT_PHONE || '919876543210')}?text=Hello%20Shivam%20Kirana%20Store,%20I%20have%20a%20question%20regarding%20my%20dashboard.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#25D366] hover:bg-[#20ba56] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all duration-200 active:scale-95 flex items-center space-x-1.5 w-max cursor-pointer"
+                  >
+                    <FaWhatsapp className="w-4 h-4" />
+                    <span>WhatsApp Helpdesk</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 4: Quick Links */}
+            <div className="space-y-3.5">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Links</h4>
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-550 font-bold">
+                <button onClick={() => setIsKhataView(false)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Catalog</button>
+                <button onClick={() => setIsKhataView(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Khata Book</button>
+                <button onClick={() => setIsWishlistOpen(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Wishlist</button>
+                <button onClick={() => setShowBarcodeScanner(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Scanner</button>
+                <button onClick={() => showToast('Privacy Policy: All customer transaction logs and ledger limits are encrypted and stored safely.')} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Privacy Policy</button>
+                <button onClick={() => showToast('Terms of Service: All shop credits must be settled within the monthly payment cycle.')} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Terms & Conditions</button>
+              </div>
+            </div>
+
           </div>
 
-          {/* Column 4: Quick Links */}
-          <div className="space-y-3.5">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Links</h4>
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-550 font-bold">
-              <button onClick={() => setIsKhataView(false)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Catalog</button>
-              <button onClick={() => setIsKhataView(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Khata Book</button>
-              <button onClick={() => setIsWishlistOpen(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Wishlist</button>
-              <button onClick={() => setShowBarcodeScanner(true)} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Scanner</button>
-              <button onClick={() => showToast('Privacy Policy: All customer transaction logs and ledger limits are encrypted and stored safely.')} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Privacy Policy</button>
-              <button onClick={() => showToast('Terms of Service: All shop credits must be settled within the monthly payment cycle.')} className="hover:text-[#10B981] text-left transition-colors duration-200 cursor-pointer">Terms & Conditions</button>
+          {/* Divider & Copyright */}
+          <div className="border-t border-slate-200/50 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-405 font-medium">
+            <p>© {new Date().getFullYear()} Shivam Kirana Store. All rights reserved.</p>
+            <div className="flex items-center space-x-4 mt-2 sm:mt-0 font-bold">
+              <button onClick={() => showToast('Privacy Policy: All customer transaction logs and ledger limits are encrypted and stored safely.')} className="hover:text-[#10B981] transition-colors duration-200 cursor-pointer">Privacy Policy</button>
+              <span>•</span>
+              <button onClick={() => showToast('Terms of Service: All shop credits must be settled within the monthly payment cycle.')} className="hover:text-[#10B981] transition-colors duration-200 cursor-pointer">Terms & Conditions</button>
             </div>
           </div>
-
-        </div>
-
-        {/* Divider & Copyright */}
-        <div className="border-t border-slate-200/50 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-405 font-medium">
-          <p>© {new Date().getFullYear()} Shivam Kirana Store. All rights reserved.</p>
-          <div className="flex items-center space-x-4 mt-2 sm:mt-0 font-bold">
-            <button onClick={() => showToast('Privacy Policy: All customer transaction logs and ledger limits are encrypted and stored safely.')} className="hover:text-[#10B981] transition-colors duration-200 cursor-pointer">Privacy Policy</button>
-            <span>•</span>
-            <button onClick={() => showToast('Terms of Service: All shop credits must be settled within the monthly payment cycle.')} className="hover:text-[#10B981] transition-colors duration-200 cursor-pointer">Terms & Conditions</button>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </LazyScrollContainer>
 
       {/* Online Payments settlement UPI QR Modal */}
       {showSettlementModal && (
