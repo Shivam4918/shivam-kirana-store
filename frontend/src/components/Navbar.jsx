@@ -2,6 +2,7 @@ import { useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
+import { useRealTime } from '../context/RealTimeContext';
 import { 
   FiLogOut, FiUser, FiShoppingBag, FiBell, FiCheck, 
   FiAlertTriangle, FiInfo, FiShoppingCart, FiSearch, FiMapPin, FiChevronDown, FiClock, FiX 
@@ -99,12 +100,32 @@ const Navbar = () => {
     }
   };
 
+  const { subscribe } = useRealTime();
+
   useEffect(() => {
     fetchNotifications();
     fetchProducts();
-    const interval = setInterval(fetchNotifications, 20000);
-    return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const unsubscribe = subscribe('NOTIFICATION_RECEIVED', (newNoti) => {
+      setNotifications(prev => {
+        if (prev.some(n => n.id === newNoti.id)) return prev;
+        return [newNoti, ...prev.slice(0, 7)];
+      });
+      setUnreadCount(prev => prev + 1);
+      setToast({ message: newNoti.message });
+      // Reset toast timer automatically after 5 seconds
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, subscribe]);
 
   // Click outside handlers
   useEffect(() => {

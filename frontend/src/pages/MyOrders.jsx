@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useRealTime } from '../context/RealTimeContext';
 import { 
   FiShoppingBag, FiClock, FiCheckCircle, FiInfo, 
   FiMapPin, FiPrinter, FiChevronRight, FiChevronDown, FiAlertCircle 
@@ -19,9 +20,32 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
 
+  const { subscribe } = useRealTime();
+
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    // Add real-time synchronization for order updates
+    const unsubscribeCreated = subscribe('ORDER_CREATED', (newOrder) => {
+      setOrders(prev => {
+        if (prev.some(o => o.id === newOrder.id)) return prev;
+        return [newOrder, ...prev];
+      });
+    });
+
+    const unsubscribeUpdated = subscribe('ORDER_UPDATED', (updatedOrder) => {
+      setOrders(prev =>
+        prev.map(o => (o.id === updatedOrder.id ? updatedOrder : o))
+      );
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+    };
+  }, [subscribe]);
 
   const fetchOrders = async () => {
     try {

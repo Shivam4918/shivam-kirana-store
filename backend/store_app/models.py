@@ -543,3 +543,37 @@ class StoreConfig(models.Model):
         return f"{self.key}: {self.value}"
 
 
+# Django signals for Real-time SSE broadcasts
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from store_app.realtime_broker import event_broker
+
+@receiver(post_save, sender=Product)
+def product_stock_update_signal(sender, instance, **kwargs):
+    event_broker.broadcast('PRODUCT_STOCK_UPDATED', {
+        'product_id': instance.id,
+        'stock_quantity': instance.stock_quantity
+    })
+
+@receiver(post_save, sender=Notification)
+def notification_create_signal(sender, instance, created, **kwargs):
+    if created and instance.user:
+        event_broker.broadcast('NOTIFICATION_RECEIVED', {
+            'id': instance.id,
+            'message': instance.message,
+            'notification_type': instance.notification_type,
+            'is_read': instance.is_read,
+            'created_at': instance.created_at.isoformat() if instance.created_at else None
+        }, user_id=instance.user.id)
+
+@receiver(post_save, sender=KhataProfile)
+def profile_balance_update_signal(sender, instance, **kwargs):
+    event_broker.broadcast('PROFILE_UPDATED', {
+        'loyalty_points': instance.loyalty_points,
+        'current_balance': float(instance.current_balance),
+        'credit_limit': float(instance.credit_limit),
+        'points_earned': instance.points_earned,
+        'points_redeemed': instance.points_redeemed
+    }, user_id=instance.user.id)
+
+

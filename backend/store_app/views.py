@@ -18,7 +18,9 @@ from .serializers import (
     OrderSerializer, OrderItemSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
+from rest_framework_simplejwt.tokens import AccessToken
+from store_app.realtime_broker import event_broker
 from .utils.pdf_generator import generate_pdf_response, generate_invoice_pdf
 from .utils.excel_generator import generate_excel_response
 from .utils.payment_helpers import verify_razorpay_signature, create_razorpay_payment_link
@@ -2190,6 +2192,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             }
         )
 
+        # Broadcast ORDER_CREATED to admin and customer
+        order_data = OrderSerializer(order).data
+        event_broker.broadcast('ORDER_CREATED', order_data, user_id=order.customer.user.id)
+
         return Response({
             "detail": "Order received successfully.",
             "order_number": order_number,
@@ -2264,6 +2270,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             }
         )
 
+        # Broadcast ORDER_UPDATED
+        order_data = OrderSerializer(order).data
+        event_broker.broadcast('ORDER_UPDATED', order_data, user_id=order.customer.user.id)
+
         return Response({
             "detail": f"Status updated to {order.get_status_display()}.",
             "status": order.status,
@@ -2310,6 +2320,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             message=f"Pickup verified for order {order.order_number}.",
             notification_type='ORDER_RECEIVED'
         )
+
+        # Broadcast ORDER_UPDATED
+        order_data = OrderSerializer(order).data
+        event_broker.broadcast('ORDER_UPDATED', order_data, user_id=order.customer.user.id)
 
         return Response({"detail": "Pickup verified successfully. Proceed to payment recording."}, status=status.HTTP_200_OK)
 
@@ -2408,6 +2422,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                 'description': f"Payment for order {order.order_number} recorded via {payment_method}."
             }
         )
+
+        # Broadcast ORDER_UPDATED
+        order_data = OrderSerializer(order).data
+        event_broker.broadcast('ORDER_UPDATED', order_data, user_id=order.customer.user.id)
 
         return Response({
             "detail": "Payment recorded successfully.",
@@ -3107,5 +3125,46 @@ class CustomerDashboardSummaryView(APIView):
             "credit_limit": float(khata.credit_limit),
             "recent_purchases": recent_data
         })
+
+
+def sse_event_stream(user):
+    import queue
+    q = event_broker.add_listener(user)
+    try:
+        # Send initial keep-alive comment
+        yield ": keep-alive\n\n"
+        while True:
+            try:
+                # Wait with 30s timeout to verify client presence
+                msg = q.get(timeout=30)
+                yield msg
+            except queue.Empty:
+                yield ": keep-alive\n\n"
+    finally:
+        event_broker.remove_listener(user, q)
+
+
+class RealTimeEventView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        token_str = request.GET.get('token')
+        if not token_str:
+            return Response({"detail": "Token is required."}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            token = AccessToken(token_str)
+            user_id = token['user_id']
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            return Response({"detail": f"Invalid token: {str(e)}"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        response = StreamingHttpResponse(sse_event_stream(user), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'  # Disable buffering in proxying (Nginx/Vercel)
+        return response
+
 
 

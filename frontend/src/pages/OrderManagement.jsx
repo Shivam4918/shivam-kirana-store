@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useRealTime } from '../context/RealTimeContext';
 import { 
   FiSearch, FiCheck, FiX, FiDollarSign, FiCreditCard, 
   FiBook, FiRefreshCw, FiClipboard, FiTruck, FiAlertCircle 
@@ -35,9 +36,40 @@ export default function OrderManagement() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  const { subscribe } = useRealTime();
+
   useEffect(() => {
     fetchOrdersAndStats();
   }, []);
+
+  useEffect(() => {
+    // Add real-time synchronization for order updates
+    const unsubscribeCreated = subscribe('ORDER_CREATED', (newOrder) => {
+      setOrders(prev => {
+        if (prev.some(o => o.id === newOrder.id)) return prev;
+        return [newOrder, ...prev];
+      });
+      // Sync stats counts instantly
+      api.get('/admin/analytics/').then(res => {
+        setCounters(res.data.order_stats || {});
+      }).catch(err => console.error(err));
+    });
+
+    const unsubscribeUpdated = subscribe('ORDER_UPDATED', (updatedOrder) => {
+      setOrders(prev =>
+        prev.map(o => (o.id === updatedOrder.id ? updatedOrder : o))
+      );
+      // Sync stats counts instantly
+      api.get('/admin/analytics/').then(res => {
+        setCounters(res.data.order_stats || {});
+      }).catch(err => console.error(err));
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+    };
+  }, [subscribe]);
 
   const fetchOrdersAndStats = async () => {
     try {

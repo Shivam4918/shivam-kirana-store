@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useRealTime } from '../context/RealTimeContext';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
@@ -96,6 +97,7 @@ const CustomerDashboard = () => {
 
   // Consume Auth & Cart Contexts
   const { user } = useContext(AuthContext);
+  const { subscribe } = useRealTime();
   const { 
     cart, 
     addToCart, 
@@ -492,6 +494,56 @@ const CustomerDashboard = () => {
     fetchStorefrontRows();
     fetchInvoices();
   }, []);
+
+  // Listen for real-time profile and product updates
+  useEffect(() => {
+    if (!user) return;
+
+    // Subscribe to stock quantity updates
+    const unsubscribeStock = subscribe('PRODUCT_STOCK_UPDATED', (data) => {
+      setProducts(prevProducts =>
+        prevProducts.map(p =>
+          Number(p.id) === Number(data.product_id)
+            ? { ...p, stock_quantity: data.stock_quantity }
+            : p
+        )
+      );
+    });
+
+    // Subscribe to profile changes (Digital Khata balance / points adjustments)
+    const unsubscribeProfile = subscribe('PROFILE_UPDATED', (data) => {
+      setSummary(prevSummary => {
+        if (!prevSummary) return null;
+        return {
+          ...prevSummary,
+          loyalty_points: data.loyalty_points,
+          points_earned: data.points_earned,
+          points_redeemed: data.points_redeemed,
+          khata_balance: data.current_balance,
+          current_balance: data.current_balance,
+          credit_limit: data.credit_limit
+        };
+      });
+      setKhataProfile(prevProfile => {
+        if (!prevProfile) return null;
+        return {
+          ...prevProfile,
+          loyalty_points: data.loyalty_points,
+          current_balance: data.current_balance,
+          credit_limit: data.credit_limit,
+          points_earned: data.points_earned,
+          points_redeemed: data.points_redeemed
+        };
+      });
+      // Fetch fresh ledger lines to sync transaction history instantly
+      fetchKhataLedger();
+    });
+
+    return () => {
+      unsubscribeStock();
+      unsubscribeProfile();
+    };
+  }, [user, subscribe]);
 
   // Sync mobile tabs with isKhataView
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { RealTimeProvider } from './context/RealTimeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -46,7 +47,8 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <CartProvider>
+        <RealTimeProvider>
+          <CartProvider>
           <Suspense fallback={
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50/50">
               <div className="relative w-12 h-12">
@@ -104,7 +106,8 @@ function App() {
             </Routes>
           </Suspense>
         </CartProvider>
-      </AuthProvider>
+      </RealTimeProvider>
+    </AuthProvider>
     </Router>
   );
 }

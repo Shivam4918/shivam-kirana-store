@@ -985,4 +985,35 @@ class StoreBackendTests(TestCase):
         audit_count = OrderAuditLog.objects.filter(order=order).count()
         self.assertTrue(audit_count >= 4)
 
+    def test_sse_event_stream_authentication_and_broker(self):
+        """Verify that SSE event endpoint validates tokens and broker handles local process queues."""
+        from store_app.realtime_broker import event_broker
+        from rest_framework_simplejwt.tokens import AccessToken
+        
+        # 1. Access without token should fail
+        response = self.client.get('/api/events/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 2. Access with invalid token should fail
+        response = self.client.get('/api/events/?token=badtoken')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 3. Access with valid token should succeed
+        token = str(AccessToken.for_user(self.customer))
+        response = self.client.get(f'/api/events/?token={token}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], 'text/event-stream')
+
+        # 4. Verify broker registers listeners and broadcasts correctly
+        q = event_broker.add_listener(self.customer)
+        event_broker.broadcast('TEST_EVENT', {'hello': 'world'}, user_id=self.customer.id)
+        
+        # Verify the event is in the queue
+        msg = q.get_nowait()
+        self.assertIn('TEST_EVENT', msg)
+        self.assertIn('hello', msg)
+        
+        # Cleanup
+        event_broker.remove_listener(self.customer, q)
+
 

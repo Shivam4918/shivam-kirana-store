@@ -11,7 +11,7 @@ from .views import (
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
     CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView,
     WishlistViewSet, PromotionalBannerViewSet, StoreConfigViewSet, CustomerDashboardSummaryView,
-    LogoutView, OrderViewSet
+    LogoutView, OrderViewSet, RealTimeEventView
 )
 
 router = DefaultRouter()
@@ -70,6 +70,9 @@ urlpatterns = [
     # Health Check
     path('health/', HealthCheckView.as_view(), name='health-check'),
     path('auth/test-email/', TestEmailView.as_view(), name='test-email'),
+
+    # Real-time Events Stream (SSE)
+    path('events/', RealTimeEventView.as_view(), name='realtime-events'),
 
     path('', include(router.urls)),
 ]
