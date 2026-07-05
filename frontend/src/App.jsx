@@ -1,12 +1,13 @@
-import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { RealTimeProvider } from './context/RealTimeContext';
+import { CartContext } from './context/CartContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import CartDrawer from './components/CartDrawer';
-import { CartProvider, CartContext } from './context/CartContext';
-import { FiShoppingBag, FiBookOpen, FiClock, FiShoppingCart } from 'react-icons/fi';
+import { FiHome, FiShoppingCart, FiClock, FiBookOpen, FiUser, FiX, FiLogOut, FiPieChart, FiHeart } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import React, { Suspense, useState, useContext } from 'react';
 
@@ -30,18 +31,16 @@ const OrderManagement = React.lazy(() => import('./pages/OrderManagement'));
 
 const AppLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { user } = useContext(AuthContext);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const { user, logout } = useContext(AuthContext);
   const { cartCount, setIsCartOpen } = useContext(CartContext);
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const isCustomer = user && user.role === 'CUSTOMER';
-  const currentPath = location.pathname;
+  const location = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#111827] pb-16 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#111827]">
       <Navbar onToggleSidebar={() => setMobileSidebarOpen(prev => !prev)} />
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 flex flex-col md:flex-row pb-16 md:pb-0">
         <Sidebar isOpenOnMobile={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
         <main className="flex-1 flex flex-col bg-slate-50/50">
           <Outlet />
@@ -49,33 +48,38 @@ const AppLayout = () => {
       </div>
       <CartDrawer />
 
-      {/* Mobile Sticky Bottom Navigation Menu for Customer */}
-      {isCustomer && (
-        <div className="block md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200/80 z-40 py-2.5 px-4 flex justify-between shadow-md">
+      {/* Mobile Sticky Bottom Navigation Menu (Customer only) */}
+      {user && user.role === 'CUSTOMER' && (
+        <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-205/65 z-[49] py-2 px-4 flex justify-between items-center shadow-lg safe-bottom">
           <button
             onClick={() => navigate('/dashboard')}
-            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
-              currentPath === '/dashboard' ? 'text-[#10B981] font-bold' : 'text-slate-450'
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors min-h-[44px] ${
+              location.pathname === '/dashboard' ? 'text-[#10B981] font-bold' : 'text-slate-405'
             }`}
           >
-            <FiShoppingBag className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-semibold">Store</span>
+            <FiHome className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-semibold">Home</span>
           </button>
 
           <button
-            onClick={() => navigate('/dashboard/khata')}
-            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
-              currentPath === '/dashboard/khata' ? 'text-[#10B981] font-bold' : 'text-slate-455'
-            }`}
+            onClick={() => setIsCartOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors relative min-h-[44px] text-slate-405"
           >
-            <FiBookOpen className="w-5 h-5" />
-            <span className="text-[10px] mt-1 font-semibold">Khata</span>
+            <div className="relative">
+              <FiShoppingCart className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 bg-rose-500 text-white rounded-full text-[8.5px] font-extrabold w-4 h-4 flex items-center justify-center font-mono">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] mt-1 font-semibold">Cart</span>
           </button>
 
           <button
             onClick={() => navigate('/dashboard/orders')}
-            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
-              currentPath === '/dashboard/orders' ? 'text-[#10B981] font-bold' : 'text-slate-455'
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors min-h-[44px] ${
+              location.pathname === '/dashboard/orders' ? 'text-[#10B981] font-bold' : 'text-slate-405'
             }`}
           >
             <FiClock className="w-5 h-5" />
@@ -83,24 +87,101 @@ const AppLayout = () => {
           </button>
 
           <button
-            onClick={() => setIsCartOpen(true)}
-            className="flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors relative text-slate-455"
+            onClick={() => navigate('/dashboard/khata')}
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors min-h-[44px] ${
+              location.pathname === '/dashboard/khata' ? 'text-[#10B981] font-bold' : 'text-slate-405'
+            }`}
           >
-            <FiShoppingCart className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span className="absolute top-0 right-5 bg-rose-500 text-white rounded-full text-[8.5px] font-extrabold w-4 h-4 flex items-center justify-center font-mono">
-                {cartCount}
-              </span>
-            )}
-            <span className="text-[10px] mt-1 font-semibold">Cart</span>
+            <FiBookOpen className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-semibold">Khata</span>
+          </button>
+
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors min-h-[44px] ${
+              showProfileModal ? 'text-[#10B981] font-bold' : 'text-slate-405'
+            }`}
+          >
+            <FiUser className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-semibold">Profile</span>
           </button>
         </div>
       )}
+
+      {/* Profile Modal Overlay */}
+      <AnimatePresence>
+        {showProfileModal && (
+          <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            {/* Backdrop click close */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowProfileModal(false)}
+              className="absolute inset-0"
+            />
+            {/* Modal Body */}
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="relative w-full max-w-md bg-white border border-slate-200 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5 text-left z-10"
+            >
+              <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                <div className="flex items-center space-x-2">
+                  <div className="w-9 h-9 bg-emerald-50 text-[#10B981] rounded-xl flex items-center justify-center">
+                    <FiUser className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Account Profile</h3>
+                    <p className="text-[10px] text-slate-400 capitalize">{user?.role} Account</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-slate-55 border border-transparent hover:border-slate-100 text-slate-400 hover:text-slate-700 transition-all cursor-pointer"
+                >
+                  <FiX className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 py-2">
+                <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Username</span>
+                    <span className="font-bold text-slate-800 capitalize">@{user?.username}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Email Address</span>
+                    <span className="font-bold text-slate-800">{user?.email || 'Not verified'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Phone Number</span>
+                    <span className="font-bold text-slate-800 font-mono">{user?.phone || 'Not linked'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowProfileModal(false);
+                  logout();
+                }}
+                className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 font-bold py-3 px-4 rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs min-h-[44px] flex items-center justify-center space-x-2"
+              >
+                <FiLogOut className="w-4 h-4" />
+                <span>Sign Out Account</span>
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-
+import { CartProvider } from './context/CartContext';
 
 function App() {
   return (

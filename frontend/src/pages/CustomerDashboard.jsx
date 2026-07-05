@@ -2262,8 +2262,6 @@ const CustomerDashboard = () => {
         <FaWhatsapp className="w-5 h-5" />
       </a>
 
-
-
       {/* 1. Product Quick View Modal */}
       {quickViewProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">

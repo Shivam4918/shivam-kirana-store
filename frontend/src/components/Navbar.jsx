@@ -5,7 +5,7 @@ import { CartContext } from '../context/CartContext';
 import { useRealTime } from '../context/RealTimeContext';
 import { 
   FiLogOut, FiUser, FiShoppingBag, FiBell, FiCheck, 
-  FiAlertTriangle, FiInfo, FiShoppingCart, FiSearch, FiMapPin, FiChevronDown, FiClock, FiX, FiMenu
+  FiAlertTriangle, FiInfo, FiShoppingCart, FiSearch, FiChevronDown, FiClock, FiX, FiMenu, FiLayers
 } from 'react-icons/fi';
 import api from '../services/api';
 
@@ -50,78 +50,38 @@ const Navbar = ({ onToggleSidebar }) => {
   const notiRef = useRef(null);
   const profileRef = useRef(null);
 
-  // Sync searchVal with URL query param
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    setSearchVal(params.get('search') || '');
-  }, [location.search]);
-
-  // Fetch product catalog for suggestions
-  const fetchProducts = async () => {
-    if (!user || user.role !== 'CUSTOMER') return;
-    try {
-      const res = await api.get('/products/');
-      setProducts(res.data);
-    } catch (err) {
-      console.error('Error loading products for suggestions:', err);
-    }
+  const showToast = (message) => {
+    setToast({ message });
+    setTimeout(() => setToast(null), 4000);
   };
 
   const fetchNotifications = async () => {
     if (!user) return;
     try {
       const res = await api.get('/notifications/');
-      const currentNotis = res.data.slice(0, 8);
-      setNotifications(currentNotis);
-      const countRes = await api.get('/notifications/unread-count/');
-      setUnreadCount(countRes.data.unread_count);
-
-      const isFirstLoad = seenNotiIds.size === 0;
-      if (isFirstLoad) {
-        const initialSeen = new Set(currentNotis.map(n => n.id));
-        setSeenNotiIds(initialSeen);
-      } else {
-        const unreadNotis = currentNotis.filter(n => !n.is_read);
-        if (unreadNotis.length > 0) {
-          const newUnread = unreadNotis.find(n => !seenNotiIds.has(n.id));
-          if (newUnread) {
-            setSeenNotiIds(prev => {
-              const next = new Set(prev);
-              next.add(newUnread.id);
-              return next;
-            });
-            setToast({ message: newUnread.message });
-            setTimeout(() => setToast(null), 5000);
-          }
-        }
-      }
+      setNotifications(res.data);
+      const unread = res.data.filter(n => !n.is_read).length;
+      setUnreadCount(unread);
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
   };
 
-  const { subscribe } = useRealTime();
-
   useEffect(() => {
     fetchNotifications();
-    fetchProducts();
   }, [user]);
 
+  // Real-Time Notification updates
+  const { subscribe } = useRealTime();
   useEffect(() => {
     if (!user) return;
-    
-    const unsubscribe = subscribe('NOTIFICATION_RECEIVED', (newNoti) => {
-      setNotifications(prev => {
-        if (prev.some(n => n.id === newNoti.id)) return prev;
-        return [newNoti, ...prev.slice(0, 7)];
-      });
-      setUnreadCount(prev => prev + 1);
-      setToast({ message: newNoti.message });
-      // Reset toast timer automatically after 5 seconds
-      const timer = setTimeout(() => setToast(null), 5000);
-      return () => clearTimeout(timer);
+    const unsubscribe = subscribe('NOTIFICATION_RECEIVED', (data) => {
+      if (data && data.id) {
+        setNotifications(prev => [data, ...prev]);
+        setUnreadCount(prev => prev + 1);
+        showToast(data.message);
+      }
     });
-
     return () => {
       unsubscribe();
     };
@@ -150,111 +110,94 @@ const Navbar = ({ onToggleSidebar }) => {
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {
-      console.error('Error marking all as read:', err);
+      console.error('Error marking notifications as read:', err);
     }
   };
 
   const handleMarkRead = async (id, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     try {
       await api.post(`/notifications/${id}/mark-read/`);
       setUnreadCount(prev => Math.max(0, prev - 1));
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (err) {
-      console.error('Error marking as read:', err);
+      console.error('Error marking notification as read:', err);
     }
   };
+
+  // Search logic
+  useEffect(() => {
+    const fetchSearchProducts = async () => {
+      try {
+        const res = await api.get('/products/');
+        setProducts(res.data);
+      } catch (err) {
+        console.error('Search products fetch error:', err);
+      }
+    };
+    if (user && user.role === 'CUSTOMER') {
+      fetchSearchProducts();
+    }
+  }, [user]);
 
   const handleSearchChange = (val) => {
     setSearchVal(val);
+    setShowSuggestions(true);
     setActiveSuggestionIndex(-1);
-    const params = new URLSearchParams(location.search);
-    if (val) {
-      params.set('search', val);
-    } else {
-      params.delete('search');
-    }
-    
-    // If not on grocery storefront, redirect there
-    if (location.pathname !== '/dashboard') {
-      navigate(`/dashboard?${params.toString()}`);
-    } else {
-      navigate(`/dashboard?${params.toString()}`, { replace: true });
-    }
   };
 
-  // Simulated search loading spinner trigger
-  useEffect(() => {
-    if (searchVal) {
-      setSearchLoading(true);
-      const timer = setTimeout(() => setSearchLoading(false), 250);
-      return () => clearTimeout(timer);
-    } else {
-      setSearchLoading(false);
-    }
-  }, [searchVal]);
+  const filteredCategories = searchVal
+    ? Array.from(new Set(products.map(p => p.category).filter(Boolean))).filter(c =>
+        c.toLowerCase().includes(searchVal.toLowerCase())
+      ).slice(0, 3)
+    : [];
 
-  const selectSuggestion = (query) => {
-    handleSearchChange(query);
-    setShowSuggestions(false);
-    setRecentSearches(prev => {
-      const next = [query, ...prev.filter(s => s !== query)].slice(0, 5);
-      localStorage.setItem('recentSearches', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const clearHistory = (e) => {
-    e.stopPropagation();
-    localStorage.removeItem('recentSearches');
-    setRecentSearches([]);
-  };
-
-  // Derive unique categories matching query
-  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-  const filteredCategories = uniqueCategories.filter(cat => 
-    searchVal && cat.toLowerCase().includes(searchVal.toLowerCase())
-  ).slice(0, 3);
-
-  const filteredSuggestions = products.filter(p => {
-    const q = searchVal.toLowerCase();
-    return q && (
-      p.name.toLowerCase().includes(q) ||
-      (p.category && p.category.toLowerCase().includes(q))
-    );
-  }).slice(0, 5);
+  const filteredSuggestions = searchVal
+    ? products.filter(p =>
+        p.name.toLowerCase().includes(searchVal.toLowerCase())
+      ).slice(0, 5)
+    : [];
 
   const handleKeyDown = (e) => {
-    if (!showSuggestions) return;
-
-    // Combine all selectable suggestions
-    const allSuggestions = [
-      ...filteredCategories.map(cat => ({ type: 'category', value: cat })),
-      ...filteredSuggestions.map(p => ({ type: 'product', value: p.name }))
-    ];
+    const totalCount = filteredCategories.length + filteredSuggestions.length;
+    if (totalCount === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveSuggestionIndex(prev => 
-        prev < allSuggestions.length - 1 ? prev + 1 : 0
-      );
+      setActiveSuggestionIndex(prev => (prev + 1) % totalCount);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveSuggestionIndex(prev => 
-        prev > 0 ? prev - 1 : allSuggestions.length - 1
-      );
+      setActiveSuggestionIndex(prev => (prev - 1 + totalCount) % totalCount);
     } else if (e.key === 'Enter') {
-      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < allSuggestions.length) {
-        e.preventDefault();
-        selectSuggestion(allSuggestions[activeSuggestionIndex].value);
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < totalCount) {
+        if (activeSuggestionIndex < filteredCategories.length) {
+          selectSuggestion(filteredCategories[activeSuggestionIndex]);
+        } else {
+          const prodIdx = activeSuggestionIndex - filteredCategories.length;
+          selectSuggestion(filteredSuggestions[prodIdx].name);
+        }
       } else if (searchVal.trim()) {
-        e.preventDefault();
         selectSuggestion(searchVal.trim());
       }
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
-      setActiveSuggestionIndex(-1);
     }
+  };
+
+  const selectSuggestion = (query) => {
+    setSearchVal(query);
+    setShowSuggestions(false);
+    
+    const searches = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+    setRecentSearches(searches);
+    localStorage.setItem('recentSearches', JSON.stringify(searches));
+
+    navigate(`/dashboard?search=${encodeURIComponent(query)}`);
+  };
+
+  const clearHistory = (e) => {
+    if (e) e.stopPropagation();
+    setRecentSearches([]);
+    localStorage.removeItem('recentSearches');
   };
 
   if (!user) return null;
@@ -266,36 +209,152 @@ const Navbar = ({ onToggleSidebar }) => {
   });
 
   return (
-    <nav className="sticky top-0 z-[40] w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 sm:px-6 py-3 flex items-center justify-between shadow-sm">
+    <nav className="sticky top-0 z-[40] w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-2 shrink-0">
       
-      {/* Brand logo & location details */}
-      <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
-        {user && (
-          <button
-            onClick={onToggleSidebar}
-            className="p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors md:hidden cursor-pointer flex items-center justify-center shrink-0 min-w-[44px] min-h-[44px]"
-            title="Toggle Menu"
-            aria-label="Toggle Menu"
-          >
-            <FiMenu className="w-5 h-5" />
-          </button>
-        )}
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="bg-[#10B981] p-1.5 rounded-lg text-white shadow-sm flex items-center justify-center">
-            <FiShoppingBag className="w-4 h-4" />
+      {/* Top Row: Hamburger, Logo, and Right Icons (mobile) / Left section on Desktop */}
+      <div className="flex items-center justify-between w-full md:w-auto shrink-0">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {user && (
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors md:hidden cursor-pointer flex items-center justify-center shrink-0 min-w-[44px] min-h-[44px]"
+              title="Toggle Menu"
+              aria-label="Toggle Menu"
+            >
+              <FiMenu className="w-5 h-5" />
+            </button>
+          )}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="bg-[#10B981] p-1.5 rounded-lg text-white shadow-sm flex items-center justify-center">
+              <FiShoppingBag className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col text-left">
+              <h1 className="font-extrabold text-xs sm:text-sm tracking-tight text-slate-900 leading-none">
+                Shivam <span className="text-[#10B981]">Kirana</span>
+              </h1>
+              <p className="text-[8px] text-slate-400 mt-0.5 font-medium tracking-wide hidden xs:block">Smart Retail ERP</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Mobile-only right action icons (hidden on desktop) */}
+        <div className="flex items-center space-x-2 md:hidden">
+          
+          {/* Shopping Cart Icon (Customer Only) */}
+          {user.role === 'CUSTOMER' && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 text-slate-500 hover:text-[#10B981] rounded-lg hover:bg-slate-50 transition-all cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+              title="Shopping Cart"
+              aria-label="Shopping Cart"
+            >
+              <div className="relative">
+                <FiShoppingCart className="w-5 h-5 text-slate-655" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2.5 -right-2.5 bg-rose-500 text-white rounded-full text-[8.5px] font-bold w-4.5 h-4.5 flex items-center justify-center font-mono border border-white">
+                    {cartCount}
+                  </span>
+                )}
+              </div>
+            </button>
+          )}
+
+          {/* Notification Bell Icon */}
+          <div ref={notiRef} className="relative">
+            <button
+              onClick={() => setNotiDropdownOpen(!notiDropdownOpen)}
+              className="relative p-2 rounded-lg text-slate-505 hover:text-slate-800 transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+              title="Notifications"
+              aria-label="Notifications"
+              aria-expanded={notiDropdownOpen}
+            >
+              <FiBell className="w-5 h-5 text-slate-655" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+              )}
+            </button>
+
+            {notiDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-lg z-50 p-2 text-left">
+                <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100">
+                  <span className="text-xs font-semibold text-slate-800">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[10px] font-bold text-[#10B981] hover:underline cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-60 overflow-y-auto py-1">
+                  {notifications.length > 0 ? (
+                    notifications.map(n => (
+                      <div
+                        key={n.id}
+                        className={`flex items-start gap-2 p-2 rounded transition-colors text-xs relative ${
+                          n.is_read ? 'hover:bg-slate-50 text-slate-400' : 'bg-emerald-50/10 hover:bg-emerald-50/20 text-slate-800 font-semibold'
+                        }`}
+                      >
+                        <div className={`mt-0.5 p-0.5 rounded shrink-0 ${
+                          n.notification_type.includes('STOCK') ? 'bg-amber-50 text-amber-505' :
+                          n.notification_type.includes('OUTSTANDING') || n.notification_type.includes('DUE') ? 'bg-rose-50 text-rose-500' :
+                          'bg-blue-50 text-blue-500'
+                        }`}>
+                          {n.notification_type.includes('STOCK') ? <FiAlertTriangle className="w-3 h-3" /> : <FiInfo className="w-3 h-3" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="leading-snug text-[10px] break-words">{n.message}</p>
+                          <span className="text-[8.5px] text-slate-400 block mt-0.5">
+                            {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-6 text-center text-xs text-slate-400 italic">No notifications yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex flex-col text-left">
-            <h1 className="font-extrabold text-[11px] sm:text-sm tracking-tight text-slate-900 leading-none">
-              Shivam <span className="text-[#10B981]">Kirana</span>
-            </h1>
-            <p className="text-[8px] text-slate-400 mt-0.5 font-medium tracking-wide hidden xs:block">Smart Retail ERP</p>
+
+          {/* Profile Dropdown Icon */}
+          <div ref={profileRef} className="relative">
+            <button
+              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+              className="flex items-center justify-center p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer min-w-[44px] min-h-[44px]"
+              aria-label="User Profile"
+              aria-expanded={profileDropdownOpen}
+            >
+              <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-200">
+                <FiUser className="w-3.5 h-3.5 text-slate-655" />
+              </div>
+            </button>
+
+            {profileDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 text-left font-medium">
+                <div className="px-3.5 py-2 border-b border-slate-100 text-xs">
+                  <p className="font-bold text-slate-900 capitalize">{user.username}</p>
+                  <span className="text-[9px] font-bold text-slate-400 block uppercase mt-0.5">{user.role}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="w-full text-left px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2 cursor-pointer font-semibold transition-colors min-h-[40px]"
+                >
+                  <FiLogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
           </div>
-        </Link>
+
+        </div>
       </div>
 
       {/* Central search bar with dynamic autocomplete suggestions */}
       {user.role === 'CUSTOMER' && (
-        <div ref={searchContainerRef} className="flex-1 max-w-[130px] xs:max-w-[200px] sm:max-w-lg mx-2 sm:mx-8 relative">
+        <div ref={searchContainerRef} className="w-full md:flex-1 md:max-w-lg md:mx-8 relative">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#10B981]">
               {searchLoading ? (
@@ -314,13 +373,13 @@ const Navbar = ({ onToggleSidebar }) => {
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search bread, milk, fresh oil, wheat atta..."
-              className="w-full bg-slate-50 border border-slate-200 focus:border-[#10B981] focus:bg-white rounded-lg py-2 pl-9 pr-8 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:ring-2 focus:ring-emerald-500/10"
+              className="w-full bg-slate-50/65 border border-slate-200 focus:border-[#10B981] focus:bg-white rounded-lg py-2.5 pl-9 pr-8 text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none transition-all focus:ring-2 focus:ring-emerald-500/10 min-h-[44px]"
               aria-label="Search products"
             />
             {searchVal && (
               <button 
                 onClick={() => handleSearchChange('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-405 hover:text-slate-700 cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-405 hover:text-slate-700 cursor-pointer min-h-[44px]"
                 aria-label="Clear search"
               >
                 <FiX className="w-4 h-4" />
@@ -344,7 +403,7 @@ const Navbar = ({ onToggleSidebar }) => {
                           <button
                             key={idx}
                             onClick={() => selectSuggestion(s)}
-                            className="w-full flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-50 rounded-xl text-slate-700 font-bold transition-all duration-150 cursor-pointer text-left"
+                            className="w-full flex items-center space-x-2 px-2.5 py-2 hover:bg-slate-55 rounded-xl text-slate-705 font-bold transition-all duration-150 cursor-pointer text-left min-h-[40px]"
                           >
                             <FiClock className="w-3.5 h-3.5 text-slate-400" />
                             <span className="truncate">{s}</span>
@@ -360,7 +419,7 @@ const Navbar = ({ onToggleSidebar }) => {
                         <button
                           key={idx}
                           onClick={() => selectSuggestion(tag)}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-105 hover:text-[#10B981] hover:border-slate-300 border border-slate-200 rounded-full text-[10px] font-bold text-slate-700 transition-all duration-200 cursor-pointer active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-105 hover:text-[#10B981] hover:border-slate-300 border border-slate-200 rounded-full text-[10px] font-bold text-slate-707 transition-all duration-200 cursor-pointer active:scale-95 min-h-[36px]"
                         >
                           {tag}
                         </button>
@@ -382,8 +441,8 @@ const Navbar = ({ onToggleSidebar }) => {
                             <button
                               key={cat}
                               onClick={() => selectSuggestion(cat)}
-                              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all duration-150 text-left font-bold cursor-pointer ${
-                                isHighlighted ? 'bg-slate-100 text-[#10B981]' : 'hover:bg-slate-50 text-slate-700'
+                              className={`w-full flex items-center justify-between px-2.5 py-2.5 rounded-xl transition-all duration-150 text-left font-bold cursor-pointer min-h-[40px] ${
+                                isHighlighted ? 'bg-slate-100 text-[#10B981]' : 'hover:bg-slate-50 text-slate-707'
                               }`}
                             >
                               <div className="flex items-center space-x-2">
@@ -410,12 +469,12 @@ const Navbar = ({ onToggleSidebar }) => {
                             <div
                               key={p.id}
                               onClick={() => selectSuggestion(p.name)}
-                              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all duration-150 cursor-pointer ${
+                              className={`w-full flex items-center justify-between px-2.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer min-h-[44px] ${
                                 isHighlighted ? 'bg-slate-105 text-[#10B981]' : 'hover:bg-slate-50'
                               }`}
                             >
                               <div className="flex items-center space-x-3 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                                <div className="w-7 h-7 rounded-lg bg-slate-55 border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
                                   {p.image ? (
                                     <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                                   ) : (
@@ -448,12 +507,12 @@ const Navbar = ({ onToggleSidebar }) => {
         </div>
       )}
 
-      {/* Right icons, cart, notifications, and profile details */}
-      <div className="flex items-center space-x-3.5 ml-auto">
+      {/* Desktop-only right action icons, cart, notifications, and profile details */}
+      <div className="hidden md:flex items-center space-x-3.5 ml-auto">
         
         {/* Date / Greeting */}
         <div className="hidden lg:flex flex-col text-right pr-2">
-          <span className="text-[10px] text-slate-400 font-bold uppercase leading-none">{formattedDate}</span>
+          <span className="text-[10px] text-slate-405 font-bold uppercase leading-none">{formattedDate}</span>
           <span className="text-xs font-semibold text-slate-700 mt-1 capitalize leading-none">Hi, {user.username}!</span>
         </div>
 
@@ -461,7 +520,7 @@ const Navbar = ({ onToggleSidebar }) => {
         {user.role === 'CUSTOMER' && (
           <button
             onClick={() => setIsCartOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white transition-all shadow-sm cursor-pointer active:scale-95 shrink-0"
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white transition-all shadow-sm cursor-pointer active:scale-95 shrink-0 min-h-[44px]"
             title="Shopping Cart"
             aria-label="Shopping Cart"
           >
@@ -473,7 +532,7 @@ const Navbar = ({ onToggleSidebar }) => {
                 </span>
               )}
             </div>
-            <span className="text-xs font-semibold hidden md:inline-block">
+            <span className="text-xs font-semibold">
               {cartCount > 0 ? `₹${cartTotal.toFixed(2)}` : 'Cart'}
             </span>
           </button>
@@ -483,7 +542,7 @@ const Navbar = ({ onToggleSidebar }) => {
         <div ref={notiRef} className="relative">
           <button
             onClick={() => setNotiDropdownOpen(!notiDropdownOpen)}
-            className="relative p-2 rounded-lg bg-white hover:bg-slate-50 text-slate-505 hover:text-slate-800 border border-slate-200 transition-colors cursor-pointer"
+            className="relative p-2.5 rounded-lg bg-white hover:bg-slate-50 text-slate-505 hover:text-slate-800 border border-slate-205 transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Notifications"
             aria-label="Notifications"
             aria-expanded={notiDropdownOpen}
@@ -497,7 +556,7 @@ const Navbar = ({ onToggleSidebar }) => {
           </button>
 
           {notiDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2 text-left">
+            <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2 text-left animate-in fade-in duration-200">
               <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100">
                 <span className="text-xs font-semibold text-slate-800">Notifications</span>
                 {unreadCount > 0 && (
@@ -535,7 +594,7 @@ const Navbar = ({ onToggleSidebar }) => {
                       {!n.is_read && (
                         <button
                           onClick={(e) => handleMarkRead(n.id, e)}
-                          className="text-slate-300 hover:text-[#10B981] p-0.5"
+                          className="text-slate-350 hover:text-[#10B981] p-0.5"
                           aria-label="Mark notification as read"
                         >
                           <FiCheck className="w-3 h-3" />
@@ -555,25 +614,25 @@ const Navbar = ({ onToggleSidebar }) => {
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-            className="flex items-center space-x-1.5 p-1 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+            className="flex items-center space-x-1.5 p-1 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer min-h-[44px]"
             aria-label="User Profile"
             aria-expanded={profileDropdownOpen}
           >
-            <div className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-200">
+            <div className="w-7 h-7 rounded-full bg-slate-55 flex items-center justify-center text-slate-500 border border-slate-200">
               <FiUser className="w-3.5 h-3.5 text-slate-655" />
             </div>
             <FiChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
           </button>
 
           {profileDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 text-left font-medium">
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-205 rounded-lg shadow-lg z-50 py-1 text-left font-medium">
               <div className="px-3.5 py-2 border-b border-slate-100 text-xs">
                 <p className="font-bold text-slate-900 capitalize">{user.username}</p>
                 <span className="text-[9px] font-bold text-slate-400 block uppercase mt-0.5">{user.role}</span>
               </div>
               <button
                 onClick={logout}
-                className="w-full text-left px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2 cursor-pointer font-semibold transition-colors"
+                className="w-full text-left px-3.5 py-2.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2 cursor-pointer font-semibold transition-colors min-h-[40px]"
               >
                 <FiLogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
