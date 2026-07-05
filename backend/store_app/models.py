@@ -247,6 +247,7 @@ class Notification(models.Model):
         ('CLOSING_REMINDER', 'Daily Closing Reminder'),
         ('REPORT_READY', 'Monthly Report Ready'),
         ('EXPIRY_ALERT', 'Product Expiry Alert'),
+        ('ORDER_RECEIVED', 'Order Received Alert'),
     )
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     message = models.TextField()
@@ -273,6 +274,44 @@ class Invoice(models.Model):
 
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
+    quantity = models.IntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # Retail selling price inclusive of GST
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)  # e.g. 18.00
+    cgst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    sgst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # quantity * unit_price
+
+    def __str__(self):
+        return f"{self.product.name if self.product else 'Deleted Product'} (Qty: {self.quantity})"
+
+
+class Order(models.Model):
+    STATUS_CHOICES = (
+        ('ORDER_RECEIVED', 'Order Received'),
+        ('PREPARING', 'Preparing'),
+        ('READY', 'Ready for Pickup'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    )
+    order_number = models.CharField(max_length=50, unique=True)
+    customer = models.ForeignKey(KhataProfile, on_delete=models.CASCADE, related_name='orders')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ORDER_RECEIVED')
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    cgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    sgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    redeemed_points = models.IntegerField(default=0)
+    redeem_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.order_number} ({self.get_status_display()})"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
     quantity = models.IntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # Retail selling price inclusive of GST

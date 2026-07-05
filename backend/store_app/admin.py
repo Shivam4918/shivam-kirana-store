@@ -4,7 +4,7 @@ from .models import (
     CustomUser, Product, KhataProfile, Transaction, Expense, Supplier, 
     SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, 
     PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration,
-    ProductReview, WishlistItem, PromotionalBanner, StoreConfig
+    ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem
 )
 
 @admin.register(CustomUser)
@@ -91,6 +91,26 @@ class InvoiceAdmin(admin.ModelAdmin):
 class InvoiceItemAdmin(admin.ModelAdmin):
     list_display = ('invoice', 'product', 'quantity', 'unit_price', 'gst_rate', 'total_amount')
     search_fields = ('invoice__invoice_number', 'product__name')
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('order_number', 'customer', 'status', 'subtotal', 'cgst_total', 'sgst_total', 'grand_total', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('order_number', 'customer__user__username')
+    inlines = [OrderItemInline]
+    ordering = ('-created_at',)
+
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = ('order', 'product', 'quantity', 'unit_price', 'total_amount')
+    search_fields = ('order__order_number', 'product__name')
 
 @admin.register(PaymentRequest)
 class PaymentRequestAdmin(admin.ModelAdmin):

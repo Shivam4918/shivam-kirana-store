@@ -863,3 +863,52 @@ class StoreBackendTests(TestCase):
 
         pending = PendingRegistration.objects.get(username='to_cancel')
         self.assertEqual(pending.status, 'cancelled')
+
+    def test_order_placement_pickup_workflow(self):
+        """Verify that placing a pickup order correctly creates Order/OrderItem, deducts stock, and sends notifications."""
+        from .models import Order, OrderItem, Notification, Invoice, Transaction
+        
+        # Unlock customer profile for testing
+        self.customer.khata_profile.is_accessible_by_customer = True
+        self.customer.khata_profile.save()
+
+        self.client.force_authenticate(user=self.customer)
+        
+        # Verify initial stock
+        self.assertEqual(self.product.stock_quantity, 100)
+
+        # Place order via API
+        payload = {
+            'items': [
+                {'product_id': self.product.id, 'quantity': 5}
+            ]
+        }
+        
+        response = self.client.post('/api/orders/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('order_number', response.data)
+        
+        # Verify Order & OrderItem were saved
+        order = Order.objects.filter(order_number=response.data['order_number']).first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.status, 'ORDER_RECEIVED')
+        self.assertEqual(order.grand_total, Decimal('237.50'))
+
+        order_item = OrderItem.objects.filter(order=order).first()
+        self.assertIsNotNone(order_item)
+        self.assertEqual(order_item.product, self.product)
+        self.assertEqual(order_item.quantity, 5)
+
+        # Verify stock was decremented
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock_quantity, 95)
+
+        # Verify NO Invoice or Transaction is created (ledger and billing remain untouched)
+        self.assertFalse(Invoice.objects.filter(invoice_number=order.order_number).exists())
+        self.assertEqual(Transaction.objects.filter(khata_profile=self.customer.khata_profile).count(), 0)
+        
+        # Verify admin notification was created
+        admin_notifications = Notification.objects.filter(user=self.admin, notification_type='ORDER_RECEIVED')
+        self.assertTrue(admin_notifications.exists())
+        self.assertIn(order.order_number, admin_notifications.first().message)
+

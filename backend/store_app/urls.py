@@ -11,7 +11,7 @@ from .views import (
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
     CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView,
     WishlistViewSet, PromotionalBannerViewSet, StoreConfigViewSet, CustomerDashboardSummaryView,
-    LogoutView
+    LogoutView, OrderViewSet
 )
 
 router = DefaultRouter()
@@ -28,6 +28,7 @@ router.register(r'admin/expiry-batches', ExpiryBatchViewSet, basename='admin-exp
 router.register(r'wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'banners', PromotionalBannerViewSet, basename='banners')
 router.register(r'configs', StoreConfigViewSet, basename='configs')
+router.register(r'orders', OrderViewSet, basename='orders')
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),

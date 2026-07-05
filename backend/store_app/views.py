@@ -9,12 +9,13 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, ProductReview, WishlistItem, PromotionalBanner, StoreConfig
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
     ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
     InvoiceSerializer, InvoiceItemSerializer, PaymentRequestSerializer, WhatsAppLogSerializer,
-    ExpiryBatchSerializer, ProductReviewSerializer, WishlistItemSerializer, PromotionalBannerSerializer, StoreConfigSerializer
+    ExpiryBatchSerializer, ProductReviewSerializer, WishlistItemSerializer, PromotionalBannerSerializer, StoreConfigSerializer,
+    OrderSerializer, OrderItemSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
 from django.http import HttpResponse
@@ -2003,6 +2004,179 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
             return response
         except Exception as e:
             return Response({"detail": f"Failed to generate invoice PDF: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = Order.objects.select_related('customer__user').prefetch_related(
+            'items__product'
+        ).order_by('-created_at')
+        if user.role == 'ADMIN':
+            return base_qs
+        return base_qs.filter(customer__user=user)
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        if user.role != 'CUSTOMER':
+            return Response({"detail": "Only customers can place pickup orders."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            profile = user.khata_profile
+        except KhataProfile.DoesNotExist:
+            return Response({"detail": "Khata profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        items_data = request.data.get('items', [])
+        redeem_opt = request.data.get('redeem_points', False)
+
+        if not items_data:
+            return Response({"detail": "No items in cart."}, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_items = []
+        try:
+            with db_transaction.atomic():
+                # Lock profile at start of transaction to prevent race conditions
+                locked_profile = KhataProfile.objects.select_for_update().get(pk=profile.pk)
+                
+                cart_total = Decimal('0.00')
+                for item in items_data:
+                    product_id = item.get('product_id')
+                    qty = item.get('quantity')
+                    if not product_id:
+                        return Response({"detail": "Product ID is required for all items."}, status=status.HTTP_400_BAD_REQUEST)
+                    try:
+                        quantity = int(qty)
+                        if quantity <= 0:
+                            raise ValueError()
+                    except (ValueError, TypeError):
+                        return Response({"detail": "Quantity must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    try:
+                        product = Product.objects.select_for_update().get(pk=product_id)
+                    except Product.DoesNotExist:
+                        return Response({"detail": f"Product with ID {product_id} not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    if product.stock_quantity < quantity:
+                        return Response({"detail": f"Insufficient stock for {product.name}. Available: {product.stock_quantity}"}, status=status.HTTP_400_BAD_REQUEST)
+
+                    validated_items.append((product, quantity))
+                    cart_total += product.price * quantity
+
+                # 5% savings logic
+                promotional_savings = cart_total * Decimal('0.05')
+                cart_total_after_savings = cart_total - promotional_savings
+
+                # Calculate points to redeem
+                redeemed_points = 0
+                redeem_discount = Decimal('0.00')
+                if redeem_opt and locked_profile.loyalty_points > 0:
+                    redeemed_points = min(locked_profile.loyalty_points, int(cart_total_after_savings))
+                    redeem_discount = Decimal(str(redeemed_points))
+
+                final_order_total = cart_total_after_savings - redeem_discount
+
+                # Generate sequential order number: SK-ORD-YYYYMMDD-XXXX
+                today_str = timezone.localtime(timezone.now()).strftime('%Y%m%d')
+                order_count_today = Order.objects.filter(order_number__startswith=f"SK-ORD-{today_str}-").count()
+                order_number = f"SK-ORD-{today_str}-{(order_count_today + 1):04d}"
+
+                order = Order.objects.create(
+                    order_number=order_number,
+                    customer=locked_profile,
+                    subtotal=Decimal('0.00'),
+                    cgst_total=Decimal('0.00'),
+                    sgst_total=Decimal('0.00'),
+                    grand_total=Decimal('0.00'),
+                    redeemed_points=redeemed_points,
+                    redeem_discount=redeem_discount
+                )
+
+                subtotal_sum = Decimal('0.00')
+                cgst_sum = Decimal('0.00')
+                sgst_sum = Decimal('0.00')
+                grand_total_sum = Decimal('0.00')
+
+                for product, quantity in validated_items:
+                    unit_price = product.price
+                    total_item_inclusive = unit_price * quantity
+                    gst_rate = product.gst_rate
+
+                    # Backwards base taxable value & GST computation
+                    taxable_value = total_item_inclusive / (Decimal('1.00') + gst_rate / Decimal('100.00'))
+                    gst_total_item = total_item_inclusive - taxable_value
+                    cgst_amount = gst_total_item / Decimal('2.00')
+                    sgst_amount = gst_total_item / Decimal('2.00')
+
+                    # Quantize to 2 decimals
+                    taxable_value = taxable_value.quantize(Decimal('0.01'))
+                    cgst_amount = cgst_amount.quantize(Decimal('0.01'))
+                    sgst_amount = sgst_amount.quantize(Decimal('0.01'))
+                    total_item_inclusive = total_item_inclusive.quantize(Decimal('0.01'))
+
+                    OrderItem.objects.create(
+                        order=order,
+                        product=product,
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        gst_rate=gst_rate,
+                        cgst_amount=cgst_amount,
+                        sgst_amount=sgst_amount,
+                        total_amount=total_item_inclusive
+                    )
+
+                    subtotal_sum += taxable_value
+                    cgst_sum += cgst_amount
+                    sgst_sum += sgst_amount
+                    grand_total_sum += total_item_inclusive
+
+                    # Decrement product inventory
+                    product.stock_quantity -= quantity
+                    product.save(update_fields=['stock_quantity'])
+
+                # Apply points deduction on profile
+                if redeemed_points > 0:
+                    locked_profile.loyalty_points -= redeemed_points
+                    locked_profile.points_redeemed += redeemed_points
+                    locked_profile.save(update_fields=['loyalty_points', 'points_redeemed'])
+
+                # Update order final numbers
+                order.subtotal = subtotal_sum - (promotional_savings / (Decimal('1.00') + Decimal('18.00') / Decimal('100.00'))).quantize(Decimal('0.01'))
+                order.cgst_total = cgst_sum
+                order.sgst_total = sgst_sum
+                order.grand_total = final_order_total
+                order.save()
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Notify the admin
+        from store_app.utils.notifications import notify_admin
+        notify_admin(
+            f"New Order {order_number} received from customer '{user.username}' for ₹{final_order_total}.",
+            'ORDER_RECEIVED'
+        )
+
+        # Trigger WhatsApp notification (with fallback to synchronous if queue is down)
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
+            profile.id,
+            'TRANSACTION_ALERT',
+            {
+                'transaction_type': 'ORDER_RECEIVED',
+                'amount': float(final_order_total),
+                'description': f"Pickup order {order_number} has been received."
+            }
+        )
+
+        return Response({
+            "detail": "Order received successfully.",
+            "order_number": order_number,
+            "order_id": order.id,
+            "grand_total": float(final_order_total)
+        }, status=status.HTTP_201_CREATED)
 
 
 class GSTSummaryView(APIView):

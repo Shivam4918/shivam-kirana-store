@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration, ProductReview, WishlistItem, PromotionalBanner, StoreConfig
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration, ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem
 
 User = get_user_model()
 
@@ -514,4 +514,24 @@ class StoreConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreConfig
         fields = '__all__'
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    hsn_code = serializers.CharField(source='product.hsn_code', read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    customer_username = serializers.CharField(source='customer.user.username', read_only=True)
+    customer_phone = serializers.CharField(source='customer.user.phone_number', read_only=True)
+
+    class Meta:
+        model = Order
+        fields = '__all__'
+
 

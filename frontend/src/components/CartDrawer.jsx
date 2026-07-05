@@ -27,6 +27,7 @@ const CartDrawer = () => {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [summaryData, setSummaryData] = useState(null);
+  const [placedOrder, setPlacedOrder] = useState(null);
 
   // Fetch latest loyalty points and credit balances when cart opens
   useEffect(() => {
@@ -50,26 +51,27 @@ const CartDrawer = () => {
         quantity: item.quantity
       }));
 
-      await api.post('/khata/checkout/', {
+      const res = await api.post('/orders/', {
         items: itemsPayload,
         redeem_points: redeemPoints
       });
 
+      setPlacedOrder(res.data);
       setSuccess(true);
       clearCart();
-      // Wait 1.5s to show success state, then reload page to update all dashboard details
-      setTimeout(() => {
-        setIsCartOpen(false);
-        setSuccess(false);
-        window.location.reload();
-      }, 1500);
-
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.detail || 'Checkout failed. Please try again.');
+      setErrorMsg(err.response?.data?.detail || 'Order placement failed. Please try again.');
     } finally {
       setCheckingOut(false);
     }
+  };
+
+  const handleDone = () => {
+    setIsCartOpen(false);
+    setSuccess(false);
+    setPlacedOrder(null);
+    window.location.reload();
   };
 
   const loyaltyPoints = summaryData?.loyalty_points || 0;
@@ -114,14 +116,54 @@ const CartDrawer = () => {
         {/* Content area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
           {success ? (
-            <div className="py-16 text-center space-y-4">
-              <div className="w-12 h-12 bg-emerald-50 text-[#10B981] rounded-full flex items-center justify-center border border-emerald-100 mx-auto">
-                <FiCheckCircle className="w-6 h-6" />
+            <div className="py-12 px-2 text-center space-y-6 animate-in fade-in duration-300">
+              <div className="w-16 h-16 bg-emerald-50 text-[#10B981] rounded-full flex items-center justify-center border border-emerald-100 mx-auto animate-bounce">
+                <FiCheckCircle className="w-8 h-8" />
               </div>
-              <h4 className="font-semibold text-slate-900 text-sm">Order Dispatched Successfully!</h4>
-              <p className="text-xs text-slate-400 leading-normal max-w-xs mx-auto">
-                Your transaction has been recorded in your Digital Khata ledger book.
-              </p>
+              
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 text-base">Order Placed Successfully!</h4>
+                <p className="text-xs text-slate-550 max-w-xs mx-auto leading-relaxed">
+                  Your order is registered and inventory is reserved. Our team is preparing your items for pickup.
+                </p>
+              </div>
+
+              {placedOrder && (
+                <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-4.5 text-xs text-left space-y-3 font-medium">
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-200/50">
+                    <span className="text-slate-400">Order Number</span>
+                    <span className="font-extrabold text-slate-900 font-mono">{placedOrder.order_number}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-200/50">
+                    <span className="text-slate-400">Status</span>
+                    <span className="bg-amber-50 text-amber-600 border border-amber-100 font-extrabold px-2 py-0.5 rounded text-[10px] uppercase font-mono">
+                      Order Received
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pb-2.5 border-b border-slate-200/50">
+                    <span className="text-slate-400">Pickup Location</span>
+                    <span className="text-slate-800 font-bold">HSR Layout, Bangalore</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-0.5">
+                    <span className="text-slate-450 font-bold">Total Due at Pickup</span>
+                    <span className="text-sm font-extrabold text-slate-955 font-mono">₹{placedOrder.grand_total.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-emerald-50/30 border border-dashed border-emerald-200/60 rounded-xl p-4 text-[11px] text-emerald-800 leading-relaxed text-left flex items-start space-x-2">
+                <FiInfo className="w-4 h-4 text-[#10B981] shrink-0 mt-0.5" />
+                <span>
+                  <strong>Pay at Pickup:</strong> Payment will be settled when you collect your order. You can pay via UPI QR, cash, or credit ledger at the store counter.
+                </span>
+              </div>
+
+              <button
+                onClick={handleDone}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all active:scale-[0.98] cursor-pointer text-xs"
+              >
+                Continue Shopping
+              </button>
             </div>
           ) : cart.length === 0 ? (
             <div className="py-20 text-center space-y-3.5">
@@ -294,7 +336,7 @@ const CartDrawer = () => {
 
 
                 <div className="flex justify-between items-center text-sm font-bold text-slate-900 border-t border-slate-100 pt-2">
-                  <span>Grand Total (Khata Due)</span>
+                  <span>Grand Total</span>
                   <span className="font-mono text-base">₹{finalBillAmount.toFixed(2)}</span>
                 </div>
               </div>
@@ -315,20 +357,20 @@ const CartDrawer = () => {
           <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/50">
             <button
               onClick={handleCheckout}
-              disabled={checkingOut || isOverCreditLimit}
+              disabled={checkingOut}
               className="w-full bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-colors cursor-pointer text-xs sm:text-sm"
             >
               {checkingOut ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <span>Checkout on Digital Khata</span>
+                  <span>Place Pickup Order</span>
                   <span>&rarr;</span>
                 </>
               )}
             </button>
             <p className="text-[9.5px] text-slate-400 text-center mt-2.5 leading-normal">
-              Purchases are added immediately to your outstanding credit book statement. Settle online anytime.
+              No immediate payment required. Items will be reserved and prepared for pickup. Payment completed at store.
             </p>
           </div>
         )}
