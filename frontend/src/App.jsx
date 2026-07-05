@@ -6,7 +6,7 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import CartDrawer from './components/CartDrawer';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 
 // Lazy load Pages for bundle chunk splitting
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
@@ -27,11 +27,13 @@ const OrderManagement = React.lazy(() => import('./pages/OrderManagement'));
 
 
 const AppLayout = () => {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#111827]">
-      <Navbar />
+      <Navbar onToggleSidebar={() => setMobileSidebarOpen(prev => !prev)} />
       <div className="flex-1 flex flex-col md:flex-row">
-        <Sidebar />
+        <Sidebar isOpenOnMobile={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
         <main className="flex-1 flex flex-col bg-slate-50/50">
           <Outlet />
         </main>

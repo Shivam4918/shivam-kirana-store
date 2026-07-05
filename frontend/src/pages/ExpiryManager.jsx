@@ -233,7 +233,7 @@ const ExpiryManager = () => {
           <button
             onClick={handleTriggerScan}
             disabled={scanning}
-            className="flex items-center gap-1.5 bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-3 py-2 rounded-lg shadow-sm transition-all cursor-pointer text-xs active:scale-95 disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-3 py-2 rounded-lg shadow-sm transition-all cursor-pointer text-xs active:scale-95 disabled:opacity-50 min-h-[44px]"
           >
             <FiZap className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
             <span>{scanning ? 'Scanning...' : 'Run Scan'}</span>

@@ -210,10 +210,10 @@ const ProductManagement = () => {
           <p className="text-slate-500 text-xs sm:text-sm mt-1.5 font-medium">Manage products, modify prices, restock units, and scan barcodes.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <button
             onClick={openScanToFind}
-            className="flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-205 text-slate-750 font-semibold px-3.5 py-2 rounded-lg shadow-sm transition-all cursor-pointer text-xs active:scale-95"
+            className="flex items-center justify-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-205 text-slate-755 font-semibold px-3.5 py-2 rounded-lg shadow-sm transition-all cursor-pointer text-xs active:scale-95 min-h-[44px]"
             title="Scan a barcode to instantly find & edit a product"
           >
             <FiZap className="w-3.5 h-3.5 text-[#10B981]" />
@@ -222,7 +222,7 @@ const ProductManagement = () => {
 
           <button
             onClick={openAddModal}
-            className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95"
+            className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95 min-h-[44px]"
           >
             <FiPlus className="w-4 h-4" />
             <span>Add Catalog Item</span>

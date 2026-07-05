@@ -1269,7 +1269,7 @@ const CustomerDashboard = () => {
                         setSettleAmount(balance.toFixed(2));
                         setShowSettlementModal(true);
                       }}
-                      className="text-[9px] bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-2.5 py-1 rounded-lg transition-colors cursor-pointer active:scale-95 shadow-xs"
+                      className="text-[10px] bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-3 py-2 rounded-lg transition-colors cursor-pointer active:scale-95 shadow-xs min-h-[44px] flex items-center justify-center"
                     >
                       Pay Now
                     </button>
@@ -1752,7 +1752,7 @@ const CustomerDashboard = () => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 shadow-xs ${
+                  className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 shadow-xs min-h-[44px] flex items-center justify-center ${
                     selectedCategory === cat
                       ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                       : 'bg-white text-slate-500 hover:text-slate-850 border-slate-200/85 hover:border-slate-300 hover:bg-slate-50/40'
@@ -1766,7 +1766,7 @@ const CustomerDashboard = () => {
 
           {/* Product Cards Catalog Grid */}
           {productsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="bg-white border border-slate-100 rounded-2xl p-5 h-[340px] shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] animate-pulse flex flex-col justify-between">
                   <div className="w-full h-40 bg-slate-100/70 rounded-xl"></div>
@@ -1782,7 +1782,7 @@ const CustomerDashboard = () => {
               ))}
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filteredProducts.map((p) => {
                 const {
                   discountPercent,

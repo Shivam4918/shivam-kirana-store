@@ -293,7 +293,7 @@ const SupplierManagement = () => {
 
         <button
           onClick={openAddSupplierModal}
-          className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95"
+          className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95 min-h-[44px]"
         >
           <FiPlus className="w-4 h-4" />
           <span>Add Supplier</span>
@@ -336,7 +336,7 @@ const SupplierManagement = () => {
             </div>
             <button
               type="submit"
-              className="bg-white hover:bg-slate-50 text-slate-705 border border-slate-200 px-4.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition-all cursor-pointer active:scale-95"
+              className="bg-white hover:bg-slate-50 text-slate-705 border border-slate-200 px-4.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition-all cursor-pointer active:scale-95 min-h-[44px] flex items-center justify-center"
             >
               Search
             </button>

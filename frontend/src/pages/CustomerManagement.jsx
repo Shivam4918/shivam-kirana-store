@@ -323,7 +323,7 @@ const CustomerManagement = () => {
             </div>
             <button
               type="submit"
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-sm active:scale-95 min-h-[44px] flex items-center justify-center"
             >
               Search
             </button>

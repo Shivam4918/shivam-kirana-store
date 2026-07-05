@@ -538,7 +538,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
       {/* Floating Home Link */}
       <Link 
         to="/" 
-        className="absolute top-6 left-6 flex items-center space-x-1.5 text-slate-600 hover:text-slate-900 font-semibold text-xs bg-white border border-slate-250/50 hover:bg-slate-50 px-3.5 py-2 rounded-lg shadow-sm transition-all z-20"
+        className="absolute top-4 left-4 xs:top-6 xs:left-6 flex items-center space-x-1.5 text-slate-600 hover:text-slate-900 font-semibold text-xs bg-white border border-slate-250/50 hover:bg-slate-50 px-3.5 py-2.5 rounded-lg shadow-sm transition-all z-20 min-h-[44px]"
       >
         <FiHome className="w-3.5 h-3.5" />
         <span>Back to Home</span>
@@ -559,7 +559,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
         <div className="flex bg-slate-50 border border-slate-200/60 p-1.5 rounded-xl mb-6">
           <button
             onClick={() => { setActiveTab('login'); setErrorMsg(''); setSuccessMsg(''); }}
-            className={`w-1/2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${
+            className={`w-1/2 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer min-h-[44px] flex items-center justify-center ${
               activeTab === 'login'
                 ? 'bg-white text-slate-900 border border-slate-200/50 shadow-sm'
                 : 'text-slate-400 hover:text-slate-900'
@@ -569,7 +569,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
           </button>
           <button
             onClick={() => { setActiveTab('register'); setErrorMsg(''); setSuccessMsg(''); }}
-            className={`w-1/2 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer ${
+            className={`w-1/2 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 cursor-pointer min-h-[44px] flex items-center justify-center ${
               activeTab === 'register'
                 ? 'bg-white text-slate-900 border border-slate-200/50 shadow-sm'
                 : 'text-slate-400 hover:text-slate-900'
@@ -674,7 +674,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-sm"
+              className="w-full mt-2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-sm min-h-[44px]"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -945,7 +945,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
             <button
               type="submit"
               disabled={isRegisterDisabled}
-              className="w-full mt-2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-sm"
+              className="w-full mt-2 bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-sm min-h-[44px]"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1002,7 +1002,7 @@ const LoginPage = ({ defaultTab = 'login' }) => {
               <button
                 type="submit"
                 disabled={otpLoading}
-                className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-sm"
+                className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-sm min-h-[44px]"
               >
                 {otpLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -5,7 +5,7 @@ import { CartContext } from '../context/CartContext';
 import { useRealTime } from '../context/RealTimeContext';
 import { 
   FiLogOut, FiUser, FiShoppingBag, FiBell, FiCheck, 
-  FiAlertTriangle, FiInfo, FiShoppingCart, FiSearch, FiMapPin, FiChevronDown, FiClock, FiX 
+  FiAlertTriangle, FiInfo, FiShoppingCart, FiSearch, FiMapPin, FiChevronDown, FiClock, FiX, FiMenu
 } from 'react-icons/fi';
 import api from '../services/api';
 
@@ -18,7 +18,7 @@ const cleanPhoneForWhatsApp = (phone) => {
   return cleaned;
 };
 
-const Navbar = () => {
+const Navbar = ({ onToggleSidebar }) => {
   const { user, logout } = useContext(AuthContext);
   const { cartCount, cartTotal, setIsCartOpen } = useContext(CartContext);
   const navigate = useNavigate();
@@ -266,27 +266,36 @@ const Navbar = () => {
   });
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 sm:px-6 py-3 flex items-center justify-between shadow-sm">
+    <nav className="sticky top-0 z-[40] w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 sm:px-6 py-3 flex items-center justify-between shadow-sm">
       
       {/* Brand logo & location details */}
-      <div className="flex items-center space-x-3 sm:space-x-5 shrink-0">
-        <Link to="/" className="flex items-center space-x-2.5">
-          <div className="bg-[#10B981] p-2 rounded-lg text-white shadow-sm flex items-center justify-center">
-            <FiShoppingBag className="w-5 h-5" />
+      <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
+        {user && (
+          <button
+            onClick={onToggleSidebar}
+            className="p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors md:hidden cursor-pointer flex items-center justify-center shrink-0 min-w-[44px] min-h-[44px]"
+            title="Toggle Menu"
+            aria-label="Toggle Menu"
+          >
+            <FiMenu className="w-5 h-5" />
+          </button>
+        )}
+        <Link to="/" className="flex items-center space-x-2">
+          <div className="bg-[#10B981] p-1.5 rounded-lg text-white shadow-sm flex items-center justify-center">
+            <FiShoppingBag className="w-4 h-4" />
           </div>
           <div className="flex flex-col text-left">
-            <h1 className="font-extrabold text-xs sm:text-sm md:text-base tracking-tight text-slate-900 leading-none">
-              Shivam <span className="text-[#10B981]">Kirana Store</span>
+            <h1 className="font-extrabold text-[11px] sm:text-sm tracking-tight text-slate-900 leading-none">
+              Shivam <span className="text-[#10B981]">Kirana</span>
             </h1>
-            <p className="text-[9px] text-slate-400 mt-1 font-medium tracking-wide">Smart Retail ERP</p>
+            <p className="text-[8px] text-slate-400 mt-0.5 font-medium tracking-wide hidden xs:block">Smart Retail ERP</p>
           </div>
         </Link>
-        
       </div>
 
       {/* Central search bar with dynamic autocomplete suggestions */}
       {user.role === 'CUSTOMER' && (
-        <div ref={searchContainerRef} className="flex-1 max-w-lg mx-4 sm:mx-8 relative hidden sm:block">
+        <div ref={searchContainerRef} className="flex-1 max-w-[130px] xs:max-w-[200px] sm:max-w-lg mx-2 sm:mx-8 relative">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#10B981]">
               {searchLoading ? (

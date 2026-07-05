@@ -176,7 +176,7 @@ const ExpenseManagement = () => {
 
         <button
           onClick={openAddModal}
-          className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95"
+          className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center space-x-1.5 shadow-sm transition-colors cursor-pointer text-xs sm:text-sm active:scale-95 min-h-[44px]"
         >
           <FiPlus className="w-4 h-4" />
           <span>Record Expense</span>
