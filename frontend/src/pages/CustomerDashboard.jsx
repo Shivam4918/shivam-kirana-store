@@ -2262,51 +2262,7 @@ const CustomerDashboard = () => {
         <FaWhatsapp className="w-5 h-5" />
       </a>
 
-      {/* Mobile Sticky Bottom Navigation Menu */}
-      <div className="block md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200/80 z-40 py-2.5 px-4 flex justify-between shadow-md">
-        <button
-          onClick={() => {
-            setMobileTab('home');
-            window.history.pushState({}, '', '/dashboard');
-            const event = new PopStateEvent('popstate');
-            window.dispatchEvent(event);
-          }}
-          className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
-            mobileTab === 'home' && !isKhataView ? 'text-[#10B981] font-bold' : 'text-slate-400'
-          }`}
-        >
-          <FiHome className="w-5 h-5" />
-          <span className="text-[10px] mt-1 font-medium">Home</span>
-        </button>
 
-        <button
-          onClick={() => setIsCartOpen(true)}
-          className="flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors relative text-slate-400"
-        >
-          <FiShoppingCart className="w-5 h-5" />
-          {cartCount > 0 && (
-            <span className="absolute top-0 right-5 bg-rose-500 text-white rounded-full text-[8.5px] font-extrabold w-4 h-4 flex items-center justify-center font-mono">
-              {cartCount}
-            </span>
-          )}
-          <span className="text-[10px] mt-1 font-medium">Cart</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setMobileTab('khata');
-            window.history.pushState({}, '', '/dashboard/khata');
-            const event = new PopStateEvent('popstate');
-            window.dispatchEvent(event);
-          }}
-          className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
-            isKhataView ? 'text-[#10B981] font-bold' : 'text-slate-400'
-          }`}
-        >
-          <FiBookOpen className="w-5 h-5" />
-          <span className="text-[10px] mt-1 font-medium">Khata</span>
-        </button>
-      </div>
 
       {/* 1. Product Quick View Modal */}
       {quickViewProduct && (

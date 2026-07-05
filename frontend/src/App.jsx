@@ -1,12 +1,14 @@
-import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 import { RealTimeProvider } from './context/RealTimeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import CartDrawer from './components/CartDrawer';
+import { CartProvider, CartContext } from './context/CartContext';
+import { FiShoppingBag, FiBookOpen, FiClock, FiShoppingCart } from 'react-icons/fi';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useContext } from 'react';
 
 // Lazy load Pages for bundle chunk splitting
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
@@ -28,9 +30,16 @@ const OrderManagement = React.lazy(() => import('./pages/OrderManagement'));
 
 const AppLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { user } = useContext(AuthContext);
+  const { cartCount, setIsCartOpen } = useContext(CartContext);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isCustomer = user && user.role === 'CUSTOMER';
+  const currentPath = location.pathname;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#111827]">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#111827] pb-16 md:pb-0">
       <Navbar onToggleSidebar={() => setMobileSidebarOpen(prev => !prev)} />
       <div className="flex-1 flex flex-col md:flex-row">
         <Sidebar isOpenOnMobile={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
@@ -39,11 +48,59 @@ const AppLayout = () => {
         </main>
       </div>
       <CartDrawer />
+
+      {/* Mobile Sticky Bottom Navigation Menu for Customer */}
+      {isCustomer && (
+        <div className="block md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200/80 z-40 py-2.5 px-4 flex justify-between shadow-md">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
+              currentPath === '/dashboard' ? 'text-[#10B981] font-bold' : 'text-slate-450'
+            }`}
+          >
+            <FiShoppingBag className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-semibold">Store</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/dashboard/khata')}
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
+              currentPath === '/dashboard/khata' ? 'text-[#10B981] font-bold' : 'text-slate-455'
+            }`}
+          >
+            <FiBookOpen className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-semibold">Khata</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/dashboard/orders')}
+            className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors ${
+              currentPath === '/dashboard/orders' ? 'text-[#10B981] font-bold' : 'text-slate-455'
+            }`}
+          >
+            <FiClock className="w-5 h-5" />
+            <span className="text-[10px] mt-1 font-semibold">Orders</span>
+          </button>
+
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors relative text-slate-455"
+          >
+            <FiShoppingCart className="w-5 h-5" />
+            {cartCount > 0 && (
+              <span className="absolute top-0 right-5 bg-rose-500 text-white rounded-full text-[8.5px] font-extrabold w-4 h-4 flex items-center justify-center font-mono">
+                {cartCount}
+              </span>
+            )}
+            <span className="text-[10px] mt-1 font-semibold">Cart</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-import { CartProvider } from './context/CartContext';
+
 
 function App() {
   return (
