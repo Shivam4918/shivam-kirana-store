@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import CartDrawer from './components/CartDrawer';
-import { FiHome, FiShoppingCart, FiClock, FiBookOpen, FiUser, FiX, FiLogOut, FiPieChart, FiHeart } from 'react-icons/fi';
+import { FiHome, FiShoppingCart, FiPackage, FiBookOpen, FiUser, FiX, FiLogOut, FiPieChart, FiHeart } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import React, { Suspense, useState, useContext } from 'react';
@@ -82,7 +82,7 @@ const AppLayout = () => {
               location.pathname === '/dashboard/orders' ? 'text-[#10B981] font-bold' : 'text-slate-405'
             }`}
           >
-            <FiClock className="w-5 h-5" />
+            <FiPackage className="w-5 h-5" />
             <span className="text-[10px] mt-1 font-semibold">Orders</span>
           </button>
 

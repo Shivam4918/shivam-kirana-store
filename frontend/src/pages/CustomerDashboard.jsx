@@ -1105,91 +1105,91 @@ const CustomerDashboard = () => {
 
       {/* ── PERSONALIZED WELCOME CARD ── */}
       {!summaryLoading && summary && (
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-800 text-white rounded-3xl p-5 sm:p-7 shadow-xl relative overflow-hidden border border-slate-800 text-left animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-800 text-white rounded-3xl p-4 sm:p-7 shadow-xl relative overflow-hidden border border-slate-800 text-left animate-in fade-in slide-in-from-top-4 duration-300">
           
           {/* Subtle grid pattern or shapes in background for premium look */}
           <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
           <div className="absolute left-1/3 bottom-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mb-8 pointer-events-none" />
 
-          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-5">
             
             {/* Left section: Greeting */}
-            <div className="space-y-1.5 max-w-xl">
-              <span className="bg-emerald-500/25 border border-emerald-400/20 text-emerald-300 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-widest font-sans inline-flex items-center space-x-1">
+            <div className="space-y-1 max-w-xl">
+              <span className="bg-emerald-500/25 border border-emerald-400/20 text-emerald-300 px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase tracking-widest inline-flex items-center space-x-1">
                 <FiStar className="w-2.5 h-2.5 text-emerald-400 fill-current animate-pulse" />
                 <span>Premium Customer Dashboard</span>
               </span>
               
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white mt-1">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white mt-0.5">
                 {getGreeting()}, <span className="text-emerald-400 capitalize">{user?.username || 'Valued Customer'}</span>!
               </h1>
               
-              <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed">
+              <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed hidden sm:block">
                 We're glad to have you back at Shivam Kirana Store. Here is your shopping profile status and credit summaries at a glance.
               </p>
               
               {/* Compact Quick Actions Row */}
-              <div className="flex flex-wrap gap-2.5 pt-3">
+              <div className="flex flex-wrap gap-2 pt-2">
                 <button
                   onClick={() => handleQuickAction('buy-again')}
-                  className="bg-white/10 hover:bg-white/20 hover:text-[#10B981] text-white border border-white/10 hover:border-[#10B981]/25 font-extrabold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1.5"
+                  className="bg-white/10 hover:bg-white/20 hover:text-[#10B981] text-white border border-white/10 hover:border-[#10B981]/25 font-extrabold text-[10px] sm:text-xs px-3 py-1 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1"
                   title="Scroll to reorder section"
                 >
-                  <FiRefreshCw className="w-3.5 h-3.5 text-emerald-450 shrink-0" />
+                  <FiRefreshCw className="w-3 h-3 text-emerald-455 shrink-0" />
                   <span>Buy Again</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('wishlist')}
-                  className="bg-white/10 hover:bg-white/20 hover:text-rose-400 text-white border border-white/10 hover:border-rose-500/25 font-extrabold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1.5"
+                  className="bg-white/10 hover:bg-white/20 hover:text-rose-400 text-white border border-white/10 hover:border-rose-500/25 font-extrabold text-[10px] sm:text-xs px-3 py-1 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1"
                   title="Open wishlist drawer"
                 >
-                  <FiHeart className="w-3.5 h-3.5 text-rose-455 shrink-0" />
+                  <FiHeart className="w-3 h-3 text-rose-455 shrink-0" />
                   <span>Wishlist</span>
                 </button>
                 <button
                   onClick={() => handleQuickAction('scan-barcode')}
-                  className="bg-white/10 hover:bg-white/20 hover:text-blue-400 text-white border border-white/10 hover:border-blue-500/25 font-extrabold text-[10px] sm:text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1.5"
+                  className="bg-white/10 hover:bg-white/20 hover:text-blue-400 text-white border border-white/10 hover:border-blue-500/25 font-extrabold text-[10px] sm:text-xs px-3 py-1 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 flex items-center space-x-1"
                   title="Open barcode scanner camera"
                 >
-                  <FiMaximize className="w-3.5 h-3.5 text-blue-455 shrink-0" />
+                  <FiMaximize className="w-3 h-3 text-blue-455 shrink-0" />
                   <span>Scan Barcode</span>
                 </button>
               </div>
             </div>
 
             {/* Right section: Glassmorphic summary grid */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full lg:w-[48%] xl:w-[45%] shrink-0">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 w-full lg:w-[48%] xl:w-[45%] shrink-0">
               
               {/* Last Order Date */}
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
-                <div className="p-2 sm:p-2.5 bg-blue-500/20 rounded-xl text-blue-300 border border-blue-400/10 shrink-0">
-                  <FiCalendar className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 sm:p-4 flex items-center space-x-2 sm:space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                <div className="p-1.5 sm:p-2.5 bg-blue-500/20 rounded-xl text-blue-300 border border-blue-400/10 shrink-0">
+                  <FiCalendar className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div className="text-left font-sans min-w-0">
-                  <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Last Order</p>
-                  <p className="text-xs font-bold text-white mt-0.5 truncate">{getLastOrderDate()}</p>
+                <div className="text-left min-w-0">
+                  <p className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold truncate">Last Order</p>
+                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 truncate">{getLastOrderDate()}</p>
                 </div>
               </div>
 
               {/* Total Savings */}
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
-                <div className="p-2 sm:p-2.5 bg-emerald-500/20 rounded-xl text-emerald-300 border border-emerald-400/10 shrink-0">
-                  <FiZap className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 sm:p-4 flex items-center space-x-2 sm:space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                <div className="p-1.5 sm:p-2.5 bg-emerald-500/20 rounded-xl text-emerald-300 border border-emerald-400/10 shrink-0">
+                  <FiZap className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div className="text-left font-sans min-w-0">
-                  <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Total Savings</p>
-                  <p className="text-xs font-bold text-white mt-0.5 font-mono font-extrabold truncate">₹{summary.total_savings || '0.00'}</p>
+                <div className="text-left min-w-0">
+                  <p className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold truncate">Total Savings</p>
+                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 font-mono font-extrabold truncate">₹{summary.total_savings || '0.00'}</p>
                 </div>
               </div>
 
               {/* Favorite Category */}
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
-                <div className="p-2 sm:p-2.5 bg-amber-500/20 rounded-xl text-amber-300 border border-amber-400/10 shrink-0">
-                  <FiShoppingBag className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 sm:p-4 flex items-center space-x-2 sm:space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                <div className="p-1.5 sm:p-2.5 bg-amber-500/20 rounded-xl text-amber-300 border border-emerald-400/10 shrink-0">
+                  <FiShoppingBag className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div className="text-left font-sans min-w-0">
-                  <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Favorite Type</p>
-                  <p className="text-xs font-bold text-white mt-0.5 capitalize truncate">{getFavoriteCategory()}</p>
+                <div className="text-left min-w-0">
+                  <p className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold truncate">Favorite Type</p>
+                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 capitalize truncate">{getFavoriteCategory()}</p>
                 </div>
               </div>
 
@@ -1197,13 +1197,13 @@ const CustomerDashboard = () => {
               {(() => {
                 const status = getLoyaltyStatus(summary.loyalty_points);
                 return (
-                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
-                    <div className="p-2 sm:p-2.5 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-400/10 shrink-0">
-                      <FiGift className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 sm:p-4 flex items-center space-x-2 sm:space-x-3 shadow-xs hover:bg-white/10 transition-colors duration-200 min-w-0">
+                    <div className="p-1.5 sm:p-2.5 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-400/10 shrink-0">
+                      <FiGift className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                     </div>
-                    <div className="text-left font-sans min-w-0">
-                      <p className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-sans truncate">Loyalty status</p>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase mt-1 truncate ${status.color}`}>
+                    <div className="text-left min-w-0">
+                      <p className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold truncate">Loyalty status</p>
+                      <span className={`inline-block px-1.5 py-0.5 rounded-full text-[7.5px] font-extrabold uppercase mt-0.5 truncate ${status.color}`}>
                         {status.tier}
                       </span>
                     </div>
