@@ -21,6 +21,29 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
     }
   });
 
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [touchEndX, setTouchEndX] = useState(null);
+
+  const handleTouchStart = (e) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX !== null && touchEndX !== null) {
+      const distance = touchStartX - touchEndX;
+      const isLeftSwipe = distance > 50; // Swiped left by 50px or more
+      if (isLeftSwipe && onCloseMobile) {
+        onCloseMobile();
+      }
+    }
+    setTouchStartX(null);
+    setTouchEndX(null);
+  };
+
   const [isQuickActionsExpanded, setIsQuickActionsExpanded] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [invoices, setInvoices] = useState([]);
@@ -496,6 +519,9 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               className="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-[101] flex flex-col p-4 text-left border-r border-slate-100 md:hidden"
             >
               {renderSidebarContent(true)}
