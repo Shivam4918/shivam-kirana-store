@@ -69,6 +69,27 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
     }
   }, [user]);
 
+  // Escape key close & Body scroll lock
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpenOnMobile && onCloseMobile) {
+        onCloseMobile();
+      }
+    };
+    
+    if (isOpenOnMobile) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpenOnMobile, onCloseMobile]);
+
   const getMonthlyStats = () => {
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -494,9 +515,9 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
     <>
       {/* Desktop Sidebar aside */}
       <aside 
-        className={`relative bg-white border-r border-slate-200/60 p-4 flex flex-col justify-start text-left shrink-0 transition-all duration-300 lg:min-h-[calc(100vh-60px)] ${
+        className={`relative bg-white border-r border-slate-200/60 p-4 flex flex-col justify-start text-left shrink-0 transition-all duration-300 md:min-h-[calc(100vh-60px)] ${
           isCollapsed ? 'w-20' : 'w-64'
-        } hidden lg:flex`}
+        } hidden md:flex`}
       >
         {renderSidebarContent(false)}
       </aside>
@@ -511,7 +532,7 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onCloseMobile}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] lg:hidden"
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] md:hidden"
             />
             {/* Drawer sheet panel */}
             <motion.div
@@ -522,7 +543,7 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              className="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-[101] flex flex-col p-4 text-left border-r border-slate-100 lg:hidden"
+              className="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-[101] flex flex-col p-4 text-left border-r border-slate-100 md:hidden"
             >
               {renderSidebarContent(true)}
             </motion.div>
