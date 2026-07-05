@@ -28,6 +28,8 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notiDropdownOpen, setNotiDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [seenNotiIds, setSeenNotiIds] = useState(new Set());
+  const [toast, setToast] = useState(null);
 
   // Search & Suggestions States
   const [searchVal, setSearchVal] = useState('');
@@ -68,9 +70,30 @@ const Navbar = () => {
     if (!user) return;
     try {
       const res = await api.get('/notifications/');
-      setNotifications(res.data.slice(0, 8));
+      const currentNotis = res.data.slice(0, 8);
+      setNotifications(currentNotis);
       const countRes = await api.get('/notifications/unread-count/');
       setUnreadCount(countRes.data.unread_count);
+
+      const isFirstLoad = seenNotiIds.size === 0;
+      if (isFirstLoad) {
+        const initialSeen = new Set(currentNotis.map(n => n.id));
+        setSeenNotiIds(initialSeen);
+      } else {
+        const unreadNotis = currentNotis.filter(n => !n.is_read);
+        if (unreadNotis.length > 0) {
+          const newUnread = unreadNotis.find(n => !seenNotiIds.has(n.id));
+          if (newUnread) {
+            setSeenNotiIds(prev => {
+              const next = new Set(prev);
+              next.add(newUnread.id);
+              return next;
+            });
+            setToast({ message: newUnread.message });
+            setTimeout(() => setToast(null), 5000);
+          }
+        }
+      }
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
@@ -528,9 +551,15 @@ const Navbar = () => {
             </div>
           )}
         </div>
-
       </div>
 
+      {toast && (
+        <div className="fixed bottom-5 right-5 bg-slate-900 border border-slate-800 text-white rounded-2xl p-4 shadow-xl z-[9999] flex items-center space-x-3 max-w-sm animate-in slide-in-from-bottom-5 duration-300">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 animate-ping" />
+          <div className="text-xs font-semibold leading-relaxed pr-2">{toast.message}</div>
+          <button onClick={() => setToast(null)} className="text-slate-400 hover:text-white cursor-pointer text-xs font-black">✕</button>
+        </div>
+      )}
     </nav>
   );
 };

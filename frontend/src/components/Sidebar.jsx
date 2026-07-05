@@ -4,7 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import { 
   FiTrendingUp, FiDatabase, FiUsers, FiShoppingBag, FiBookOpen, 
   FiFileText, FiTruck, FiDollarSign, FiClock, FiChevronLeft, FiChevronRight,
-  FiZap, FiChevronDown, FiRefreshCw, FiHeart, FiMaximize, FiPieChart, FiGift
+  FiZap, FiChevronDown, FiRefreshCw, FiHeart, FiMaximize, FiPieChart, FiGift,
+  FiClipboard
 } from 'react-icons/fi';
 import api from '../services/api';
 
@@ -97,11 +98,13 @@ const Sidebar = () => {
     { to: '/admin/finance', label: 'P&L / Cash Flow', icon: <FiTrendingUp className="w-4.5 h-4.5" /> },
     { to: '/admin/reports', label: 'Reports', icon: <FiFileText className="w-4.5 h-4.5" /> },
     { to: '/admin/expiry', label: 'Expiry Manager', icon: <FiClock className="w-4.5 h-4.5" /> },
+    { to: '/admin/orders', label: 'Order Fulfilment', icon: <FiClipboard className="w-4.5 h-4.5" /> },
   ];
 
   const customerLinks = [
     { to: '/dashboard', end: true, label: 'Grocery Store', icon: <FiShoppingBag className="w-4.5 h-4.5" /> },
     { to: '/dashboard/khata', label: 'Digital Khata Book', icon: <FiBookOpen className="w-4.5 h-4.5" /> },
+    { to: '/dashboard/orders', label: 'My Pickup Orders', icon: <FiClock className="w-4.5 h-4.5" /> },
   ];
 
   const links = user.role === 'ADMIN' ? adminLinks : customerLinks;

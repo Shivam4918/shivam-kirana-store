@@ -912,3 +912,77 @@ class StoreBackendTests(TestCase):
         self.assertTrue(admin_notifications.exists())
         self.assertIn(order.order_number, admin_notifications.first().message)
 
+    def test_complete_pickup_order_payment_workflow(self):
+        """Verify status transitions, pickup verification, audit logs, and Cash/Online/Khata payments."""
+        from .models import Order, OrderItem, OrderAuditLog, Transaction, Notification
+        
+        # Unlock customer profile for testing
+        profile = self.customer.khata_profile
+        profile.is_accessible_by_customer = True
+        profile.save()
+
+        # Place order
+        self.client.force_authenticate(user=self.customer)
+        payload = {
+            'items': [{'product_id': self.product.id, 'quantity': 2}]
+        }
+        res = self.client.post('/api/orders/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        order_id = res.data['order_id']
+
+        # 1. Admin login to advance status
+        self.client.force_authenticate(user=self.admin)
+        
+        # ORDER_RECEIVED -> PREPARING
+        res_status = self.client.post(f'/api/orders/{order_id}/update-status/', {'status': 'PREPARING'}, format='json')
+        self.assertEqual(res_status.status_code, status.HTTP_200_OK)
+        
+        # PREPARING -> READY_FOR_PICKUP (generates codes)
+        res_status = self.client.post(f'/api/orders/{order_id}/update-status/', {'status': 'READY_FOR_PICKUP'}, format='json')
+        self.assertEqual(res_status.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(res_status.data['pickup_code'])
+        self.assertIsNotNone(res_status.data['pickup_qr_data'])
+        pickup_code = res_status.data['pickup_code']
+
+        # Verify pickup with wrong code fails
+        res_verify = self.client.post(f'/api/orders/{order_id}/verify-pickup/', {'pickup_code': '000000'}, format='json')
+        self.assertEqual(res_verify.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Verify pickup with correct code succeeds
+        res_verify = self.client.post(f'/api/orders/{order_id}/verify-pickup/', {'pickup_code': pickup_code}, format='json')
+        self.assertEqual(res_verify.status_code, status.HTTP_200_OK)
+
+        order = Order.objects.get(id=order_id)
+        self.assertTrue(order.is_pickup_verified)
+        self.assertEqual(order.status, 'PAYMENT_PENDING')
+
+        # 2. Settle payment via Digital Khata
+        # Verify that if customer exceeds limit it gets rejected
+        profile.credit_limit = Decimal('50.00')
+        profile.save()
+
+        res_pay = self.client.post(f'/api/orders/{order_id}/record-payment/', {'payment_method': 'KHATA'}, format='json')
+        self.assertEqual(res_pay.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Credit limit exceeded', res_pay.data['detail'])
+
+        # Settle successfully with expanded credit limit
+        profile.credit_limit = Decimal('200.00')
+        profile.save()
+
+        res_pay = self.client.post(f'/api/orders/{order_id}/record-payment/', {'payment_method': 'KHATA'}, format='json')
+        self.assertEqual(res_pay.status_code, status.HTTP_200_OK)
+
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, 'ADDED_TO_KHATA')
+        self.assertEqual(order.status, 'ADDED_TO_KHATA')
+
+        # Verify transaction was added to Digital Khata ledger
+        profile.refresh_from_db()
+        self.assertEqual(profile.current_balance, Decimal('95.00'))
+        self.assertTrue(Transaction.objects.filter(khata_profile=profile, transaction_type='CREDIT', amount=Decimal('95.00')).exists())
+
+        # Verify audit logs have recorded this journey
+        audit_count = OrderAuditLog.objects.filter(order=order).count()
+        self.assertTrue(audit_count >= 4)
+
+

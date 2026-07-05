@@ -21,6 +21,8 @@ const FinancialReports = React.lazy(() => import('./pages/FinancialReports'));
 const AdvancedReports = React.lazy(() => import('./pages/AdvancedReports'));
 const ExpiryManager = React.lazy(() => import('./pages/ExpiryManager'));
 const MockPaymentPage = React.lazy(() => import('./pages/MockPaymentPage'));
+const MyOrders = React.lazy(() => import('./pages/MyOrders'));
+const OrderManagement = React.lazy(() => import('./pages/OrderManagement'));
 
 
 const AppLayout = () => {
@@ -79,6 +81,7 @@ function App() {
                 <Route path="finance" element={<FinancialReports />} />
                 <Route path="reports" element={<AdvancedReports />} />
                 <Route path="expiry" element={<ExpiryManager />} />
+                <Route path="orders" element={<OrderManagement />} />
               </Route>
 
 
@@ -93,6 +96,7 @@ function App() {
               >
                 <Route index element={<CustomerDashboard />} />
                 <Route path="khata" element={<CustomerDashboard />} />
+                <Route path="orders" element={<MyOrders />} />
               </Route>
 
               {/* Catch-all fallback */}

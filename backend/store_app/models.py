@@ -289,9 +289,13 @@ class InvoiceItem(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = (
         ('ORDER_RECEIVED', 'Order Received'),
-        ('PREPARING', 'Preparing'),
-        ('READY', 'Ready for Pickup'),
-        ('COMPLETED', 'Completed'),
+        ('PREPARING', 'Preparing Order'),
+        ('READY_FOR_PICKUP', 'Ready for Pickup'),
+        ('PAYMENT_PENDING', 'Payment Pending'),
+        ('PAYMENT_COMPLETED', 'Payment Completed'),
+        ('ADDED_TO_KHATA', 'Added to Digital Khata'),
+        ('COLLECTED', 'Order Collected'),
+        ('COMPLETED', 'Order Completed'),
         ('CANCELLED', 'Cancelled'),
     )
     order_number = models.CharField(max_length=50, unique=True)
@@ -306,8 +310,50 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Pickup Verification Fields
+    pickup_code = models.CharField(max_length=6, blank=True, null=True)
+    pickup_qr_data = models.CharField(max_length=100, blank=True, null=True)
+    is_pickup_verified = models.BooleanField(default=False)
+
+    # Payment Status Details
+    payment_status = models.CharField(
+        max_length=30, 
+        choices=(
+            ('PENDING', 'Pending'),
+            ('PAID', 'Paid'),
+            ('ADDED_TO_KHATA', 'Added to Digital Khata')
+        ), 
+        default='PENDING'
+    )
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=(
+            ('CASH', 'Cash'),
+            ('ONLINE', 'Online Payment'),
+            ('KHATA', 'Digital Khata')
+        ), 
+        blank=True, 
+        null=True
+    )
+    payment_time = models.DateTimeField(blank=True, null=True)
+    online_transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    online_payment_method = models.CharField(max_length=50, blank=True, null=True)
+
     def __str__(self):
         return f"{self.order_number} ({self.get_status_display()})"
+
+
+class OrderAuditLog(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='audit_logs')
+    user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=100)
+    from_status = models.CharField(max_length=30, blank=True, null=True)
+    to_status = models.CharField(max_length=30, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Audit log for Order {self.order.order_number} - {self.action} by {self.user.username if self.user else 'System'} at {self.created_at}"
 
 
 class OrderItem(models.Model):

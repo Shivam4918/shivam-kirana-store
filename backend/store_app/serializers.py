@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration, ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration, ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem, OrderAuditLog
 
 User = get_user_model()
 
@@ -529,9 +529,22 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     customer_username = serializers.CharField(source='customer.user.username', read_only=True)
     customer_phone = serializers.CharField(source='customer.user.phone_number', read_only=True)
+    audit_logs = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
+        fields = '__all__'
+
+    def get_audit_logs(self, obj):
+        logs = obj.audit_logs.all().order_by('-created_at')
+        return OrderAuditLogSerializer(logs, many=True).data
+
+
+class OrderAuditLogSerializer(serializers.ModelSerializer):
+    user_username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = OrderAuditLog
         fields = '__all__'
 
 

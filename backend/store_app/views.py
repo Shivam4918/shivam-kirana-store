@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 
-from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem
+from .models import Product, KhataProfile, Transaction, Expense, Supplier, SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, PaymentRequest, WhatsAppLog, ExpiryBatch, ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem, OrderAuditLog
 from .serializers import (
     UserSerializer, ProductSerializer, KhataProfileSerializer, TransactionSerializer,
     ExpenseSerializer, SupplierSerializer, SupplierTransactionSerializer, PurchaseSerializer, NotificationSerializer,
@@ -871,6 +871,18 @@ class AdminDashboardAnalyticsView(APIView):
             {'range': '5K+', 'count': KhataProfile.objects.filter(current_balance__gt=5000).count()},
         ]
         
+        order_stats = {
+            'ORDER_RECEIVED': Order.objects.filter(status='ORDER_RECEIVED').count(),
+            'PREPARING': Order.objects.filter(status='PREPARING').count(),
+            'READY_FOR_PICKUP': Order.objects.filter(status='READY_FOR_PICKUP').count(),
+            'PAYMENT_PENDING': Order.objects.filter(status='PAYMENT_PENDING').count(),
+            'PAYMENT_COMPLETED': Order.objects.filter(status='PAYMENT_COMPLETED').count(),
+            'ADDED_TO_KHATA': Order.objects.filter(status='ADDED_TO_KHATA').count(),
+            'COLLECTED': Order.objects.filter(status='COLLECTED').count(),
+            'COMPLETED': Order.objects.filter(status='COMPLETED').count(),
+            'CANCELLED': Order.objects.filter(status='CANCELLED').count(),
+        }
+
         return Response({
             'metrics': {
                 'today_earnings': float(todays_debits),
@@ -878,6 +890,7 @@ class AdminDashboardAnalyticsView(APIView):
                 'total_customers': total_customers,
                 'total_products': total_products,
             },
+            'order_stats': order_stats,
             'recent_transactions': recent_data,
             'charts': {
                 'revenue_trends': revenue_trends,
@@ -2013,7 +2026,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base_qs = Order.objects.select_related('customer__user').prefetch_related(
-            'items__product'
+            'items__product', 'audit_logs__user'
         ).order_by('-created_at')
         if user.role == 'ADMIN':
             return base_qs
@@ -2038,7 +2051,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         validated_items = []
         try:
             with db_transaction.atomic():
-                # Lock profile at start of transaction to prevent race conditions
                 locked_profile = KhataProfile.objects.select_for_update().get(pk=profile.pk)
                 
                 cart_total = Decimal('0.00')
@@ -2065,11 +2077,9 @@ class OrderViewSet(viewsets.ModelViewSet):
                     validated_items.append((product, quantity))
                     cart_total += product.price * quantity
 
-                # 5% savings logic
                 promotional_savings = cart_total * Decimal('0.05')
                 cart_total_after_savings = cart_total - promotional_savings
 
-                # Calculate points to redeem
                 redeemed_points = 0
                 redeem_discount = Decimal('0.00')
                 if redeem_opt and locked_profile.loyalty_points > 0:
@@ -2078,7 +2088,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                 final_order_total = cart_total_after_savings - redeem_discount
 
-                # Generate sequential order number: SK-ORD-YYYYMMDD-XXXX
                 today_str = timezone.localtime(timezone.now()).strftime('%Y%m%d')
                 order_count_today = Order.objects.filter(order_number__startswith=f"SK-ORD-{today_str}-").count()
                 order_number = f"SK-ORD-{today_str}-{(order_count_today + 1):04d}"
@@ -2091,7 +2100,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                     sgst_total=Decimal('0.00'),
                     grand_total=Decimal('0.00'),
                     redeemed_points=redeemed_points,
-                    redeem_discount=redeem_discount
+                    redeem_discount=redeem_discount,
+                    status='ORDER_RECEIVED'
                 )
 
                 subtotal_sum = Decimal('0.00')
@@ -2104,13 +2114,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                     total_item_inclusive = unit_price * quantity
                     gst_rate = product.gst_rate
 
-                    # Backwards base taxable value & GST computation
                     taxable_value = total_item_inclusive / (Decimal('1.00') + gst_rate / Decimal('100.00'))
                     gst_total_item = total_item_inclusive - taxable_value
                     cgst_amount = gst_total_item / Decimal('2.00')
                     sgst_amount = gst_total_item / Decimal('2.00')
 
-                    # Quantize to 2 decimals
                     taxable_value = taxable_value.quantize(Decimal('0.01'))
                     cgst_amount = cgst_amount.quantize(Decimal('0.01'))
                     sgst_amount = sgst_amount.quantize(Decimal('0.01'))
@@ -2132,22 +2140,27 @@ class OrderViewSet(viewsets.ModelViewSet):
                     sgst_sum += sgst_amount
                     grand_total_sum += total_item_inclusive
 
-                    # Decrement product inventory
                     product.stock_quantity -= quantity
                     product.save(update_fields=['stock_quantity'])
 
-                # Apply points deduction on profile
                 if redeemed_points > 0:
                     locked_profile.loyalty_points -= redeemed_points
                     locked_profile.points_redeemed += redeemed_points
                     locked_profile.save(update_fields=['loyalty_points', 'points_redeemed'])
 
-                # Update order final numbers
                 order.subtotal = subtotal_sum - (promotional_savings / (Decimal('1.00') + Decimal('18.00') / Decimal('100.00'))).quantize(Decimal('0.01'))
                 order.cgst_total = cgst_sum
                 order.sgst_total = sgst_sum
                 order.grand_total = final_order_total
                 order.save()
+
+                OrderAuditLog.objects.create(
+                    order=order,
+                    user=user,
+                    action='ORDER_RECEIVED',
+                    to_status='ORDER_RECEIVED',
+                    description=f"Order placed successfully by customer {user.username}."
+                )
 
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -2159,7 +2172,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             'ORDER_RECEIVED'
         )
 
-        # Trigger WhatsApp notification (with fallback to synchronous if queue is down)
+        # Notify the customer in DB
+        Notification.objects.create(
+            user=user,
+            message=f"Your order {order_number} has been received at Shivam Kirana Store.",
+            notification_type='ORDER_RECEIVED'
+        )
+
         from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
         dispatch_whatsapp_task(
             profile.id,
@@ -2177,6 +2196,225 @@ class OrderViewSet(viewsets.ModelViewSet):
             "order_id": order.id,
             "grand_total": float(final_order_total)
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='update-status')
+    def update_status(self, request, pk=None):
+        order = self.get_object()
+        user = request.user
+        if user.role != 'ADMIN':
+            return Response({"detail": "Only admins can change order status."}, status=status.HTTP_403_FORBIDDEN)
+
+        new_status = request.data.get('status')
+        if not new_status:
+            return Response({"detail": "Status parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate status choice
+        valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            return Response({"detail": f"Invalid status. Must be one of {valid_statuses}."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from_status = order.status
+        if from_status == new_status:
+            return Response({"detail": "Order is already in this status."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Custom constraints
+        if new_status == 'READY_FOR_PICKUP':
+            # Generate 6-digit code and QR data
+            import random
+            import uuid
+            order.pickup_code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+            order.pickup_qr_data = f"SK-ORD-{order.order_number}-{uuid.uuid4().hex[:6]}"
+
+        if new_status in ['COLLECTED', 'COMPLETED']:
+            # Must be verified and paid
+            if not order.is_pickup_verified:
+                return Response({"detail": "Cannot mark order collected/completed before pickup verification is successful."}, status=status.HTTP_400_BAD_REQUEST)
+            if order.payment_status == 'PENDING':
+                return Response({"detail": "Cannot mark order collected/completed before payment is recorded."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = new_status
+        order.save()
+
+        # Log audit history
+        OrderAuditLog.objects.create(
+            order=order,
+            user=user,
+            action='STATUS_CHANGE',
+            from_status=from_status,
+            to_status=new_status,
+            description=f"Status changed from {from_status} to {new_status} by admin {user.username}."
+        )
+
+        # Create Customer Notification in DB
+        Notification.objects.create(
+            user=order.customer.user,
+            message=f"Your order {order.order_number} is now: {order.get_status_display()}.",
+            notification_type='ORDER_RECEIVED'
+        )
+
+        # Dispatch WhatsApp statement
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
+            order.customer.id,
+            'TRANSACTION_ALERT',
+            {
+                'transaction_type': new_status,
+                'amount': float(order.grand_total),
+                'description': f"Order {order.order_number} is now {order.get_status_display()}."
+            }
+        )
+
+        return Response({
+            "detail": f"Status updated to {order.get_status_display()}.",
+            "status": order.status,
+            "pickup_code": order.pickup_code,
+            "pickup_qr_data": order.pickup_qr_data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='verify-pickup')
+    def verify_pickup(self, request, pk=None):
+        order = self.get_object()
+        user = request.user
+        if user.role != 'ADMIN':
+            return Response({"detail": "Only admins can verify pickup."}, status=status.HTTP_403_FORBIDDEN)
+
+        pickup_code = request.data.get('pickup_code')
+        pickup_qr_data = request.data.get('pickup_qr_data')
+
+        if not pickup_code and not pickup_qr_data:
+            return Response({"detail": "Provide pickup_code or pickup_qr_data for verification."}, status=status.HTTP_400_BAD_REQUEST)
+
+        is_valid = False
+        if pickup_code and order.pickup_code == pickup_code:
+            is_valid = True
+        elif pickup_qr_data and order.pickup_qr_data == pickup_qr_data:
+            is_valid = True
+
+        if not is_valid:
+            return Response({"detail": "Invalid Pickup Code or QR code. Verification failed."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.is_pickup_verified = True
+        order.status = 'PAYMENT_PENDING'
+        order.save()
+
+        # Log audit
+        OrderAuditLog.objects.create(
+            order=order,
+            user=user,
+            action='PICKUP_VERIFICATION',
+            description=f"Pickup verified successfully via admin {user.username}. Status updated to Payment Pending."
+        )
+
+        Notification.objects.create(
+            user=order.customer.user,
+            message=f"Pickup verified for order {order.order_number}.",
+            notification_type='ORDER_RECEIVED'
+        )
+
+        return Response({"detail": "Pickup verified successfully. Proceed to payment recording."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='record-payment')
+    def record_payment(self, request, pk=None):
+        order = self.get_object()
+        user = request.user
+        if user.role != 'ADMIN':
+            return Response({"detail": "Only admins can record payments."}, status=status.HTTP_403_FORBIDDEN)
+
+        if not order.is_pickup_verified:
+            return Response({"detail": "Please verify pickup before recording payment."}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment_method = request.data.get('payment_method')
+        if not payment_method or payment_method not in ['CASH', 'ONLINE', 'KHATA']:
+            return Response({"detail": "Valid payment_method (CASH, ONLINE, or KHATA) is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with db_transaction.atomic():
+                profile = KhataProfile.objects.select_for_update().get(pk=order.customer.pk)
+
+                if payment_method == 'KHATA':
+                    if not profile.is_accessible_by_customer:
+                        return Response({"detail": "Digital Khata is locked or disabled for this customer."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    if profile.current_balance + order.grand_total > profile.credit_limit:
+                        return Response({
+                            "detail": f"Credit limit exceeded. Please collect payment via Cash or Online. "
+                                      f"Limit: ₹{profile.credit_limit}, Balance: ₹{profile.current_balance}, Total: ₹{order.grand_total}"
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
+                    # Create Transaction (will trigger profile balance updates inside signals/save method)
+                    Transaction.objects.create(
+                        khata_profile=profile,
+                        transaction_type='CREDIT',
+                        amount=order.grand_total,
+                        description=f"Checked out pickup order {order.order_number} to credit ledger."
+                    )
+
+                    order.payment_status = 'ADDED_TO_KHATA'
+                    order.status = 'ADDED_TO_KHATA'
+
+                elif payment_method == 'CASH':
+                    order.payment_status = 'PAID'
+                    order.status = 'PAYMENT_COMPLETED'
+
+                elif payment_method == 'ONLINE':
+                    transaction_id = request.data.get('transaction_id')
+                    online_method = request.data.get('online_payment_method')
+
+                    if not transaction_id:
+                        return Response({"detail": "Online Transaction ID is required for online payments."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    order.online_transaction_id = transaction_id
+                    order.online_payment_method = online_method or 'UPI'
+                    order.payment_status = 'PAID'
+                    order.status = 'PAYMENT_COMPLETED'
+
+                order.payment_method = payment_method
+                order.payment_time = timezone.now()
+                order.save()
+
+                # Process loyalty points earned
+                earned_points = int(order.grand_total / Decimal('100.00'))
+                if earned_points > 0:
+                    profile.loyalty_points += earned_points
+                    profile.points_earned += earned_points
+                    profile.save(update_fields=['loyalty_points', 'points_earned'])
+
+                # Log audit
+                OrderAuditLog.objects.create(
+                    order=order,
+                    user=user,
+                    action='PAYMENT_RECORDED',
+                    description=f"Payment of ₹{order.grand_total} recorded via {payment_method} by admin {user.username}."
+                )
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Notify Customer in DB
+        Notification.objects.create(
+            user=order.customer.user,
+            message=f"Payment for order {order.order_number} recorded via {payment_method} successfully.",
+            notification_type='ORDER_RECEIVED'
+        )
+
+        # WhatsApp alert
+        from store_app.utils.whatsapp_helpers import dispatch_whatsapp_task
+        dispatch_whatsapp_task(
+            order.customer.id,
+            'TRANSACTION_ALERT',
+            {
+                'transaction_type': 'PAYMENT_RECORDED',
+                'amount': float(order.grand_total),
+                'description': f"Payment for order {order.order_number} recorded via {payment_method}."
+            }
+        )
+
+        return Response({
+            "detail": "Payment recorded successfully.",
+            "payment_status": order.payment_status,
+            "status": order.status,
+            "grand_total": float(order.grand_total)
+        }, status=status.HTTP_200_OK)
 
 
 class GSTSummaryView(APIView):

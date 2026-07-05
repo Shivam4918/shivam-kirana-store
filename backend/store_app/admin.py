@@ -4,7 +4,7 @@ from .models import (
     CustomUser, Product, KhataProfile, Transaction, Expense, Supplier, 
     SupplierTransaction, Purchase, Notification, Invoice, InvoiceItem, 
     PaymentRequest, WhatsAppLog, ExpiryBatch, PendingRegistration,
-    ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem
+    ProductReview, WishlistItem, PromotionalBanner, StoreConfig, Order, OrderItem, OrderAuditLog
 )
 
 @admin.register(CustomUser)
@@ -111,6 +111,14 @@ class OrderAdmin(admin.ModelAdmin):
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ('order', 'product', 'quantity', 'unit_price', 'total_amount')
     search_fields = ('order__order_number', 'product__name')
+
+
+@admin.register(OrderAuditLog)
+class OrderAuditLogAdmin(admin.ModelAdmin):
+    list_display = ('order', 'user', 'action', 'from_status', 'to_status', 'created_at')
+    list_filter = ('action', 'created_at')
+    search_fields = ('order__order_number', 'user__username', 'description')
+    ordering = ('-created_at',)
 
 @admin.register(PaymentRequest)
 class PaymentRequestAdmin(admin.ModelAdmin):
