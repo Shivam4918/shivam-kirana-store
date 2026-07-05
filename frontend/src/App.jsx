@@ -40,7 +40,7 @@ const AppLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#111827]">
       <Navbar onToggleSidebar={() => setMobileSidebarOpen(prev => !prev)} />
-      <div className="flex-1 flex flex-col md:flex-row pb-16 md:pb-0">
+      <div className="flex-1 flex flex-col lg:flex-row pb-16 lg:pb-0">
         <Sidebar isOpenOnMobile={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
         <main className="flex-1 flex flex-col bg-slate-50/50">
           <Outlet />
@@ -50,7 +50,7 @@ const AppLayout = () => {
 
       {/* Mobile Sticky Bottom Navigation Menu (Customer only) */}
       {user && user.role === 'CUSTOMER' && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-205/65 z-[49] py-2 px-4 flex justify-between items-center shadow-lg safe-bottom">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-205/65 z-[49] py-2 px-4 flex justify-between items-center shadow-lg safe-bottom">
           <button
             onClick={() => navigate('/dashboard')}
             className={`flex flex-col items-center justify-center flex-1 cursor-pointer transition-colors min-h-[44px] ${

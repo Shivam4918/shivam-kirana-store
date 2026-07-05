@@ -209,15 +209,15 @@ const Navbar = ({ onToggleSidebar }) => {
   });
 
   return (
-    <nav className="sticky top-0 z-[40] w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-2 shrink-0">
+    <nav className="sticky top-0 z-[40] w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col lg:flex-row lg:items-center justify-between shadow-sm gap-2 shrink-0">
       
       {/* Top Row: Hamburger, Logo, and Right Icons (mobile) / Left section on Desktop */}
-      <div className="flex items-center justify-between w-full md:w-auto shrink-0">
+      <div className="flex items-center justify-between w-full lg:w-auto shrink-0">
         <div className="flex items-center space-x-2 sm:space-x-4">
           {user && (
             <button
               onClick={onToggleSidebar}
-              className="p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors md:hidden cursor-pointer flex items-center justify-center shrink-0 min-w-[44px] min-h-[44px]"
+              className="p-2 -ml-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors lg:hidden cursor-pointer flex items-center justify-center shrink-0 min-w-[44px] min-h-[44px]"
               title="Toggle Menu"
               aria-label="Toggle Menu"
             >
@@ -238,7 +238,7 @@ const Navbar = ({ onToggleSidebar }) => {
         </div>
 
         {/* Mobile-only right action icons (hidden on desktop) */}
-        <div className="flex items-center space-x-2 md:hidden">
+        <div className="flex items-center space-x-2 lg:hidden">
           
           {/* Shopping Cart Icon (Customer Only) */}
           {user.role === 'CUSTOMER' && (
@@ -354,7 +354,7 @@ const Navbar = ({ onToggleSidebar }) => {
 
       {/* Central search bar with dynamic autocomplete suggestions */}
       {user.role === 'CUSTOMER' && (
-        <div ref={searchContainerRef} className="w-full md:flex-1 md:max-w-lg md:mx-8 relative">
+        <div ref={searchContainerRef} className="w-full lg:flex-1 lg:max-w-lg lg:mx-8 relative">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#10B981]">
               {searchLoading ? (
@@ -508,7 +508,7 @@ const Navbar = ({ onToggleSidebar }) => {
       )}
 
       {/* Desktop-only right action icons, cart, notifications, and profile details */}
-      <div className="hidden md:flex items-center space-x-3.5 ml-auto">
+      <div className="hidden lg:flex items-center space-x-3.5 ml-auto">
         
         {/* Date / Greeting */}
         <div className="hidden lg:flex flex-col text-right pr-2">
