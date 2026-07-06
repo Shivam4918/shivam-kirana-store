@@ -1008,12 +1008,94 @@ class StoreBackendTests(TestCase):
         q = event_broker.add_listener(self.customer)
         event_broker.broadcast('TEST_EVENT', {'hello': 'world'}, user_id=self.customer.id)
         
-        # Verify the event is in the queue
-        msg = q.get_nowait()
+        # Verify the event is in the queue (with a robust timeout to account for async Redis Pub/Sub delivery)
+        try:
+            msg = q.get(timeout=2.0)
+        except Exception:
+            self.fail("Timed out waiting for real-time event to be published and queued.")
         self.assertIn('TEST_EVENT', msg)
         self.assertIn('hello', msg)
         
         # Cleanup
         event_broker.remove_listener(self.customer, q)
+
+    def test_forgot_password_invalid_email(self):
+        """Verify requesting a reset for a non-existent email returns 404."""
+        response = self.client.post('/api/auth/forgot-password/', {'email': 'unknown@test.com'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_forgot_password_valid_email(self):
+        """Verify requesting a reset for a valid email creates a token and returns 200."""
+        from .models import PasswordResetToken
+        response = self.client.post('/api/auth/forgot-password/', {'email': 'customer_test@test.com'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Check that token was created
+        token_count = PasswordResetToken.objects.filter(user=self.customer, is_used=False).count()
+        self.assertEqual(token_count, 1)
+
+    def test_reset_password_success(self):
+        """Verify resetting password with a valid token changes the password successfully."""
+        from .models import PasswordResetToken
+        from django.utils import timezone
+        from datetime import timedelta
+        import secrets
+
+        token_str = secrets.token_hex(32)
+        reset_token = PasswordResetToken.objects.create(
+            user=self.customer,
+            token=token_str,
+            expires_at=timezone.now() + timedelta(minutes=15)
+        )
+
+        payload = {
+            'token': token_str,
+            'password': 'NewPassword123#',
+            'confirm_password': 'NewPassword123#'
+        }
+        response = self.client.post('/api/auth/reset-password/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check password changed
+        self.customer.refresh_from_db()
+        self.assertTrue(self.customer.check_password('NewPassword123#'))
+
+        # Check token used
+        reset_token.refresh_from_db()
+        self.assertTrue(reset_token.is_used)
+
+    def test_reset_password_invalid_token(self):
+        """Verify resetting password with an invalid token fails."""
+        payload = {
+            'token': 'invalid_token_123',
+            'password': 'NewPassword123#',
+            'confirm_password': 'NewPassword123#'
+        }
+        response = self.client.post('/api/auth/reset-password/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reset_password_weak_password(self):
+        """Verify resetting password with a weak password fails validation."""
+        from .models import PasswordResetToken
+        from django.utils import timezone
+        from datetime import timedelta
+        import secrets
+
+        token_str = secrets.token_hex(32)
+        PasswordResetToken.objects.create(
+            user=self.customer,
+            token=token_str,
+            expires_at=timezone.now() + timedelta(minutes=15)
+        )
+
+        # Weak password (no special char/uppercase/lowercase/number/short length)
+        payload = {
+            'token': token_str,
+            'password': 'short',
+            'confirm_password': 'short'
+        }
+        response = self.client.post('/api/auth/reset-password/', payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 

@@ -400,6 +400,110 @@ class CancelRegistrationView(APIView):
 
         return Response({"detail": "No active pending registration found to cancel."}, status=status.HTTP_404_NOT_FOUND)
 
+class ForgotPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        email = request.data.get('email')
+        if not email:
+            return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        import re
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_regex, email) or '..' in email:
+            return Response({"detail": "Please enter a valid email address."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email, is_active=True)
+        except User.DoesNotExist:
+            return Response({"detail": "No active account found with this email address."}, status=status.HTTP_404_NOT_FOUND)
+
+        from store_app.models import PasswordResetToken
+        from django.utils import timezone
+        from datetime import timedelta
+        import secrets
+
+        # 1. Invalidate any existing active tokens for this user
+        PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
+
+        # 2. Generate cryptographically secure token
+        token_str = secrets.token_hex(32)
+        reset_token = PasswordResetToken.objects.create(
+            user=user,
+            token=token_str,
+            expires_at=timezone.now() + timedelta(minutes=15)
+        )
+
+        # 3. Construct reset link dynamically from Origin header
+        origin = request.META.get('HTTP_ORIGIN') or request.headers.get('Origin')
+        if not origin:
+            origin = "https://shivamkiranastore.vercel.app"
+        reset_link = f"{origin}/reset-password?token={token_str}"
+
+        # 4. Dispatch email sending task
+        from store_app.tasks import send_password_reset_email_task
+        from store_app.utils.task_helpers import run_task_async_or_sync
+        try:
+            run_task_async_or_sync(send_password_reset_email_task, user.id, reset_link)
+        except Exception as e:
+            logger.error(f"Failed to dispatch reset email: {str(e)}")
+
+        return Response({"detail": "Password reset link has been sent to your email."}, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        password = request.data.get('password')
+        confirm_password = request.data.get('confirm_password')
+
+        if not token or not password or not confirm_password:
+            return Response({"detail": "Token, password, and confirm password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if password != confirm_password:
+            return Response({"detail": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Password rules validation
+        import re
+        if len(password) < 8:
+            return Response({"detail": "Password must be at least 8 characters long."}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.search(r'[A-Z]', password):
+            return Response({"detail": "Password must contain at least one uppercase letter."}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.search(r'[a-z]', password):
+            return Response({"detail": "Password must contain at least one lowercase letter."}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.search(r'[0-9]', password):
+            return Response({"detail": "Password must contain at least one number."}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.search(r'[^a-zA-Z0-9]', password):
+            return Response({"detail": "Password must contain at least one special character."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from store_app.models import PasswordResetToken
+        from django.utils import timezone
+
+        # Find valid token
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token)
+        except PasswordResetToken.DoesNotExist:
+            return Response({"detail": "Invalid reset link or token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not reset_token.is_valid():
+            return Response({"detail": "Reset link has expired or already been used."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = reset_token.user
+        
+        # Update user's password securely
+        user.set_password(password)
+        user.save()
+
+        # Invalidate all tokens for this user
+        PasswordResetToken.objects.filter(user=user).update(is_used=True)
+
+        return Response({"detail": "Password reset successfully. You can now log in with your new password."}, status=status.HTTP_200_OK)
+
+
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

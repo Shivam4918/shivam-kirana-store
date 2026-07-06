@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Reset Your Password - Shivam Kirana Store</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: #F9FAFB;
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    table {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+    
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .content-padding {
+        padding: 24px !important;
+      }
+    }
+  </style>
+</head>
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #F9FAFB; margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased;">
+  <!-- Main Wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F9FAFB; width: 100%;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <!-- Email Shell (600px max width) -->
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="width: 600px; max-width: 600px; background-color: #ffffff; border: 1px solid #E5E7EB; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.03);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px;">
+                Shivam Kirana Store
+              </h1>
+              <p style="color: #ECFDF5; font-size: 13px; font-weight: 500; margin: 0; letter-spacing: 0.5px; text-transform: uppercase;">
+                Smart Grocery & Digital Khata Management
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content Body -->
+          <tr>
+            <td class="content-padding" style="padding: 40px 40px 30px 40px; background-color: #ffffff;">
+              <!-- Greeting -->
+              <p style="color: #111827; font-size: 18px; font-weight: 700; margin: 0 0 16px 0;">
+                Namaste {{customer_name}},
+              </p>
+              
+              <p style="color: #6B7280; font-size: 15px; line-height: 24px; margin: 0 0 32px 0;">
+                We received a request to reset the password for your account. Please click the button below to choose a new password:
+              </p>
+
+              <!-- CTA Button -->
+              <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 32px;">
+                <tr>
+                  <td align="center" style="background-color: #10B981; border-radius: 8px;">
+                    <a href="{{reset_link}}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback Link -->
+              <p style="color: #9CA3AF; font-size: 12px; line-height: 18px; margin: 0 0 32px 0; text-align: center;">
+                If the button above does not work, copy and paste the following link into your browser:<br>
+                <a href="{{reset_link}}" target="_blank" style="color: #059669; text-decoration: none; word-break: break-all; font-weight: 500;">
+                  {{reset_link}}
+                </a>
+              </p>
+
+              <!-- Security Warning Banner -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; border-radius: 4px; margin-bottom: 32px;">
+                <tr>
+                  <td style="padding: 16px 20px; text-align: left;">
+                    <p style="color: #92400E; font-size: 13px; line-height: 20px; font-weight: 500; margin: 0;">
+                      <strong>⚠️ Security Notice:</strong> This link is valid for <strong>{{expiry_minutes}} minutes</strong> and can only be used once. If you did not make this request, you can safely ignore this email.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-top: 1px solid #E5E7EB; padding-bottom: 28px;"></td>
+                </tr>
+              </table>
+
+              <!-- Support Section -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F3F4F6; border-radius: 12px;">
+                <tr>
+                  <td style="padding: 20px; text-align: left;">
+                    <p style="color: #111827; font-size: 14px; font-weight: 700; margin: 0 0 6px 0;">
+                      Need Help?
+                    </p>
+                    <p style="color: #4B5563; font-size: 13px; line-height: 18px; margin: 0;">
+                      If you did not request a password reset or need assistance, please contact our support team at <a href="mailto:{{support_email}}" style="color: #059669; text-decoration: none; font-weight: 600;">{{support_email}}</a>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F9FAFB; border-top: 1px solid #E5E7EB; padding: 40px 30px; text-align: center;">
+              <p style="color: #9CA3AF; font-size: 12px; line-height: 18px; margin: 0 0 8px 0;">
+                &copy; {{current_year}} Shivam Kirana Store. All rights reserved.
+              </p>
+              <p style="color: #9CA3AF; font-size: 11px; line-height: 16px; margin: 0;">
+                Shivam Kirana Store, Main Bazaar, City Center Mall, India.
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

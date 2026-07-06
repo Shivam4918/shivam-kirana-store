@@ -11,7 +11,7 @@ from .views import (
     ExpiryBatchViewSet, ExpiryDashboardView, TriggerExpiryScanView, HealthCheckView, TestEmailView,
     CheckUsernameView, CheckEmailView, CheckPhoneView, CancelRegistrationView,
     WishlistViewSet, PromotionalBannerViewSet, StoreConfigViewSet, CustomerDashboardSummaryView,
-    LogoutView, OrderViewSet, RealTimeEventView
+    LogoutView, OrderViewSet, RealTimeEventView, ForgotPasswordView, ResetPasswordView
 )
 
 router = DefaultRouter()
@@ -39,6 +39,8 @@ urlpatterns = [
     path('auth/check-username/', CheckUsernameView.as_view(), name='check-username'),
     path('auth/check-email/', CheckEmailView.as_view(), name='check-email'),
     path('auth/check-phone/', CheckPhoneView.as_view(), name='check-phone'),
+    path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('auth/reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('auth/profile/', UserProfileView.as_view(), name='profile'),
     path('khata/my-ledger/', CustomerKhataView.as_view(), name='my-ledger'),
     path('khata/my-ledger/request-whatsapp-statement/', CustomerRequestWhatsAppStatementView.as_view(), name='request-whatsapp-statement'),

@@ -25,8 +25,11 @@ const FinancialReports = React.lazy(() => import('./pages/FinancialReports'));
 const AdvancedReports = React.lazy(() => import('./pages/AdvancedReports'));
 const ExpiryManager = React.lazy(() => import('./pages/ExpiryManager'));
 const MockPaymentPage = React.lazy(() => import('./pages/MockPaymentPage'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 const MyOrders = React.lazy(() => import('./pages/MyOrders'));
 const OrderManagement = React.lazy(() => import('./pages/OrderManagement'));
+
 
 
 const AppLayout = () => {
@@ -205,6 +208,8 @@ function App() {
               <Route path="/register" element={<LoginPage defaultTab="register" />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/mock-payment" element={<MockPaymentPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Admin Protected Routes */}
               <Route 

@@ -496,3 +496,67 @@ def cleanup_expired_pending_registrations_task():
     updated_count = PendingRegistration.objects.filter(status='pending', otp_expiry__lt=now).update(status='expired')
     logger.info(f"[CLEANUP] Marked {updated_count} expired PendingRegistration records at {now}")
     return updated_count
+
+
+@shared_task
+def send_password_reset_email_task(user_id, reset_link):
+    import traceback
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+    from django.conf import settings
+    from store_app.models import CustomUser
+
+    try:
+        user = CustomUser.objects.get(id=user_id)
+    except CustomUser.DoesNotExist:
+        logger.error(f"[RESET EMAIL] User with ID {user_id} not found.")
+        return False
+
+    logger.info(f"[RESET EMAIL] Preparing to send reset email to {user.email}")
+
+    subject = "Password Reset Request - Shivam Kirana Store"
+
+    from datetime import datetime
+    context = {
+        'user': user,
+        'customer_name': user.username,
+        'reset_link': reset_link,
+        'expiry_minutes': 15,
+        'support_email': getattr(settings, 'EMAIL_HOST_USER', 'shivamkiranastoreofficial@gmail.com'),
+        'current_year': datetime.now().year
+    }
+
+    try:
+        html_message = render_to_string('emails/reset_email.html', context)
+    except Exception as e:
+        logger.warning(f"[RESET EMAIL] Could not render template: {str(e)}")
+        html_message = None
+
+    plain_message = (
+        f"Namaste {user.username}!\n\n"
+        f"We received a request to reset the password for your Shivam Kirana Store account.\n"
+        f"Please click the following link to reset your password:\n"
+        f"{reset_link}\n\n"
+        f"This link is valid for 15 minutes and can only be used once.\n"
+        f"If you did not request a password reset, please ignore this email.\n"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+        logger.info(f"[RESET EMAIL] SUCCESS: Reset email sent to {user.email}")
+        return True
+    except Exception as e:
+        logger.error(
+            f"[RESET EMAIL] FAILED: Failed to send reset email to {user.email}.\n"
+            f"Error type: {type(e).__name__}\n"
+            f"Error detail: {str(e)}\n"
+            f"Traceback:\n{traceback.format_exc()}"
+        )
+        return False
