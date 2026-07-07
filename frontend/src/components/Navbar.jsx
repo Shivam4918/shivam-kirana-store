@@ -1,3 +1,4 @@
+// Live deployment trigger: 2026-07-07
 import { useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
