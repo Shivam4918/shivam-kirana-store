@@ -338,6 +338,12 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
                                 <span className="text-emerald-600 text-xs mt-0.5 block">₹{stats.totalSavings}</span>
                               </div>
                             </div>
+                            <button
+                              onClick={() => triggerQuickAction('summary')}
+                              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
+                            >
+                              Open Insights
+                            </button>
                           </div>
                         );
                       })()
@@ -438,7 +444,6 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
                   <button
                     onClick={() => {
                       setIsSummaryExpanded(prev => !prev);
-                      triggerQuickAction('summary');
                     }}
                     className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-bold text-xs transition-all duration-200 border border-transparent hover:bg-slate-55 text-slate-550 hover:text-slate-900 cursor-pointer min-h-[44px]"
                     aria-expanded={isSummaryExpanded}
@@ -493,7 +498,7 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
                             </div>
                             <button
                               onClick={() => triggerQuickAction('summary')}
-                              className="w-full py-2 bg-slate-50 hover:bg-slate-105 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
+                              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
                             >
                               Open Insights
                             </button>
