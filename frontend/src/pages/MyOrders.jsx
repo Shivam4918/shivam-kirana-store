@@ -24,6 +24,13 @@ export default function MyOrders() {
 
   useEffect(() => {
     fetchOrders();
+
+    // Poll orders every 5 seconds to sync status updates in real-time
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

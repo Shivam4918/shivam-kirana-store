@@ -85,20 +85,49 @@ const Navbar = ({ onToggleSidebar }) => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isFirstLoad = false) => {
     if (!user) return;
     try {
       const res = await api.get('/notifications/');
-      setNotifications(res.data);
-      const unread = res.data.filter(n => !n.is_read).length;
+      const newNotifications = res.data;
+      
+      const unread = newNotifications.filter(n => !n.is_read).length;
       setUnreadCount(unread);
+
+      if (!isFirstLoad) {
+        newNotifications.forEach(n => {
+          if (!n.is_read && !seenNotiIds.has(n.id)) {
+            showToast(n.message);
+            setSeenNotiIds(prev => {
+              const next = new Set(prev);
+              next.add(n.id);
+              return next;
+            });
+          }
+        });
+      } else {
+        const initialSeen = new Set(newNotifications.map(n => n.id));
+        setSeenNotiIds(initialSeen);
+      }
+
+      setNotifications(newNotifications);
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    if (!user) return;
+    
+    // First load to populate the seen set
+    fetchNotifications(true);
+
+    // Poll notifications every 6 seconds as a fallback
+    const interval = setInterval(() => {
+      fetchNotifications(false);
+    }, 6000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   // Real-Time Notification updates
@@ -107,9 +136,19 @@ const Navbar = ({ onToggleSidebar }) => {
     if (!user) return;
     const unsubscribe = subscribe('NOTIFICATION_RECEIVED', (data) => {
       if (data && data.id) {
-        setNotifications(prev => [data, ...prev]);
+        setNotifications(prev => {
+          if (prev.some(n => n.id === data.id)) return prev;
+          return [data, ...prev];
+        });
         setUnreadCount(prev => prev + 1);
+        
+        // Show toast and add to seen set so background poll doesn't duplicate the toast
         showToast(data.message);
+        setSeenNotiIds(prev => {
+          const next = new Set(prev);
+          next.add(data.id);
+          return next;
+        });
       }
     });
     return () => {
