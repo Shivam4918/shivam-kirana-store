@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fi';
 import api from '../services/api';
 import BarcodeScanner from './BarcodeScanner';
+import { createPortal } from 'react-dom';
 
 const ALIAS_MAP = {
   'atta': ['flour', 'wheat'],
@@ -1115,7 +1116,7 @@ const Navbar = ({ onToggleSidebar }) => {
           )}
 
           {/* Mobile Full-Screen Overlay Search Modal */}
-          {isMobileSearchOpen && (
+          {isMobileSearchOpen && createPortal(
             <div className="fixed inset-0 bg-white z-[9999] flex flex-col md:hidden animate-in fade-in duration-200">
               <div className="flex items-center space-x-3 p-4 border-b border-slate-100 shrink-0">
                 <button 
@@ -1172,7 +1173,8 @@ const Navbar = ({ onToggleSidebar }) => {
               <div className="flex-1 overflow-y-auto p-4">
                 {renderSuggestionsList()}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* Barcode Scanner Modal */}
