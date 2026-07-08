@@ -78,6 +78,7 @@ const Navbar = ({ onToggleSidebar }) => {
   const searchContainerRef = useRef(null);
   const notiRef = useRef(null);
   const profileRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const showToast = (message) => {
     setToast({ message });
@@ -427,12 +428,22 @@ const Navbar = ({ onToggleSidebar }) => {
   };
 
   const startSpeechRecognition = () => {
+    // If already listening, stop it and return
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+      setIsListening(false);
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       showToast('Voice Search is not supported in this browser.');
       return;
     }
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
     recognition.lang = 'en-IN';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
@@ -444,8 +455,18 @@ const Navbar = ({ onToggleSidebar }) => {
 
     recognition.onerror = (e) => {
       console.error('Speech error:', e.error);
-      showToast('Could not recognize voice. Please try again.');
       setIsListening(false);
+      if (e.error === 'no-speech') {
+        showToast('No speech detected. Please speak clearly.');
+      } else if (e.error === 'not-allowed') {
+        showToast('Microphone permission denied. Please allow mic access.');
+      } else if (e.error === 'audio-capture') {
+        showToast('No microphone found. Please connect one.');
+      } else if (e.error === 'network') {
+        showToast('Network connection error.');
+      } else if (e.error !== 'aborted') {
+        showToast('Could not recognize voice. Please try again.');
+      }
     };
 
     recognition.onend = () => {
@@ -458,7 +479,12 @@ const Navbar = ({ onToggleSidebar }) => {
       setIsListening(false);
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error('Recognition start failed:', err);
+      setIsListening(false);
+    }
   };
 
   const renderSuggestionsList = () => {
