@@ -1389,10 +1389,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'ADMIN':
-            return Notification.objects.all().order_by('-created_at')
-        else:
-            return Notification.objects.filter(user=user).order_by('-created_at')
+        return Notification.objects.filter(user=user).order_by('-created_at')
 
     @action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None):
@@ -1404,19 +1401,13 @@ class NotificationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='mark-all-read')
     def mark_all_read(self, request):
         user = self.request.user
-        if user.role == 'ADMIN':
-            Notification.objects.filter(is_read=False).update(is_read=True)
-        else:
-            Notification.objects.filter(user=user, is_read=False).update(is_read=True)
+        Notification.objects.filter(user=user, is_read=False).update(is_read=True)
         return Response({"detail": "All notifications marked as read."})
 
     @action(detail=False, methods=['get'], url_path='unread-count')
     def unread_count(self, request):
         user = self.request.user
-        if user.role == 'ADMIN':
-            count = Notification.objects.filter(is_read=False).count()
-        else:
-            count = Notification.objects.filter(user=user, is_read=False).count()
+        count = Notification.objects.filter(user=user, is_read=False).count()
         return Response({"unread_count": count})
 
 
