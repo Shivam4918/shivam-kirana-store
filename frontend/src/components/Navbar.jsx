@@ -444,13 +444,21 @@ const Navbar = ({ onToggleSidebar }) => {
     }
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
-    recognition.lang = 'en-IN';
-    recognition.interimResults = false;
+    
+    // Fallback to navigator language or 'en-US' for maximum device dictation package compatibility
+    recognition.lang = navigator.language || 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       setIsListening(true);
       showToast('Listening... Speak grocery items now.');
+      
+      // Blur active element to hide keyboard on mobile and prevent keyboard/mic capture conflicts
+      if (window.innerWidth < 768) {
+        document.activeElement?.blur();
+      }
     };
 
     recognition.onerror = (e) => {
@@ -474,9 +482,22 @@ const Navbar = ({ onToggleSidebar }) => {
     };
 
     recognition.onresult = (event) => {
-      const speechToText = event.results[0][0].transcript;
-      handleSearchChange(speechToText);
-      setIsListening(false);
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      const currentText = finalTranscript || interimTranscript;
+      if (currentText) {
+        handleSearchChange(currentText);
+      }
     };
 
     try {
