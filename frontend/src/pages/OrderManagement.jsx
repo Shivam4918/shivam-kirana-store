@@ -39,7 +39,14 @@ export default function OrderManagement() {
   const { subscribe } = useRealTime();
 
   useEffect(() => {
-    fetchOrdersAndStats();
+    fetchOrdersAndStats(false);
+
+    // Poll for new orders and status updates every 5 seconds
+    const interval = setInterval(() => {
+      fetchOrdersAndStats(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -71,9 +78,9 @@ export default function OrderManagement() {
     };
   }, [subscribe]);
 
-  const fetchOrdersAndStats = async () => {
+  const fetchOrdersAndStats = async (isPoll = false) => {
     try {
-      setLoading(true);
+      if (!isPoll) setLoading(true);
       const ordersRes = await api.get('/orders/');
       setOrders(ordersRes.data);
 
@@ -82,7 +89,7 @@ export default function OrderManagement() {
     } catch (err) {
       console.error('Error loading order management details:', err);
     } finally {
-      setLoading(false);
+      if (!isPoll) setLoading(false);
     }
   };
 
