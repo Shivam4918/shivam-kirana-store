@@ -73,6 +73,7 @@ const Navbar = ({ onToggleSidebar }) => {
   const [showScanner, setShowScanner] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [debouncedSearchVal, setDebouncedSearchVal] = useState('');
+  const [isListening, setIsListening] = useState(false);
 
   const searchContainerRef = useRef(null);
   const notiRef = useRef(null);
@@ -437,17 +438,24 @@ const Navbar = ({ onToggleSidebar }) => {
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
+      setIsListening(true);
       showToast('Listening... Speak grocery items now.');
     };
 
     recognition.onerror = (e) => {
       console.error('Speech error:', e.error);
       showToast('Could not recognize voice. Please try again.');
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
     };
 
     recognition.onresult = (event) => {
       const speechToText = event.results[0][0].transcript;
       handleSearchChange(speechToText);
+      setIsListening(false);
     };
 
     recognition.start();
@@ -1081,7 +1089,9 @@ const Navbar = ({ onToggleSidebar }) => {
               <button
                 type="button"
                 onClick={startSpeechRecognition}
-                className="p-1 text-slate-405 hover:text-[#10B981] cursor-pointer transition-colors"
+                className={`p-1 cursor-pointer transition-colors ${
+                  isListening ? 'text-red-500 animate-pulse' : 'text-slate-405 hover:text-[#10B981]'
+                }`}
                 title="Voice Search"
                 aria-label="Voice Search"
               >
@@ -1143,7 +1153,9 @@ const Navbar = ({ onToggleSidebar }) => {
                     <button
                       type="button"
                       onClick={startSpeechRecognition}
-                      className="p-1 text-slate-400 hover:text-[#10B981] cursor-pointer transition-colors"
+                      className={`p-1 cursor-pointer transition-colors ${
+                        isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-[#10B981]'
+                      }`}
                       title="Voice Search"
                     >
                       <FiMic className="w-4.5 h-4.5" />
@@ -1178,7 +1190,7 @@ const Navbar = ({ onToggleSidebar }) => {
           )}
 
           {/* Barcode Scanner Modal */}
-          {showScanner && (
+          {showScanner && createPortal(
             <BarcodeScanner
               onScan={(code) => {
                 setShowScanner(false);
@@ -1187,7 +1199,8 @@ const Navbar = ({ onToggleSidebar }) => {
               }}
               onClose={() => setShowScanner(false)}
               title="Scan Product Barcode"
-            />
+            />,
+            document.body
           )}
 
         </div>
