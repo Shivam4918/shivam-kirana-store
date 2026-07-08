@@ -97,7 +97,6 @@ const Navbar = ({ onToggleSidebar }) => {
       if (!isFirstLoad) {
         newNotifications.forEach(n => {
           if (!n.is_read && !seenNotiIds.has(n.id)) {
-            showToast(n.message);
             setSeenNotiIds(prev => {
               const next = new Set(prev);
               next.add(n.id);
@@ -142,8 +141,7 @@ const Navbar = ({ onToggleSidebar }) => {
         });
         setUnreadCount(prev => prev + 1);
         
-        // Show toast and add to seen set so background poll doesn't duplicate the toast
-        showToast(data.message);
+        // Add to seen set so background poll knows it's already processed
         setSeenNotiIds(prev => {
           const next = new Set(prev);
           next.add(data.id);
