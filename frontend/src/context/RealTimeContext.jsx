@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AuthContext } from './AuthContext';
 
 const RealTimeContext = createContext(null);
@@ -8,13 +8,13 @@ export const RealTimeProvider = ({ children }) => {
   const listenersRef = useRef([]);
 
   // Subscribe helper to register event-specific callbacks
-  const subscribe = (event, callback) => {
+  const subscribe = useCallback((event, callback) => {
     const listener = { event, callback };
     listenersRef.current.push(listener);
     return () => {
       listenersRef.current = listenersRef.current.filter(l => l !== listener);
     };
-  };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -77,8 +77,10 @@ export const RealTimeProvider = ({ children }) => {
     };
   }, [user]);
 
+  const value = useMemo(() => ({ subscribe }), [subscribe]);
+
   return (
-    <RealTimeContext.Provider value={{ subscribe }}>
+    <RealTimeContext.Provider value={value}>
       {children}
     </RealTimeContext.Provider>
   );
@@ -91,3 +93,4 @@ export const useRealTime = () => {
   }
   return context;
 };
+

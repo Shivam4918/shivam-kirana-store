@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useRealTime } from '../context/RealTimeContext';
 import { 
@@ -141,14 +141,17 @@ export default function OrderManagement() {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (order.pickup_code && order.pickup_code.includes(searchQuery)) ||
-      order.customer_username.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (selectedStatus === 'ALL') return matchesSearch;
-    return order.status === selectedStatus && matchesSearch;
-  });
+  const filteredOrders = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return orders.filter(order => {
+      const matchesSearch = order.order_number.toLowerCase().includes(query) ||
+        (order.pickup_code && order.pickup_code.includes(query)) ||
+        order.customer_username.toLowerCase().includes(query);
+      
+      if (selectedStatus === 'ALL') return matchesSearch;
+      return order.status === selectedStatus && matchesSearch;
+    });
+  }, [orders, searchQuery, selectedStatus]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 min-h-screen">

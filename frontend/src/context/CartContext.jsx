@@ -37,7 +37,7 @@ export const CartProvider = ({ children }) => {
     }
   }, [cart, user]);
 
-  const addToCart = (product) => {
+  const addToCart = useCallback((product) => {
     if (product.stock_quantity <= 0) {
       return { success: false, message: 'Product is currently out of stock.' };
     }
@@ -60,9 +60,9 @@ export const CartProvider = ({ children }) => {
     });
 
     return { success: !message.includes('Cannot'), message };
-  };
+  }, []);
 
-  const updateQuantity = (productId, amount) => {
+  const updateQuantity = useCallback((productId, amount) => {
     let success = true;
     let message = '';
 
@@ -88,16 +88,16 @@ export const CartProvider = ({ children }) => {
     });
 
     return { success, message };
-  };
+  }, []);
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = useCallback((productId) => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
     setRedeemPoints(false);
-  };
+  }, []);
 
   // Derived states / calculations
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -123,13 +123,18 @@ export const CartProvider = ({ children }) => {
     setIsCartOpen,
   }), [
     cart,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
     cartCount,
     cartSubtotal,
     cartSavings,
     cartTotal,
     redeemPoints,
-    isCartOpen
+    isCartOpen,
   ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
+

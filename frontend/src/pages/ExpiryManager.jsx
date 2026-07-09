@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import {
   FiAlertTriangle, FiClock, FiCheckCircle, FiPackage, FiPlus,
@@ -189,19 +189,22 @@ const ExpiryManager = () => {
     }
   };
 
-  const allBatches = dashboard?.all_batches || [];
-  const filteredBatches = allBatches.filter(b => {
-    if (activeTab === 'ALL') return true;
-    return b.expiry_status === activeTab;
-  });
+  const allBatches = useMemo(() => dashboard?.all_batches || [], [dashboard]);
 
-  const tabs = [
+  const filteredBatches = useMemo(() => {
+    return allBatches.filter(b => {
+      if (activeTab === 'ALL') return true;
+      return b.expiry_status === activeTab;
+    });
+  }, [allBatches, activeTab]);
+
+  const tabs = useMemo(() => [
     { id: 'ALL', label: 'All Batches', count: allBatches.length },
     { id: 'EXPIRED', label: 'Expired', count: allBatches.filter(b => b.expiry_status === 'EXPIRED').length },
     { id: 'EXPIRING_SOON', label: 'Expiring Soon (≤7d)', count: allBatches.filter(b => b.expiry_status === 'EXPIRING_SOON').length },
     { id: 'EXPIRING_MONTH', label: 'Within 30 Days', count: allBatches.filter(b => b.expiry_status === 'EXPIRING_MONTH').length },
     { id: 'OK', label: 'OK', count: allBatches.filter(b => b.expiry_status === 'OK').length },
-  ];
+  ], [allBatches]);
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto bg-[#F8FAFC] text-[#111827] flex flex-col text-left">

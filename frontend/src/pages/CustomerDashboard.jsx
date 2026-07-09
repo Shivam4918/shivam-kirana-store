@@ -363,7 +363,7 @@ const CustomerDashboard = () => {
     return { tier: 'Bronze Member', color: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/20' };
   };
 
-  const getLastOrderDate = () => {
+  const lastOrderDate = useMemo(() => {
     if (invoicesLoading) return 'Loading...';
     if (invoices && invoices.length > 0) {
       return new Date(invoices[0].created_at).toLocaleDateString(undefined, {
@@ -384,9 +384,9 @@ const CustomerDashboard = () => {
       }
     }
     return 'No orders yet';
-  };
+  }, [invoices, invoicesLoading, khataProfile?.transactions]);
 
-  const getFavoriteCategory = () => {
+  const favoriteCategory = useMemo(() => {
     if (!khataProfile?.transactions || khataProfile.transactions.length === 0) {
       return 'Groceries';
     }
@@ -409,7 +409,7 @@ const CustomerDashboard = () => {
       }
     });
     return favCat;
-  };
+  }, [khataProfile?.transactions, products]);
 
   const handleQuickAction = (actionName) => {
     switch (actionName) {
@@ -944,7 +944,7 @@ const CustomerDashboard = () => {
     };
   };
 
-  const getSeasonalProducts = () => {
+  const seasonalProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
     const seasonal = products.filter(p => 
       p.category?.toLowerCase() === 'oils' || 
@@ -953,15 +953,19 @@ const CustomerDashboard = () => {
       p.name?.toLowerCase().includes('tea')
     );
     return seasonal.length > 0 ? seasonal : products.slice(0, 4);
-  };
+  }, [products]);
 
-  const getPopularNearYou = () => {
+  const popularNearYouProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
     const popular = products.filter(p => Number(p.id) % 2 === 0);
     return popular.length > 0 ? popular : products.slice(1, 5);
+  }, [products]);
+
+  const roundToTwo = (num) => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
   };
 
-  const getMonthlyShoppingSummary = () => {
+  const monthlyShoppingSummary = useMemo(() => {
     if (invoicesLoading || !invoices) {
       return {
         totalOrders: 0,
@@ -1003,11 +1007,7 @@ const CustomerDashboard = () => {
       budgetLimit,
       rewardPointsEarned
     };
-  };
-
-  const roundToTwo = (num) => {
-    return Math.round((num + Number.EPSILON) * 100) / 100;
-  };
+  }, [invoices, invoicesLoading]);
 
   const handleEditBudget = () => {
     const val = prompt('Enter your monthly shopping budget limit (₹):', '10000');
@@ -1167,7 +1167,7 @@ const CustomerDashboard = () => {
                 </div>
                 <div className="text-left min-w-0">
                   <p className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold truncate">Last Order</p>
-                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 truncate">{getLastOrderDate()}</p>
+                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 truncate">{lastOrderDate}</p>
                 </div>
               </div>
 
@@ -1189,7 +1189,7 @@ const CustomerDashboard = () => {
                 </div>
                 <div className="text-left min-w-0">
                   <p className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold truncate">Favorite Type</p>
-                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 capitalize truncate">{getFavoriteCategory()}</p>
+                  <p className="text-[11px] sm:text-xs font-bold text-white mt-0.5 capitalize truncate">{favoriteCategory}</p>
                 </div>
               </div>
 
@@ -2680,7 +2680,7 @@ const CustomerDashboard = () => {
       <SummaryDrawer
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
-        monthlyData={getMonthlyShoppingSummary()}
+        monthlyData={monthlyShoppingSummary}
       />
     </div>
   );

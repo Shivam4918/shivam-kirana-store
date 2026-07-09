@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 
 export const AuthContext = createContext();
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = async (emailOrUsername, password) => {
+  const login = useCallback(async (emailOrUsername, password) => {
     try {
       const res = await api.post('/auth/login/', {
         username: emailOrUsername,
@@ -59,9 +59,9 @@ export const AuthProvider = ({ children }) => {
         error: err.response?.data?.detail || 'Invalid username/email or password.' 
       };
     }
-  };
+  }, []);
 
-  const register = async (username, email, phoneNumber, password, confirmPassword) => {
+  const register = useCallback(async (username, email, phoneNumber, password, confirmPassword) => {
     try {
       const res = await api.post('/auth/register/', {
         username,
@@ -78,9 +78,9 @@ export const AuthProvider = ({ children }) => {
         error: err.response?.data || { detail: 'Registration failed.' } 
       };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout/');
     } catch (err) {
@@ -94,9 +94,9 @@ export const AuthProvider = ({ children }) => {
     // Trigger storage event for other open tabs
     localStorage.setItem('logout-event', Date.now().toString());
     localStorage.removeItem('logout-event');
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     isAuthenticated: !!user,
@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     setUser
-  };
+  }), [user, loading, login, register, logout]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -112,3 +112,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+

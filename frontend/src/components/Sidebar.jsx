@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { 
@@ -90,7 +90,7 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
     };
   }, [isOpenOnMobile, onCloseMobile]);
 
-  const getMonthlyStats = () => {
+  const monthlyStats = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -113,7 +113,7 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
       rewardPointsEarned,
       budgetProgress: Math.round(budgetProgress)
     };
-  };
+  }, [invoices, monthlyBudget]);
 
   const triggerQuickAction = (action) => {
     const targetPath = (action === 'order-history') ? '/dashboard/khata' : '/dashboard';
@@ -310,43 +310,38 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
                     {invoicesLoading ? (
                       <span className="text-[10px] text-slate-400 italic">Loading stats...</span>
                     ) : (
-                      (() => {
-                        const stats = getMonthlyStats();
-                        return (
-                          <div className="space-y-3 py-1 pr-2 text-left">
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                                <span>Monthly Budget Limit</span>
-                                <span className="text-slate-600">₹{monthlyBudget}</span>
-                              </div>
-                              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    stats.budgetProgress > 85 ? 'bg-rose-500' : 'bg-emerald-500'
-                                  }`}
-                                  style={{ width: `${stats.budgetProgress}%` }}
-                                />
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500">
-                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <span className="block text-slate-400 text-[8px] uppercase">Spending</span>
-                                <span className="text-slate-800 text-xs mt-0.5 block">₹{stats.monthlySpending}</span>
-                              </div>
-                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <span className="block text-slate-400 text-[8px] uppercase">Savings</span>
-                                <span className="text-emerald-600 text-xs mt-0.5 block">₹{stats.totalSavings}</span>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => triggerQuickAction('summary')}
-                              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
-                            >
-                              Open Insights
-                            </button>
+                      <div className="space-y-3 py-1 pr-2 text-left">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                            <span>Monthly Budget Limit</span>
+                            <span className="text-slate-600">₹{monthlyBudget}</span>
                           </div>
-                        );
-                      })()
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                monthlyStats.budgetProgress > 85 ? 'bg-rose-500' : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${monthlyStats.budgetProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500">
+                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <span className="block text-slate-400 text-[8px] uppercase">Spending</span>
+                            <span className="text-slate-800 text-xs mt-0.5 block">₹{monthlyStats.monthlySpending}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <span className="block text-slate-400 text-[8px] uppercase">Savings</span>
+                            <span className="text-emerald-600 text-xs mt-0.5 block">₹{monthlyStats.totalSavings}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => triggerQuickAction('summary')}
+                          className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
+                        >
+                          Open Insights
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -468,43 +463,38 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
                     {invoicesLoading ? (
                       <span className="text-[10px] text-slate-400 italic">Loading stats...</span>
                     ) : (
-                      (() => {
-                        const stats = getMonthlyStats();
-                        return (
-                          <div className="space-y-3.5 py-2 pr-2 text-left">
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                                <span>Monthly Budget Limit</span>
-                                <span className="text-slate-600">₹{monthlyBudget}</span>
-                              </div>
-                              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    stats.budgetProgress > 85 ? 'bg-rose-500' : 'bg-emerald-500'
-                                  }`}
-                                  style={{ width: `${stats.budgetProgress}%` }}
-                                />
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500">
-                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <span className="block text-slate-400 text-[8px] uppercase">Spending</span>
-                                <span className="text-slate-800 text-xs mt-0.5 block">₹{stats.monthlySpending}</span>
-                              </div>
-                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <span className="block text-slate-400 text-[8px] uppercase">5% Savings</span>
-                                <span className="text-emerald-600 text-xs mt-0.5 block">₹{stats.totalSavings}</span>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => triggerQuickAction('summary')}
-                              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
-                            >
-                              Open Insights
-                            </button>
+                      <div className="space-y-3.5 py-2 pr-2 text-left">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                            <span>Monthly Budget Limit</span>
+                            <span className="text-slate-600">₹{monthlyBudget}</span>
                           </div>
-                        );
-                      })()
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                monthlyStats.budgetProgress > 85 ? 'bg-rose-500' : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${monthlyStats.budgetProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500">
+                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <span className="block text-slate-400 text-[8px] uppercase">Spending</span>
+                            <span className="text-slate-800 text-xs mt-0.5 block">₹{monthlyStats.monthlySpending}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <span className="block text-slate-400 text-[8px] uppercase">5% Savings</span>
+                            <span className="text-emerald-600 text-xs mt-0.5 block">₹{monthlyStats.totalSavings}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => triggerQuickAction('summary')}
+                          className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-[9px] uppercase tracking-wider rounded-lg border border-slate-200 transition-colors cursor-pointer text-center min-h-[36px]"
+                        >
+                          Open Insights
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -559,4 +549,4 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

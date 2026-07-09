@@ -1,3 +1,4 @@
+import React from 'react';
 import { FiX, FiCalendar, FiTrendingUp, FiShoppingBag, FiGift, FiPieChart, FiDollarSign } from 'react-icons/fi';
 
 const SummaryDrawer = ({ isOpen, onClose, monthlyData }) => {
@@ -171,4 +172,4 @@ const SummaryDrawer = ({ isOpen, onClose, monthlyData }) => {
   );
 };
 
-export default SummaryDrawer;
+export default React.memo(SummaryDrawer);

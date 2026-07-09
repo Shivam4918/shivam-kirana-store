@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { CartContext } from '../context/CartContext';
 import { FiX, FiHeart, FiTrash2, FiShoppingCart, FiSearch } from 'react-icons/fi';
 import api from '../services/api';
@@ -11,32 +11,33 @@ const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setW
 
   if (!isOpen) return null;
 
-  // Filter items based on search query
-  const filteredItems = wishlistItems.filter((item) => {
-    const name = item.product_details?.name || item.product_name || '';
-    return name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Filter and sort items based on search query and sort option
+  const sortedItems = useMemo(() => {
+    const filtered = wishlistItems.filter((item) => {
+      const name = item.product_details?.name || item.product_name || '';
+      return name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
 
-  // Sort items
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    if (sortBy === 'name') {
-      const nameA = a.product_details?.name || a.product_name || '';
-      const nameB = b.product_details?.name || b.product_name || '';
-      return nameA.localeCompare(nameB);
-    }
-    if (sortBy === 'price-low') {
-      const priceA = parseFloat(a.product_details?.price || a.product_price || 0);
-      const priceB = parseFloat(b.product_details?.price || b.product_price || 0);
-      return priceA - priceB;
-    }
-    if (sortBy === 'price-high') {
-      const priceA = parseFloat(a.product_details?.price || a.product_price || 0);
-      const priceB = parseFloat(b.product_details?.price || b.product_price || 0);
-      return priceB - priceA;
-    }
-    // Default: newest first (higher ID or newer date)
-    return b.id - a.id;
-  });
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        const nameA = a.product_details?.name || a.product_name || '';
+        const nameB = b.product_details?.name || b.product_name || '';
+        return nameA.localeCompare(nameB);
+      }
+      if (sortBy === 'price-low') {
+        const priceA = parseFloat(a.product_details?.price || a.product_price || 0);
+        const priceB = parseFloat(b.product_details?.price || b.product_price || 0);
+        return priceA - priceB;
+      }
+      if (sortBy === 'price-high') {
+        const priceA = parseFloat(a.product_details?.price || a.product_price || 0);
+        const priceB = parseFloat(b.product_details?.price || b.product_price || 0);
+        return priceB - priceA;
+      }
+      // Default: newest first (higher ID or newer date)
+      return b.id - a.id;
+    });
+  }, [wishlistItems, searchQuery, sortBy]);
 
   const handleRemove = async (productId) => {
     try {
@@ -311,4 +312,4 @@ const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setW
   );
 };
 
-export default WishlistDrawer;
+export default React.memo(WishlistDrawer);
