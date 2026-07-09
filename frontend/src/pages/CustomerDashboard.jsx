@@ -1,12 +1,13 @@
-import { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useContext, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useRealTime } from '../context/RealTimeContext';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
-import BarcodeScanner from '../components/BarcodeScanner';
-import WishlistDrawer from '../components/WishlistDrawer';
-import SummaryDrawer from '../components/SummaryDrawer';
+
+const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'));
+const WishlistDrawer = lazy(() => import('../components/WishlistDrawer'));
+const SummaryDrawer = lazy(() => import('../components/SummaryDrawer'));
 import { 
   FiSearch, FiLock, FiUnlock, FiCalendar, FiBookOpen, 
   FiArrowUpRight, FiArrowDownLeft, FiShoppingBag, FiInbox,
@@ -2243,11 +2244,13 @@ const CustomerDashboard = () => {
 
       {/* Barcode scanner view */}
       {showBarcodeScanner && (
-        <BarcodeScanner
-          title="Scan to Add to Cart"
-          onScan={handleBarcodeScanToCart}
-          onClose={() => setShowBarcodeScanner(false)}
-        />
+        <Suspense fallback={null}>
+          <BarcodeScanner
+            title="Scan to Add to Cart"
+            onScan={handleBarcodeScanToCart}
+            onClose={() => setShowBarcodeScanner(false)}
+          />
+        </Suspense>
       )}
 
       {/* Floating help WhatsApp Button */}
@@ -2668,20 +2671,24 @@ const CustomerDashboard = () => {
         </div>
       )}
 
-      <WishlistDrawer
-        isOpen={isWishlistOpen}
-        onClose={() => setIsWishlistOpen(false)}
-        wishlistItems={wishlistItems}
-        setWishlistItems={setWishlistItems}
-        setWishlistIds={setWishlistIds}
-        showToast={showToast}
-      />
+      <Suspense fallback={null}>
+        <WishlistDrawer
+          isOpen={isWishlistOpen}
+          onClose={() => setIsWishlistOpen(false)}
+          wishlistItems={wishlistItems}
+          setWishlistItems={setWishlistItems}
+          setWishlistIds={setWishlistIds}
+          showToast={showToast}
+        />
+      </Suspense>
 
-      <SummaryDrawer
-        isOpen={isSummaryOpen}
-        onClose={() => setIsSummaryOpen(false)}
-        monthlyData={monthlyShoppingSummary}
-      />
+      <Suspense fallback={null}>
+        <SummaryDrawer
+          isOpen={isSummaryOpen}
+          onClose={() => setIsSummaryOpen(false)}
+          monthlyData={monthlyShoppingSummary}
+        />
+      </Suspense>
     </div>
   );
 };

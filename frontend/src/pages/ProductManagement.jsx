@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import api from '../services/api';
-import BarcodeScanner from '../components/BarcodeScanner';
+
+const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'));
 import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiBox, FiX, FiCheckCircle, FiAlertCircle, FiZap, FiCamera, FiClock } from 'react-icons/fi';
 
 const ProductManagement = () => {
@@ -672,11 +673,13 @@ const ProductManagement = () => {
 
       {/* Barcode Scanner Modal */}
       {showScanner && (
-        <BarcodeScanner
-          title={scannerMode === 'fill' ? 'Scan Product Barcode' : 'Scan to Find Product'}
-          onScan={handleBarcodeScan}
-          onClose={() => setShowScanner(false)}
-        />
+        <Suspense fallback={null}>
+          <BarcodeScanner
+            title={scannerMode === 'fill' ? 'Scan Product Barcode' : 'Scan to Find Product'}
+            onScan={handleBarcodeScan}
+            onClose={() => setShowScanner(false)}
+          />
+        </Suspense>
       )}
 
     </div>
