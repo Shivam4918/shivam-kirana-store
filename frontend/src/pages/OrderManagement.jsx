@@ -81,10 +81,11 @@ export default function OrderManagement() {
   const fetchOrdersAndStats = async (isPoll = false) => {
     try {
       if (!isPoll) setLoading(true);
-      const ordersRes = await api.get('/orders/');
+      const [ordersRes, statsRes] = await Promise.all([
+        api.get('/orders/'),
+        api.get('/admin/analytics/')
+      ]);
       setOrders(ordersRes.data);
-
-      const statsRes = await api.get('/admin/analytics/');
       setCounters(statsRes.data.order_stats || {});
     } catch (err) {
       console.error('Error loading order management details:', err);

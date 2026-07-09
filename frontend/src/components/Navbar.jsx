@@ -75,6 +75,7 @@ const Navbar = ({ onToggleSidebar }) => {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [debouncedSearchVal, setDebouncedSearchVal] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [hasFetchedSearchData, setHasFetchedSearchData] = useState(false);
 
   const searchContainerRef = useRef(null);
   const notiRef = useRef(null);
@@ -210,7 +211,7 @@ const Navbar = ({ onToggleSidebar }) => {
 
   // Integrated Search Data Fetching (Products, Wishlist, Orders)
   const fetchSearchData = async () => {
-    if (!user || user.role !== 'CUSTOMER') return;
+    if (!user || user.role !== 'CUSTOMER' || hasFetchedSearchData) return;
     try {
       const [productsRes, wishlistRes, ordersRes] = await Promise.allSettled([
         api.get('/products/'),
@@ -228,16 +229,11 @@ const Navbar = ({ onToggleSidebar }) => {
       if (ordersRes.status === 'fulfilled') {
         setRecentOrders(ordersRes.value.data);
       }
+      setHasFetchedSearchData(true);
     } catch (err) {
       console.error('Error fetching search data:', err);
     }
   };
-
-  useEffect(() => {
-    if (user && user.role === 'CUSTOMER') {
-      fetchSearchData();
-    }
-  }, [user]);
 
   const handleSearchChange = (val) => {
     setSearchVal(val);
@@ -1229,6 +1225,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     type="text"
                     autoFocus
                     value={searchVal}
+                    onFocus={fetchSearchData}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Search grocery, khata, brands..."

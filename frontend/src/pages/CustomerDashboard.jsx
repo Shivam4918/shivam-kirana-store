@@ -501,16 +501,106 @@ const CustomerDashboard = () => {
     }
   }, [products]);
 
-  // Sync profile details if changing tabs
+  // Sync profile details if changing tabs (Optimized unified loader using Promise.allSettled)
   useEffect(() => {
-    fetchProducts();
-    fetchKhataLedger();
-    fetchBanners();
-    fetchConfigs();
-    fetchSummary();
-    fetchWishlist();
-    fetchStorefrontRows();
-    fetchInvoices();
+    const loadAllDashboardData = async () => {
+      setProductsLoading(true);
+      setKhataLoading(true);
+      setSummaryLoading(true);
+      setInvoicesLoading(true);
+      setBannersLoading(true);
+
+      const results = await Promise.allSettled([
+        api.get('/products/'),
+        api.get('/khata/my-ledger/'),
+        api.get('/banners/'),
+        api.get('/configs/'),
+        api.get('/customer/summary/'),
+        api.get('/wishlist/'),
+        api.get('/products/buy-again/'),
+        api.get('/products/best-sellers/'),
+        api.get('/products/trending/'),
+        api.get('/products/recommendations/'),
+        api.get('/invoices/')
+      ]);
+
+      // 1. Products
+      if (results[0].status === 'fulfilled') {
+        const data = results[0].value.data;
+        setProducts(data);
+        const cats = ['All', ...new Set(data.map(p => p.category).filter(Boolean))];
+        setCategories(cats);
+      } else {
+        console.error('Error fetching products:', results[0].reason);
+        showToast('Failed to fetch catalog products.', 'error');
+      }
+      setProductsLoading(false);
+
+      // 2. Khata Ledger
+      setKhataLocked(false);
+      if (results[1].status === 'fulfilled') {
+        const data = results[1].value.data;
+        setKhataProfile(data);
+        setLedgerCurrentPage(1);
+        if (data) {
+          setKhataLocked(!data.is_accessible_by_customer);
+          setLockedBalance(data.current_balance);
+        }
+      } else {
+        const err = results[1].reason;
+        console.error('Error fetching khata:', err);
+        if (err.response && err.response.status === 403) {
+          setKhataLocked(true);
+          if (err.response.data && err.response.data.current_balance !== undefined) {
+            setLockedBalance(err.response.data.current_balance);
+          }
+        }
+      }
+      setKhataLoading(false);
+
+      // 3. Banners
+      if (results[2].status === 'fulfilled') {
+        setBanners(results[2].value.data);
+      }
+      setBannersLoading(false);
+
+      // 4. Configs
+      if (results[3].status === 'fulfilled') {
+        const cmap = {};
+        results[3].value.data.forEach(c => {
+          cmap[c.key] = c.value;
+        });
+        setConfigs(cmap);
+      }
+
+      // 5. Summary
+      if (results[4].status === 'fulfilled') {
+        setSummary(results[4].value.data);
+      }
+      setSummaryLoading(false);
+
+      // 6. Wishlist
+      if (results[5].status === 'fulfilled') {
+        const data = results[5].value.data;
+        setWishlistItems(data);
+        const ids = new Set(data.map(item => item.product).filter(Boolean));
+        setWishlistIds(ids);
+      }
+
+      // 7. Storefront Rows
+      if (results[6].status === 'fulfilled') setBuyAgainProducts(results[6].value.data);
+      if (results[7].status === 'fulfilled') setBestSellers(results[7].value.data);
+      if (results[8].status === 'fulfilled') setTrendingProducts(results[8].value.data);
+      if (results[9].status === 'fulfilled') setRecommendations(results[9].value.data);
+
+      // 8. Invoices
+      if (results[10].status === 'fulfilled') {
+        setInvoices(results[10].value.data);
+      }
+      setInvoicesLoading(false);
+    };
+
+    loadAllDashboardData();
   }, []);
 
   // Listen for real-time profile and product updates
