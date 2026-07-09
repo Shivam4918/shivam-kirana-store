@@ -9,8 +9,6 @@ const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setW
   const [sortBy, setSortBy] = useState('newest'); // newest, name, price-low, price-high
   const [clearing, setClearing] = useState(false);
 
-  if (!isOpen) return null;
-
   // Filter and sort items based on search query and sort option
   const sortedItems = useMemo(() => {
     const filtered = wishlistItems.filter((item) => {
@@ -104,6 +102,8 @@ const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setW
       showToast(`${product.name} added to cart!`);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs font-sans">
