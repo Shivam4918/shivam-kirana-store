@@ -2,6 +2,7 @@ import React, { useState, useContext, useMemo } from 'react';
 import { CartContext } from '../context/CartContext';
 import { FiX, FiHeart, FiTrash2, FiShoppingCart, FiSearch } from 'react-icons/fi';
 import api from '../services/api';
+import OptimizedImage from './OptimizedImage';
 
 const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setWishlistIds, showToast }) => {
   const { addToCart } = useContext(CartContext);
@@ -199,20 +200,14 @@ const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setW
                   className="bg-white border border-slate-100 rounded-xl p-3 flex space-x-3.5 shadow-sm hover:shadow-md transition-all duration-200 animate-in fade-in-50"
                 >
                   {/* Image */}
-                  <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                    {image ? (
-                      <img
-                        src={image}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80';
-                        }}
-                      />
-                    ) : (
-                      <FiHeart className="w-6 h-6 text-slate-300" />
-                    )}
+                  <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative">
+                    <OptimizedImage
+                      src={image}
+                      alt={name}
+                      className="w-full h-full object-cover"
+                      width={150}
+                      fallbackIcon={<FiHeart className="w-6 h-6 text-slate-300" />}
+                    />
                   </div>
 
                   {/* Details */}

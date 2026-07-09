@@ -6,6 +6,7 @@ import {
   FiMapPin, FiPrinter, FiChevronRight, FiChevronDown, FiAlertCircle 
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import OptimizedImage from '../components/OptimizedImage';
 
 const STATUS_STEPS = [
   { key: 'ORDER_RECEIVED', label: 'Order Received', desc: 'We have received your order' },
@@ -323,11 +324,12 @@ export default function MyOrders() {
                             {/* QR code */}
                             <div className="bg-white border border-slate-150 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center space-y-3">
                               <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">Pickup QR Code</span>
-                              <div className="p-2 border border-slate-200 rounded-xl bg-white">
-                                <img 
+                              <div className="p-2 border border-slate-200 rounded-xl bg-white relative w-[158px] h-[158px]">
+                                <OptimizedImage 
                                   src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(order.pickup_qr_data)}`} 
                                   alt="Pickup QR Code" 
-                                  className="w-[140px] h-[140px]"
+                                  className="w-[140px] h-[140px] object-contain"
+                                  width={140}
                                 />
                               </div>
                               <span className="text-[9.5px] text-slate-404">Scan at Counter to Verify</span>

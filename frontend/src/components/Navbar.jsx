@@ -12,6 +12,7 @@ import {
 import api from '../services/api';
 import BarcodeScanner from './BarcodeScanner';
 import { createPortal } from 'react-dom';
+import OptimizedImage from './OptimizedImage';
 
 const ALIAS_MAP = {
   'atta': ['flour', 'wheat'],
@@ -662,7 +663,7 @@ const Navbar = ({ onToggleSidebar }) => {
                       <div className="flex items-center space-x-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            <OptimizedImage src={p.image} alt={p.name} className="w-full h-full object-cover" width={100} />
                           ) : (
                             <FiShoppingBag className="w-4 h-4 text-slate-350" />
                           )}
@@ -800,7 +801,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
                         {p.image ? (
-                          <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                          <OptimizedImage src={p.image} alt={p.name} className="w-full h-full object-cover" width={100} />
                         ) : (
                           <FiShoppingBag className="w-4 h-4 text-slate-350" />
                         )}
@@ -874,7 +875,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="w-10 h-10 rounded-lg bg-rose-50/30 border border-rose-100/30 overflow-hidden flex items-center justify-center shrink-0">
                         {p.image ? (
-                          <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                          <OptimizedImage src={p.image} alt={p.name} className="w-full h-full object-cover" width={100} />
                         ) : (
                           <FiShoppingBag className="w-4 h-4 text-rose-350" />
                         )}

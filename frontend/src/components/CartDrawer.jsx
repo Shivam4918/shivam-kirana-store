@@ -6,6 +6,7 @@ import {
   FiCheckCircle, FiLock, FiGift, FiTruck, FiAlertCircle 
 } from 'react-icons/fi';
 import api from '../services/api';
+import OptimizedImage from './OptimizedImage';
 
 const CartDrawer = () => {
   const { user } = useContext(AuthContext);
@@ -191,12 +192,13 @@ const CartDrawer = () => {
                     className="flex items-start space-x-3.5 p-3.5 bg-slate-50/50 border border-slate-200/60 rounded-lg"
                   >
                     {/* Item Image */}
-                    <div className="w-12 h-12 bg-white border border-slate-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-white border border-slate-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center relative">
                       {item.product.image ? (
-                        <img 
+                        <OptimizedImage 
                           src={item.product.image} 
                           alt={item.product.name} 
                           className="w-full h-full object-cover"
+                          width={120}
                         />
                       ) : (
                         <FiShoppingBag className="w-5 h-5 text-slate-300" />

@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useRealTime } from '../context/RealTimeContext';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
+import OptimizedImage from '../components/OptimizedImage';
 
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'));
 const WishlistDrawer = lazy(() => import('../components/WishlistDrawer'));
@@ -184,6 +185,22 @@ const CustomerDashboard = () => {
   const [requestingStatement, setRequestingStatement] = useState(false);
 
   const searchInputRef = useRef(null);
+
+  const getOptimizedUnsplashUrl = (src, width = 400, quality = 60) => {
+    if (!src) return src;
+    if (src.includes('images.unsplash.com')) {
+      try {
+        const url = new URL(src);
+        url.searchParams.set('fm', 'webp');
+        url.searchParams.set('w', width.toString());
+        url.searchParams.set('q', quality.toString());
+        return url.toString();
+      } catch (e) {
+        return src;
+      }
+    }
+    return src;
+  };
 
   // Debounce search input
   useEffect(() => {
@@ -1474,7 +1491,7 @@ const CustomerDashboard = () => {
                         <div className="hidden md:flex w-1/3 items-center justify-center relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-tr from-white/10 to-white/5 backdrop-blur-md shadow-2xl">
                           {hasValidImage ? (
                             <img 
-                              src={banner.image_url} 
+                              src={getOptimizedUnsplashUrl(banner.image_url, 600)} 
                               alt={banner.title} 
                               className="w-full h-full object-cover transform hover:scale-105 transition-all duration-700" 
                               loading="lazy"
@@ -1633,9 +1650,9 @@ const CustomerDashboard = () => {
                             </button>
                             <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
                               {p.image ? (
-                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
+                                <OptimizedImage src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" width={180} />
                               ) : (
-                                <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                                <FiShoppingBag className="w-7 h-7 text-slate-350" />
                               )}
                               {discountPercent > 0 && (
                                 <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
@@ -1703,9 +1720,9 @@ const CustomerDashboard = () => {
                             </button>
                             <div className="h-28 overflow-hidden relative bg-slate-50/50 flex items-center justify-center rounded-xl border border-slate-100/40 mb-2.5">
                               {p.image ? (
-                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" loading="lazy" />
+                                <OptimizedImage src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106" width={180} />
                               ) : (
-                                <FiShoppingBag className="w-7 h-7 text-slate-300" />
+                                <FiShoppingBag className="w-7 h-7 text-slate-355" />
                               )}
                               {discountPercent > 0 && (
                                 <span className="absolute top-1.5 left-1.5 bg-rose-500 text-white text-[7.5px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider font-sans">
@@ -1814,15 +1831,11 @@ const CustomerDashboard = () => {
                     {/* Image Area */}
                     <div className="h-48 overflow-hidden relative bg-slate-50/50 flex items-center justify-center border-b border-slate-100/60">
                       {p.image ? (
-                        <img 
+                        <OptimizedImage 
                           src={p.image} 
                           alt={p.name}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80';
-                          }}
+                          width={320}
                         />
                       ) : (
                         <FiShoppingBag className="w-8 h-8 text-slate-350" />
@@ -2282,14 +2295,11 @@ const CustomerDashboard = () => {
                 
                 <div className="w-full h-56 md:h-64 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
                   {quickViewProduct.image ? (
-                    <img 
+                    <OptimizedImage 
                       src={quickViewProduct.image} 
                       alt={quickViewProduct.name} 
                       className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
-                      }}
+                      width={450}
                     />
                   ) : (
                     <FiShoppingBag className="w-12 h-12 text-slate-350" />
@@ -2622,10 +2632,11 @@ const CustomerDashboard = () => {
                 <div className="py-1 flex flex-col items-center justify-center space-y-3">
                   <div className="bg-white border border-slate-200 p-2.5 rounded-xl flex items-center justify-center w-36 h-36 relative shadow-inner">
                     {paymentRequest.razorpay_payment_link_url ? (
-                      <img 
+                      <OptimizedImage 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(paymentRequest.razorpay_payment_link_url)}`} 
                         alt="UPI QR Code" 
                         className="w-full h-full object-contain"
+                        width={130}
                       />
                     ) : (
                       <div className="text-center text-slate-400">
