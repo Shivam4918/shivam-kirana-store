@@ -54,19 +54,17 @@ const WishlistDrawer = ({ isOpen, onClose, wishlistItems, setWishlistItems, setW
   };
 
   const handleClearAll = async () => {
-    if (window.confirm('Are you sure you want to clear your entire wishlist?')) {
-      setClearing(true);
-      try {
-        await api.post('/wishlist/clear/');
-        setWishlistItems([]);
-        setWishlistIds(new Set());
-        showToast('Wishlist cleared.');
-      } catch (err) {
-        console.error(err);
-        showToast('Failed to clear wishlist.', 'error');
-      } finally {
-        setClearing(false);
-      }
+    setClearing(true);
+    try {
+      await api.post('/wishlist/clear/');
+      setWishlistItems([]);
+      setWishlistIds(new Set());
+      showToast('Wishlist cleared.');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to clear wishlist.', 'error');
+    } finally {
+      setClearing(false);
     }
   };
 
