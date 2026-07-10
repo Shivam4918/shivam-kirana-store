@@ -241,8 +241,22 @@ const Navbar = ({ onToggleSidebar }) => {
     setActiveSuggestionIndex(-1);
   };
 
-  // Typo tolerance sequential match and alias mappings
-  const fuzzyMatch = (targetText, queryText) => {
+  // Typo tolerance sequential match and alias mappings using precompiled regex
+  const fuzzyRegex = useMemo(() => {
+    if (!debouncedSearchVal) return null;
+    const query = debouncedSearchVal.toLowerCase().trim();
+    const escaped = query.replace(/[^a-z0-9]/g, '');
+    if (escaped.length > 2) {
+      try {
+        return new RegExp(escaped.split('').join('.*'), 'i');
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }, [debouncedSearchVal]);
+
+  const fuzzyMatch = (targetText, queryText, precompiledRegex = null) => {
     if (!targetText || !queryText) return false;
     const target = targetText.toLowerCase();
     const query = queryText.toLowerCase().trim();
@@ -256,13 +270,8 @@ const Navbar = ({ onToggleSidebar }) => {
     }
 
     // Sequential regex match
-    const escaped = query.replace(/[^a-z0-9]/g, '');
-    if (escaped.length > 2) {
-      const pattern = escaped.split('').join('.*');
-      try {
-        const regex = new RegExp(pattern, 'i');
-        if (regex.test(target)) return true;
-      } catch (e) {}
+    if (precompiledRegex) {
+      return precompiledRegex.test(target);
     }
     return false;
   };
@@ -270,49 +279,49 @@ const Navbar = ({ onToggleSidebar }) => {
   const filteredCategories = useMemo(() => {
     if (!debouncedSearchVal) return [];
     const allCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-    return allCats.filter(c => fuzzyMatch(c, debouncedSearchVal)).slice(0, 3);
-  }, [debouncedSearchVal, products]);
+    return allCats.filter(c => fuzzyMatch(c, debouncedSearchVal, fuzzyRegex)).slice(0, 3);
+  }, [debouncedSearchVal, products, fuzzyRegex]);
 
   const filteredBrands = useMemo(() => {
     if (!debouncedSearchVal) return [];
     const allBrands = Array.from(new Set(products.map(p => p.brand).filter(Boolean)));
-    return allBrands.filter(b => fuzzyMatch(b, debouncedSearchVal)).slice(0, 3);
-  }, [debouncedSearchVal, products]);
+    return allBrands.filter(b => fuzzyMatch(b, debouncedSearchVal, fuzzyRegex)).slice(0, 3);
+  }, [debouncedSearchVal, products, fuzzyRegex]);
 
   const filteredSuggestions = useMemo(() => {
     if (!debouncedSearchVal) return [];
     const query = debouncedSearchVal.toLowerCase().trim();
     return products.filter(p => {
-      const nameMatch = fuzzyMatch(p.name, query);
-      const brandMatch = p.brand && fuzzyMatch(p.brand, query);
-      const categoryMatch = p.category && fuzzyMatch(p.category, query);
+      const nameMatch = fuzzyMatch(p.name, query, fuzzyRegex);
+      const brandMatch = p.brand && fuzzyMatch(p.brand, query, fuzzyRegex);
+      const categoryMatch = p.category && fuzzyMatch(p.category, query, fuzzyRegex);
       const skuMatch = p.sku && p.sku.toLowerCase().includes(query);
       const barcodeMatch = p.barcode && p.barcode.toLowerCase().includes(query);
       return nameMatch || brandMatch || categoryMatch || skuMatch || barcodeMatch;
     }).slice(0, 5);
-  }, [debouncedSearchVal, products]);
+  }, [debouncedSearchVal, products, fuzzyRegex]);
 
   const filteredWishlist = useMemo(() => {
     if (!debouncedSearchVal) return [];
     return wishlistItems.filter(item => 
-      fuzzyMatch(item.product.name, debouncedSearchVal)
+      fuzzyMatch(item.product.name, debouncedSearchVal, fuzzyRegex)
     ).slice(0, 3);
-  }, [debouncedSearchVal, wishlistItems]);
+  }, [debouncedSearchVal, wishlistItems, fuzzyRegex]);
 
   const filteredOrders = useMemo(() => {
     if (!debouncedSearchVal) return [];
     const query = debouncedSearchVal.toLowerCase().trim();
     return recentOrders.filter(order => {
       const numMatch = order.order_number.toLowerCase().includes(query);
-      const itemMatch = order.items.some(item => fuzzyMatch(item.product_name, query));
+      const itemMatch = order.items.some(item => fuzzyMatch(item.product_name, query, fuzzyRegex));
       return numMatch || itemMatch;
     }).slice(0, 2);
-  }, [debouncedSearchVal, recentOrders]);
+  }, [debouncedSearchVal, recentOrders, fuzzyRegex]);
 
   const filteredSearches = useMemo(() => {
     if (!debouncedSearchVal) return [];
-    return recentSearches.filter(s => fuzzyMatch(s, debouncedSearchVal)).slice(0, 3);
-  }, [debouncedSearchVal, recentSearches]);
+    return recentSearches.filter(s => fuzzyMatch(s, debouncedSearchVal, fuzzyRegex)).slice(0, 3);
+  }, [debouncedSearchVal, recentSearches, fuzzyRegex]);
 
   const allSuggestions = useMemo(() => {
     const list = [];

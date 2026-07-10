@@ -181,14 +181,23 @@ const ProductManagement = () => {
     setShowScanner(true);
   };
 
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const filteredProducts = useMemo(() => {
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     return products.filter(p =>
       p.name.toLowerCase().includes(query) ||
       (p.category && p.category.toLowerCase().includes(query)) ||
-      (p.barcode && p.barcode.includes(searchQuery))
+      (p.barcode && p.barcode.includes(debouncedSearchQuery))
     );
-  }, [products, searchQuery]);
+  }, [products, debouncedSearchQuery]);
 
   const totalPages = useMemo(() => Math.ceil(filteredProducts.length / pageSize), [filteredProducts.length, pageSize]);
 
