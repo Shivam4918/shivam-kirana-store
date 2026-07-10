@@ -77,6 +77,36 @@ const CarouselSkeleton = () => (
   </div>
 );
 
+// Welcome Card Loader Skeleton
+const WelcomeCardSkeleton = () => (
+  <div className="w-full h-44 sm:h-52 bg-slate-100 rounded-3xl animate-pulse flex flex-col justify-between p-7 text-left border border-slate-200/60">
+    <div className="space-y-3">
+      <div className="h-5 w-40 bg-slate-200 rounded-full"></div>
+      <div className="h-8 w-2/3 bg-slate-200 rounded-lg"></div>
+      <div className="h-4 w-1/2 bg-slate-200 rounded-md hidden sm:block"></div>
+    </div>
+    <div className="h-10 w-32 bg-slate-200 rounded-xl mt-4"></div>
+  </div>
+);
+
+// Stats Bar Loader Skeleton
+const StatsBarSkeleton = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 animate-pulse text-left">
+    {[...Array(4)].map((_, i) => (
+      <div key={i} className="h-[155px] bg-slate-100 border border-slate-200/60 rounded-2xl p-4 flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-20 bg-slate-200 rounded"></div>
+          <div className="w-9 h-9 bg-slate-200 rounded-xl"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-6 w-16 bg-slate-200 rounded"></div>
+          <div className="h-3 w-28 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 // Footer loader skeleton
 const FooterSkeleton = () => (
   <div className="border-t border-slate-200/40 pt-12 pb-6 mt-12 animate-pulse space-y-6 text-left">
@@ -501,45 +531,26 @@ const CustomerDashboard = () => {
     }
   }, [products]);
 
-  // Sync profile details if changing tabs (Optimized unified loader using Promise.allSettled)
+  // Sync profile details if changing tabs (Staged sequential loading for maximum perceived performance)
   useEffect(() => {
     const loadAllDashboardData = async () => {
-      setProductsLoading(true);
-      setKhataLoading(true);
+      // PHASE 1: Load Dashboard Cards (Summary, Banners, Configs, Khata Ledger, Wishlist)
       setSummaryLoading(true);
-      setInvoicesLoading(true);
+      setKhataLoading(true);
       setBannersLoading(true);
 
-      const results = await Promise.allSettled([
-        api.get('/products/'),
+      const phase1Results = await Promise.allSettled([
         api.get('/khata/my-ledger/'),
         api.get('/banners/'),
         api.get('/configs/'),
         api.get('/customer/summary/'),
-        api.get('/wishlist/'),
-        api.get('/products/buy-again/'),
-        api.get('/products/best-sellers/'),
-        api.get('/products/trending/'),
-        api.get('/products/recommendations/'),
-        api.get('/invoices/')
+        api.get('/wishlist/')
       ]);
 
-      // 1. Products
-      if (results[0].status === 'fulfilled') {
-        const data = results[0].value.data;
-        setProducts(data);
-        const cats = ['All', ...new Set(data.map(p => p.category).filter(Boolean))];
-        setCategories(cats);
-      } else {
-        console.error('Error fetching products:', results[0].reason);
-        showToast('Failed to fetch catalog products.', 'error');
-      }
-      setProductsLoading(false);
-
-      // 2. Khata Ledger
+      // 1. Khata Ledger
       setKhataLocked(false);
-      if (results[1].status === 'fulfilled') {
-        const data = results[1].value.data;
+      if (phase1Results[0].status === 'fulfilled') {
+        const data = phase1Results[0].value.data;
         setKhataProfile(data);
         setLedgerCurrentPage(1);
         if (data) {
@@ -547,7 +558,7 @@ const CustomerDashboard = () => {
           setLockedBalance(data.current_balance);
         }
       } else {
-        const err = results[1].reason;
+        const err = phase1Results[0].reason;
         console.error('Error fetching khata:', err);
         if (err.response && err.response.status === 403) {
           setKhataLocked(true);
@@ -558,44 +569,69 @@ const CustomerDashboard = () => {
       }
       setKhataLoading(false);
 
-      // 3. Banners
-      if (results[2].status === 'fulfilled') {
-        setBanners(results[2].value.data);
+      // 2. Banners
+      if (phase1Results[1].status === 'fulfilled') {
+        setBanners(phase1Results[1].value.data);
       }
       setBannersLoading(false);
 
-      // 4. Configs
-      if (results[3].status === 'fulfilled') {
+      // 3. Configs
+      if (phase1Results[2].status === 'fulfilled') {
         const cmap = {};
-        results[3].value.data.forEach(c => {
+        phase1Results[2].value.data.forEach(c => {
           cmap[c.key] = c.value;
         });
         setConfigs(cmap);
       }
 
-      // 5. Summary
-      if (results[4].status === 'fulfilled') {
-        setSummary(results[4].value.data);
+      // 4. Summary
+      if (phase1Results[3].status === 'fulfilled') {
+        setSummary(phase1Results[3].value.data);
       }
       setSummaryLoading(false);
 
-      // 6. Wishlist
-      if (results[5].status === 'fulfilled') {
-        const data = results[5].value.data;
+      // 5. Wishlist
+      if (phase1Results[4].status === 'fulfilled') {
+        const data = phase1Results[4].value.data;
         setWishlistItems(data);
         const ids = new Set(data.map(item => item.product).filter(Boolean));
         setWishlistIds(ids);
       }
 
-      // 7. Storefront Rows
-      if (results[6].status === 'fulfilled') setBuyAgainProducts(results[6].value.data);
-      if (results[7].status === 'fulfilled') setBestSellers(results[7].value.data);
-      if (results[8].status === 'fulfilled') setTrendingProducts(results[8].value.data);
-      if (results[9].status === 'fulfilled') setRecommendations(results[9].value.data);
+      // PHASE 2: Load Catalog Products after Dashboard Cards
+      setProductsLoading(true);
+      try {
+        const res = await api.get('/products/');
+        const data = res.data;
+        setProducts(data);
+        const cats = ['All', ...new Set(data.map(p => p.category).filter(Boolean))];
+        setCategories(cats);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        showToast('Failed to fetch catalog products.', 'error');
+      }
+      setProductsLoading(false);
 
-      // 8. Invoices
-      if (results[10].status === 'fulfilled') {
-        setInvoices(results[10].value.data);
+      // PHASE 3: Load Recommendations and Storefront Rows in the background
+      Promise.allSettled([
+        api.get('/products/buy-again/'),
+        api.get('/products/best-sellers/'),
+        api.get('/products/trending/'),
+        api.get('/products/recommendations/')
+      ]).then((rowResults) => {
+        if (rowResults[0].status === 'fulfilled') setBuyAgainProducts(rowResults[0].value.data);
+        if (rowResults[1].status === 'fulfilled') setBestSellers(rowResults[1].value.data);
+        if (rowResults[2].status === 'fulfilled') setTrendingProducts(rowResults[2].value.data);
+        if (rowResults[3].status === 'fulfilled') setRecommendations(rowResults[3].value.data);
+      });
+
+      // PHASE 4: Load Analytics (Invoices) last
+      setInvoicesLoading(true);
+      try {
+        const res = await api.get('/invoices/');
+        setInvoices(res.data);
+      } catch (err) {
+        console.error('Error fetching invoices:', err);
       }
       setInvoicesLoading(false);
     };
@@ -1212,7 +1248,9 @@ const CustomerDashboard = () => {
       )}
 
       {/* ── PERSONALIZED WELCOME CARD ── */}
-      {!summaryLoading && summary && (
+      {summaryLoading ? (
+        <WelcomeCardSkeleton />
+      ) : summary ? (
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-800 text-white rounded-3xl p-4 sm:p-7 shadow-xl relative overflow-hidden border border-slate-800 text-left animate-in fade-in slide-in-from-top-4 duration-300">
           
           {/* Subtle grid pattern or shapes in background for premium look */}
@@ -1324,10 +1362,12 @@ const CustomerDashboard = () => {
           </div>
 
         </div>
-      )}
+      ) : null}
 
       {/* ── STATS / OVERVIEW BAR ── */}
-      {!summaryLoading && summary && (
+      {summaryLoading ? (
+        <StatsBarSkeleton />
+      ) : summary ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left font-medium">
           
           {/* Card 1: Completed Orders */}
@@ -1479,7 +1519,7 @@ const CustomerDashboard = () => {
           })()}
 
         </div>
-      )}
+      ) : null}
 
 
 
