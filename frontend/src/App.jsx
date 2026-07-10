@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import CartDrawer from './components/CartDrawer';
-import { FiHome, FiShoppingCart, FiPackage, FiBookOpen, FiUser, FiX, FiLogOut, FiPieChart, FiHeart } from 'react-icons/fi';
+import { FiHome, FiShoppingCart, FiPackage, FiBookOpen, FiUser, FiX, FiLogOut } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import React, { Suspense, useState, useContext } from 'react';

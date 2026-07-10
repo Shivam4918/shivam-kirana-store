@@ -9,8 +9,14 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
     cssCodeSplit: true,
-    rollupOptions: {
+    cssMinify: true,
+    rolldownOptions: {
       output: {
+        minify: {
+          compress: {
+            dropConsole: true,
+          },
+        },
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
@@ -21,9 +27,6 @@ export default defineConfig({
             }
             if (id.includes('axios')) {
               return 'vendor-axios';
-            }
-            if (id.includes('react-icons')) {
-              return 'vendor-icons';
             }
             if (id.includes('zxing')) {
               return 'vendor-zxing';
