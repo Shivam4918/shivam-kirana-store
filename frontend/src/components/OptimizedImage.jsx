@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * OptimizedImage
@@ -16,16 +16,26 @@ const OptimizedImage = ({
   fallbackSrc = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80',
   fallbackIcon = null,
   style = {},
+  lazy = true,
   ...props
 }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+  const imgRef = useRef(null);
 
   // Re-evaluate state when src changes
   useEffect(() => {
     setLoaded(false);
     setError(false);
   }, [src]);
+
+  // Callback ref to capture instant/cached loads synchronously
+  const handleRef = (el) => {
+    imgRef.current = el;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  };
 
   if (!src) {
     return (
@@ -61,10 +71,11 @@ const OptimizedImage = ({
 
       {/* Image tag */}
       <img
+        ref={handleRef}
         src={error ? fallbackSrc : optimizedUrl}
         alt={alt}
-        className={`${className} transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        loading="lazy"
+        className={`${className} transition-opacity duration-300 ${loaded || error ? 'opacity-100' : 'opacity-0'}`}
+        loading={lazy ? "lazy" : undefined}
         onLoad={() => setLoaded(true)}
         onError={() => {
           if (!error) {
