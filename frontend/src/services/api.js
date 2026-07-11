@@ -9,6 +9,21 @@ const api = axios.create({
   },
 });
 
+// API response cache store
+const apiCache = new Map();
+const CACHE_TTL = 30000; // 30 seconds cache TTL for instant snappy navigation
+
+const CACHABLE_URLS = [
+  '/products/',
+  '/banners/',
+  '/configs/'
+];
+
+const getCacheKey = (config) => {
+  const paramsStr = config.params ? JSON.stringify(config.params) : '';
+  return `${config.url || ''}?${paramsStr}`;
+};
+
 // Attach access token to every outgoing request if it exists
 api.interceptors.request.use(
   (config) => {
@@ -16,6 +31,40 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Serve cached GET response if present and valid
+    if (config.method === 'get') {
+      const cacheKey = getCacheKey(config);
+      const isCacheable = CACHABLE_URLS.some(url => config.url && config.url.includes(url));
+      if (isCacheable) {
+        const cached = apiCache.get(cacheKey);
+        if (cached && Date.now() < cached.expiry) {
+          config.adapter = () => {
+            return Promise.resolve({
+              data: cached.data,
+              status: 200,
+              statusText: 'OK',
+              headers: {},
+              config,
+              request: {}
+            });
+          };
+        }
+      }
+    }
+
+    // Invalidate related cache keys on mutations
+    if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
+      const url = config.url || '';
+      if (url.includes('/products/')) {
+        for (const key of apiCache.keys()) {
+          if (key.includes('/products/')) {
+            apiCache.delete(key);
+          }
+        }
+      }
+    }
+
     return config;
   },
   (error) => {
@@ -25,7 +74,20 @@ api.interceptors.request.use(
 
 // Intercept 401 unauthorized errors to refresh access tokens automatically
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const config = response.config;
+    if (config && config.method === 'get') {
+      const cacheKey = getCacheKey(config);
+      const isCacheable = CACHABLE_URLS.some(url => config.url && config.url.includes(url));
+      if (isCacheable && response.status === 200) {
+        apiCache.set(cacheKey, {
+          data: response.data,
+          expiry: Date.now() + CACHE_TTL
+        });
+      }
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     
