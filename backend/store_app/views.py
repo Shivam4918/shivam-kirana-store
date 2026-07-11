@@ -18,6 +18,7 @@ from .serializers import (
     OrderSerializer, OrderItemSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsCustomerUserRole
+from store_app.utils.pagination import OptionalPageNumberPagination
 from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework_simplejwt.tokens import AccessToken
 from store_app.realtime_broker import event_broker
@@ -532,6 +533,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'category', 'description', 'barcode']
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         from django.db.models import Prefetch
@@ -716,7 +718,9 @@ class CustomerKhataView(APIView):
             return Response({"detail": "Only customers can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
-            profile = request.user.khata_profile
+            profile = KhataProfile.objects.select_related('user').prefetch_related(
+                'transactions__product'
+            ).get(user=request.user)
         except KhataProfile.DoesNotExist:
             return Response({"detail": "Khata profile not found."}, status=status.HTTP_404_NOT_FOUND)
             
@@ -1046,7 +1050,7 @@ class AdminCustomerViewSet(viewsets.ViewSet):
         except KhataProfile.DoesNotExist:
             return Response({"detail": "Customer ledger profile not found."}, status=status.HTTP_404_NOT_FOUND)
             
-        transactions = profile.transactions.all().order_by('-created_at')
+        transactions = profile.transactions.all().select_related('product').order_by('-created_at')
         tx_serializer = TransactionSerializer(transactions, many=True)
         
         available = max(Decimal('0.00'), profile.credit_limit - profile.current_balance)
@@ -1266,6 +1270,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.all().order_by('-expense_date', '-created_at')
     serializer_class = ExpenseSerializer
     permission_classes = [IsAdminUserRole]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -1314,9 +1319,10 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
-    queryset = Supplier.objects.all().order_by('-created_at')
+    queryset = Supplier.objects.prefetch_related('transactions').order_by('-created_at')
     serializer_class = SupplierSerializer
     permission_classes = [IsAdminUserRole]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -1367,9 +1373,10 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 
 class PurchaseViewSet(viewsets.ModelViewSet):
-    queryset = Purchase.objects.all().order_by('-purchase_date', '-created_at')
+    queryset = Purchase.objects.all().select_related('supplier', 'product').order_by('-purchase_date', '-created_at')
     serializer_class = PurchaseSerializer
     permission_classes = [IsAdminUserRole]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -1386,6 +1393,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all().order_by('-created_at')
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -1749,7 +1757,7 @@ class ExportPDFView(APIView):
             if not customer_id:
                 return Response({"detail": "customer_id is required for khata report."}, status=status.HTTP_400_BAD_REQUEST)
             try:
-                profile = KhataProfile.objects.get(pk=customer_id)
+                profile = KhataProfile.objects.select_related('user').get(pk=customer_id)
             except KhataProfile.DoesNotExist:
                 return Response({"detail": "Customer ledger profile not found."}, status=status.HTTP_404_NOT_FOUND)
                 
@@ -1921,7 +1929,7 @@ class ExportExcelView(APIView):
             if not customer_id:
                 return Response({"detail": "customer_id is required."}, status=status.HTTP_400_BAD_REQUEST)
             try:
-                profile = KhataProfile.objects.get(pk=customer_id)
+                profile = KhataProfile.objects.select_related('user').get(pk=customer_id)
             except KhataProfile.DoesNotExist:
                 return Response({"detail": "Customer profile not found."}, status=status.HTTP_404_NOT_FOUND)
                 
@@ -2094,6 +2102,7 @@ class ExportExcelView(APIView):
 class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = InvoiceSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -2119,6 +2128,7 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -2841,6 +2851,7 @@ class ExpiryBatchViewSet(viewsets.ModelViewSet):
     queryset = ExpiryBatch.objects.all().select_related('product').order_by('expiry_date')
     serializer_class = ExpiryBatchSerializer
     permission_classes = [IsAdminUserRole]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -3134,6 +3145,7 @@ class TestEmailView(APIView):
 class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistItemSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = OptionalPageNumberPagination
 
     def get_queryset(self):
         from django.db.models import Prefetch

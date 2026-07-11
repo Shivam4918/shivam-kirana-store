@@ -286,13 +286,23 @@ class KhataProfileSerializer(serializers.ModelSerializer):
     def get_current_due(self, obj):
         return float(obj.current_balance)
 
+    def _get_debit_transactions(self, obj):
+        if not hasattr(obj, '_debit_transactions'):
+            from django.utils import timezone
+            # Utilize the prefetched/cached transactions list to avoid N+1 queries
+            txs = list(obj.transactions.all())
+            debits = [t for t in txs if t.transaction_type == 'DEBIT']
+            debits.sort(key=lambda x: x.created_at or timezone.now(), reverse=True)
+            obj._debit_transactions = debits
+        return obj._debit_transactions
+
     def get_last_payment_amount(self, obj):
-        last_payment = obj.transactions.filter(transaction_type='DEBIT').order_by('-created_at').first()
-        return float(last_payment.amount) if last_payment else 0.0
+        debits = self._get_debit_transactions(obj)
+        return float(debits[0].amount) if debits else 0.0
 
     def get_last_payment_date(self, obj):
-        last_payment = obj.transactions.filter(transaction_type='DEBIT').order_by('-created_at').first()
-        return last_payment.created_at if last_payment else None
+        debits = self._get_debit_transactions(obj)
+        return debits[0].created_at if debits else None
 
     def get_next_due_date(self, obj):
         if obj.current_balance > 0:
@@ -536,7 +546,10 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_audit_logs(self, obj):
-        logs = obj.audit_logs.all().order_by('-created_at')
+        from django.utils import timezone
+        # Sort in memory to avoid throwing away Django prefetch cache
+        logs = list(obj.audit_logs.all())
+        logs.sort(key=lambda x: x.created_at or timezone.now(), reverse=True)
         return OrderAuditLogSerializer(logs, many=True).data
 
 

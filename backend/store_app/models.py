@@ -252,8 +252,8 @@ class Notification(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     message = models.TextField()
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def __str__(self):
         return f"[{self.notification_type}] - {self.message[:30]}"
@@ -300,7 +300,7 @@ class Order(models.Model):
     )
     order_number = models.CharField(max_length=50, unique=True)
     customer = models.ForeignKey(KhataProfile, on_delete=models.CASCADE, related_name='orders')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ORDER_RECEIVED')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ORDER_RECEIVED', db_index=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     cgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     sgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -323,7 +323,8 @@ class Order(models.Model):
             ('PAID', 'Paid'),
             ('ADDED_TO_KHATA', 'Added to Digital Khata')
         ), 
-        default='PENDING'
+        default='PENDING',
+        db_index=True
     )
     payment_method = models.CharField(
         max_length=20, 
@@ -423,7 +424,7 @@ class ExpiryBatch(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='expiry_batches')
     batch_number = models.CharField(max_length=100, blank=True, null=True, help_text="Batch/Lot number printed on packaging")
     manufacture_date = models.DateField(blank=True, null=True)
-    expiry_date = models.DateField(help_text="Expiry date for this batch")
+    expiry_date = models.DateField(help_text="Expiry date for this batch", db_index=True)
     quantity = models.IntegerField(default=0, help_text="Number of units in this batch")
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -473,7 +474,7 @@ class ProductReview(models.Model):
     rating = models.IntegerField(default=5)  # 1 to 5 stars
     review_text = models.TextField(blank=True, null=True)
     is_verified_purchase = models.BooleanField(default=False)
-    is_approved = models.BooleanField(default=True)
+    is_approved = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
