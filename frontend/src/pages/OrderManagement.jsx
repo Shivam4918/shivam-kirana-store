@@ -5,7 +5,6 @@ import {
   FiSearch, FiCheck, FiX, FiDollarSign, FiCreditCard, 
   FiBook, FiRefreshCw, FiClipboard, FiTruck, FiAlertCircle 
 } from 'react-icons/fi';
-import { motion } from 'framer-motion';
 
 const ORDER_STATUS_DETAILS = {
   ORDER_RECEIVED: { label: 'New Orders', color: 'bg-blue-50 text-blue-700 border-blue-200' },

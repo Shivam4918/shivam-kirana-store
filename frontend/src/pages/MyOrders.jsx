@@ -271,9 +271,10 @@ export default function MyOrders() {
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div 
-                      initial={{ height: 0 }}
-                      animate={{ height: 'auto' }}
-                      exit={{ height: 0 }}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ willChange: 'height, opacity' }}
                       className="overflow-hidden border-t border-slate-50 bg-slate-50/30"
                     >
                       <div className="p-4 sm:p-6 space-y-6">

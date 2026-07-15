@@ -173,8 +173,17 @@ const LandingPage = () => {
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll);
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setNavScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
@@ -402,10 +411,14 @@ const LandingPage = () => {
                       {[30, 55, 40, 75, 50, 85, 70].map((h, i) => (
                         <motion.div
                           key={i}
-                          className="flex-1 rounded-t"
-                          style={{ background: i === 5 ? '#10B981' : '#F1F5F9' }}
-                          initial={{ height: 0 }}
-                          animate={{ height: `${h}%` }}
+                          className="flex-1 rounded-t origin-bottom"
+                          style={{ 
+                            background: i === 5 ? '#10B981' : '#F1F5F9',
+                            height: `${h}%`,
+                            willChange: 'transform'
+                          }}
+                          initial={{ scaleY: 0 }}
+                          animate={{ scaleY: 1 }}
                           transition={{ delay: 0.5 + i * 0.08, duration: 0.4 }}
                         />
                       ))}
@@ -802,6 +815,7 @@ const LandingPage = () => {
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.25 }}
+                        style={{ willChange: 'height, opacity' }}
                         className="overflow-hidden"
                       >
                         <div className="px-6 pb-5 text-slate-500 text-xs sm:text-sm leading-relaxed border-t border-slate-100 pt-3">

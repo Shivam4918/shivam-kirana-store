@@ -538,6 +538,7 @@ const Sidebar = ({ isOpenOnMobile, onCloseMobile }) => {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
+              style={{ willChange: 'transform' }}
               className="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-[101] flex flex-col p-4 text-left border-r border-slate-100 md:hidden"
             >
               {renderSidebarContent(true)}

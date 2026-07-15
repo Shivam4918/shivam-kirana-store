@@ -180,11 +180,16 @@ const BarcodeScanner = ({ onScan, onClose, title = 'Scan Barcode' }) => {
 
                 {/* Animated laser scan line */}
                 <motion.div
-                  className="absolute left-8 right-8 h-0.5 rounded-full"
-                  style={{ background: 'linear-gradient(90deg, transparent, #10b981, #34d399, #10b981, transparent)' }}
-                  animate={{ top: ['25%', '75%', '25%'] }}
+                  className="absolute left-8 right-8 top-0 h-full pointer-events-none"
+                  animate={{ y: ['25%', '75%', '25%'] }}
                   transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                />
+                  style={{ willChange: 'transform' }}
+                >
+                  <div
+                    className="h-0.5 rounded-full w-full"
+                    style={{ background: 'linear-gradient(90deg, transparent, #10b981, #34d399, #10b981, transparent)' }}
+                  />
+                </motion.div>
 
                 {/* Success flash overlay */}
                 <AnimatePresence>

@@ -121,6 +121,7 @@ const AppLayout = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowProfileModal(false)}
+              style={{ willChange: 'opacity' }}
               className="absolute inset-0"
             />
             {/* Modal Body */}
@@ -129,6 +130,7 @@ const AppLayout = () => {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              style={{ willChange: 'transform, opacity' }}
               className="relative w-full max-w-md bg-white border border-slate-200 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-5 text-left z-10"
             >
               <div className="flex justify-between items-center pb-2 border-b border-slate-100">
