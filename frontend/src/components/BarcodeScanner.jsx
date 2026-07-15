@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
+import { BrowserMultiFormatReader, NotFoundException, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { FiX, FiCamera, FiRefreshCw, FiZap, FiAlertCircle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,9 +21,20 @@ const BarcodeScanner = ({ onScan, onClose, title = 'Scan Barcode' }) => {
   const [lastResult, setLastResult] = useState('');
   const [flash, setFlash] = useState(false);
 
-  // Initialize reader once
+  // Initialize reader once with optimized format hints
   useEffect(() => {
-    readerRef.current = new BrowserMultiFormatReader();
+    const hints = new Map();
+    const formats = [
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.QR_CODE
+    ];
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+
+    readerRef.current = new BrowserMultiFormatReader(hints);
     return () => {
       if (readerRef.current) {
         readerRef.current.reset();

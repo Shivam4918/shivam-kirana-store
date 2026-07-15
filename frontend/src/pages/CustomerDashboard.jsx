@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useContext, useRef, useMemo, useCallback, lazy, Suspense, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useRealTime } from '../context/RealTimeContext';
@@ -27,6 +27,188 @@ const cleanPhoneForWhatsApp = (phone) => {
   if (cleaned.length === 10) return `91${cleaned}`;
   return cleaned;
 };
+
+const ProductGridItem = memo(({ 
+  product, 
+  isWishlist,
+  cartQuantity,
+  discountPercent,
+  isBestseller,
+  isNew,
+  rating,
+  reviewCount,
+  stockInfo,
+  handleViewProduct, 
+  handleToggleWishlist, 
+  addToCart, 
+  removeFromCart, 
+  updateQuantity, 
+  showToast 
+}) => {
+  const isOutOfStock = product.stock_quantity <= 0;
+
+  const handleAdd = (e) => {
+    e.stopPropagation();
+    const res = addToCart(product);
+    showToast(res.message, res.success ? 'success' : 'error');
+  };
+
+  const handleMinus = () => {
+    if (cartQuantity === 1) {
+      removeFromCart(product.id);
+      showToast('Product removed from cart.');
+    } else {
+      updateQuantity(product.id, cartQuantity - 1);
+    }
+  };
+
+  const handlePlus = () => {
+    if (cartQuantity >= product.stock_quantity) {
+      showToast(`Cannot exceed available stock of ${product.stock_quantity}.`, 'error');
+    } else {
+      updateQuantity(product.id, cartQuantity + 1);
+    }
+  };
+
+  return (
+    <div 
+      className="bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-350 group flex flex-col h-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-lg hover:shadow-slate-100 hover:-translate-y-1 relative cursor-pointer" 
+      onClick={() => handleViewProduct(product)}
+    >
+      {/* Wishlist item toggle overlay */}
+      <button 
+        onClick={(e) => handleToggleWishlist(e, product.id)}
+        className="absolute top-3 right-3 z-10 p-2 bg-white/95 backdrop-blur-xs hover:bg-white rounded-full text-slate-405 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
+        title="Add to wishlist"
+        aria-label="Add to wishlist"
+      >
+        <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${isWishlist ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+      </button>
+
+      {/* Image Area */}
+      <div className="h-48 overflow-hidden relative bg-slate-50/50 flex items-center justify-center border-b border-slate-100/60">
+        {product.image ? (
+          <OptimizedImage 
+            src={product.image} 
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106"
+            width={320}
+          />
+        ) : (
+          <FiShoppingBag className="w-8 h-8 text-slate-350" />
+        )}
+        
+        {/* Floating Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none items-start">
+          <span className="bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-100/60 text-[8px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-xs uppercase font-sans">
+            {product.category || 'General'}
+          </span>
+          {discountPercent > 0 && (
+            <span className="bg-rose-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
+              -{discountPercent}% OFF
+            </span>
+          )}
+          {isBestseller && (
+            <span className="bg-amber-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
+              Bestseller
+            </span>
+          )}
+          {isNew && (
+            <span className="bg-blue-600 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
+              New Arrival
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Details content */}
+      <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3 text-left">
+        <div>
+          {/* Rating and Reviews */}
+          <div className="flex items-center space-x-1.5 mb-2.5">
+            <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100/80">
+              <FiStar className="w-2.5 h-2.5 fill-current text-amber-500" />
+              <span>{rating}</span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold font-sans">({reviewCount} reviews)</span>
+          </div>
+
+          <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight group-hover:text-[#10B981] transition-colors duration-200 truncate">
+            {product.name}
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-1 font-medium leading-normal line-clamp-2">
+            {product.description || 'Fresh selected local grocery items.'}
+          </p>
+        </div>
+
+        {/* Pricing margins & actions */}
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+          <div className="text-left font-mono">
+            <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold border font-sans mb-1.5 ${stockInfo.color}`}>
+              {stockInfo.text}
+            </span>
+            <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-none">₹{product.price}</p>
+          </div>
+
+          <div className="text-right">
+            {isOutOfStock ? (
+              <button
+                disabled
+                className="bg-slate-50 text-slate-400 font-bold px-3 py-1.5 rounded-xl text-xs cursor-not-allowed border border-slate-200/60"
+              >
+                Sold Out
+              </button>
+            ) : cartQuantity === 0 ? (
+              <button
+                onClick={handleAdd}
+                className="bg-[#10B981] hover:bg-[#059669] text-white font-extrabold px-4.5 py-1.5 rounded-xl text-xs shadow-xs hover:shadow-sm active:scale-95 transition-all duration-200 cursor-pointer"
+              >
+                Add +
+              </button>
+            ) : (
+              <div 
+                className="flex items-center space-x-1 border border-slate-200/80 bg-white rounded-xl p-1 shadow-xs"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  onClick={handleMinus}
+                  className="p-1 hover:bg-slate-50 hover:text-slate-900 text-slate-400 rounded-lg cursor-pointer transition-colors duration-150"
+                >
+                  <FiMinus className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-mono font-extrabold text-slate-800 px-1.5 min-w-[20px] text-center">
+                  {cartQuantity}
+                </span>
+                <button
+                  onClick={handlePlus}
+                  className="p-1 hover:bg-slate-50 hover:text-slate-900 text-slate-[#10B981] rounded-lg cursor-pointer transition-colors duration-150"
+                >
+                  <FiPlus className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.stock_quantity === nextProps.product.stock_quantity &&
+    prevProps.isWishlist === nextProps.isWishlist &&
+    prevProps.cartQuantity === nextProps.cartQuantity &&
+    prevProps.discountPercent === nextProps.discountPercent &&
+    prevProps.isBestseller === nextProps.isBestseller &&
+    prevProps.isNew === nextProps.isNew &&
+    prevProps.rating === nextProps.rating &&
+    prevProps.reviewCount === nextProps.reviewCount &&
+    prevProps.stockInfo.text === nextProps.stockInfo.text
+  );
+});
+
 
 // Viewport-based lazy loading scroll container with custom placeholder skeletons
 const LazyScrollContainer = ({ children, placeholder, rootMargin = '150px' }) => {
@@ -1068,11 +1250,24 @@ const CustomerDashboard = () => {
     return { text: 'IN STOCK', color: 'bg-emerald-50 text-[#10B981] border-emerald-100' };
   };
 
+  const bestsellerIds = useMemo(() => new Set(bestSellers.map(item => Number(item.id))), [bestSellers]);
+  const trendingIds = useMemo(() => new Set(trendingProducts.map(item => Number(item.id))), [trendingProducts]);
+
+  const cartItemMap = useMemo(() => {
+    const map = {};
+    cart.forEach(item => {
+      if (item.product && item.product.id) {
+        map[item.product.id] = item;
+      }
+    });
+    return map;
+  }, [cart]);
+
   const getProductDesignDetails = (product) => {
     const discountPercent = (product.id % 3 === 0) ? 10 : (product.id % 5 === 0) ? 15 : 0;
-    const isBestseller = bestSellers.some(item => Number(item.id) === Number(product.id)) || (product.id % 7 === 2);
+    const isBestseller = bestsellerIds.has(Number(product.id)) || (product.id % 7 === 2);
     const isNew = product.id % 4 === 1;
-    const isTrending = trendingProducts.some(item => Number(item.id) === Number(product.id)) || (product.id % 6 === 3);
+    const isTrending = trendingIds.has(Number(product.id)) || (product.id % 6 === 3);
     const rating = product.average_rating || (4.5 + (product.id % 6) * 0.1).toFixed(1);
     const reviewCount = product.reviews_count || ((product.id * 11) % 43 + 6);
     const stockInfo = getStockStatus(product.stock_quantity);
@@ -1761,7 +1956,7 @@ const CustomerDashboard = () => {
                       <FiRefreshCw className="text-[#10B981] w-4 h-4 shrink-0" />
                       <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Buy Again</h3>
                     </div>
-                    <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                    <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none momentum-scroll">
                       {buyAgainProducts.map(p => {
                         const {
                           discountPercent,
@@ -1831,7 +2026,7 @@ const CustomerDashboard = () => {
                     <h3 className="font-semibold text-slate-800 text-sm sm:text-base uppercase tracking-wider text-[10px]">Recently Viewed</h3>
                   </div>
                   {recentlyViewed.length > 0 ? (
-                    <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none">
+                    <div className="flex items-stretch space-x-4 overflow-x-auto pb-3 scrollbar-none momentum-scroll">
                       {recentlyViewed.map(p => {
                         const {
                           discountPercent,
@@ -1895,7 +2090,7 @@ const CustomerDashboard = () => {
 
           {/* Sticky horizontal premium category filter chips */}
           <div className="sticky top-[58px] z-30 bg-[#F8FAFC]/95 backdrop-blur-sm border-t border-b border-slate-200/50 py-3.5 space-y-3.5">
-            <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none pr-4">
+            <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none pr-4 momentum-scroll">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -1932,104 +2127,27 @@ const CustomerDashboard = () => {
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filteredProducts.map((p) => {
-                const {
-                  discountPercent,
-                  isBestseller,
-                  isNew,
-                  isTrending,
-                  rating,
-                  reviewCount,
-                  stockInfo
-                } = getProductDesignDetails(p);
-
+                const design = getProductDesignDetails(p);
+                const cartItem = cartItemMap[p.id];
                 return (
-                  <div 
-                    key={p.id} 
-                    className="bg-white border border-slate-100 hover:border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-350 group flex flex-col h-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02),0_10px_20px_-2px_rgba(0,0,0,0.02)] hover:shadow-lg hover:shadow-slate-100 hover:-translate-y-1 relative cursor-pointer" 
-                    onClick={() => handleViewProduct(p)}
-                  >
-                    {/* Wishlist item toggle overlay */}
-                    <button 
-                      onClick={(e) => handleToggleWishlist(e, p.id)}
-                      className="absolute top-3 right-3 z-10 p-2 bg-white/90 backdrop-blur-xs hover:bg-white rounded-full text-slate-400 hover:text-rose-500 border border-slate-100/60 shadow-xs hover:scale-110 active:scale-95 cursor-pointer transition-all duration-300"
-                      title="Add to wishlist"
-                      aria-label="Add to wishlist"
-                    >
-                      <FiHeart className={`w-3.5 h-3.5 transition-transform duration-300 ${wishlistIds.has(p.id) ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
-                    </button>
-
-                    {/* Image Area */}
-                    <div className="h-48 overflow-hidden relative bg-slate-50/50 flex items-center justify-center border-b border-slate-100/60">
-                      {p.image ? (
-                        <OptimizedImage 
-                          src={p.image} 
-                          alt={p.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106"
-                          width={320}
-                        />
-                      ) : (
-                        <FiShoppingBag className="w-8 h-8 text-slate-350" />
-                      )}
-                      
-                      {/* Floating Badges */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none items-start">
-                        <span className="bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-100/60 text-[8px] font-extrabold tracking-wider px-2 py-0.5 rounded-full shadow-xs uppercase font-sans">
-                          {p.category || 'General'}
-                        </span>
-                        {discountPercent > 0 && (
-                          <span className="bg-rose-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
-                            -{discountPercent}% OFF
-                          </span>
-                        )}
-                        {isBestseller && (
-                          <span className="bg-amber-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
-                            Bestseller
-                          </span>
-                        )}
-                        {isNew && (
-                          <span className="bg-blue-600 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs font-sans">
-                            New Arrival
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Details content */}
-                    <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3 text-left">
-                      <div>
-                        {/* Rating and Reviews */}
-                        <div className="flex items-center space-x-1.5 mb-2.5">
-                          <span className="bg-amber-50 text-amber-600 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5 border border-amber-100/80">
-                            <FiStar className="w-2.5 h-2.5 fill-current text-amber-500" />
-                            <span>{rating}</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-semibold font-sans">({reviewCount} reviews)</span>
-                        </div>
-
-                        <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight group-hover:text-[#10B981] transition-colors duration-200 truncate">
-                          {p.name}
-                        </h3>
-                        <p className="text-[10px] text-slate-400 mt-1 font-medium leading-normal line-clamp-2">
-                          {p.description || 'Fresh selected local grocery items.'}
-                        </p>
-                      </div>
-
-                      {/* Pricing margins & actions */}
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
-                        <div className="text-left font-mono">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold border font-sans mb-1.5 ${stockInfo.color}`}>
-                            {stockInfo.text}
-                          </span>
-                          <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-none">₹{p.price}</p>
-                        </div>
-
-                        <div className="text-right">
-                          {renderCartButton(p)}
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
+                  <ProductGridItem
+                    key={p.id}
+                    product={p}
+                    isWishlist={wishlistIds.has(p.id)}
+                    cartQuantity={cartItem ? cartItem.quantity : 0}
+                    discountPercent={design.discountPercent}
+                    isBestseller={design.isBestseller}
+                    isNew={design.isNew}
+                    rating={design.rating}
+                    reviewCount={design.reviewCount}
+                    stockInfo={design.stockInfo}
+                    handleViewProduct={handleViewProduct}
+                    handleToggleWishlist={handleToggleWishlist}
+                    addToCart={addToCart}
+                    removeFromCart={removeFromCart}
+                    updateQuantity={updateQuantity}
+                    showToast={showToast}
+                  />
                 );
               })}
             </div>

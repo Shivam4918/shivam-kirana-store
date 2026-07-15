@@ -64,3 +64,16 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #10B981;
 }
+
+/* Disable double-tap zoom delay on mobile browsers to make tap actions instant */
+a, button, [role="button"], input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Momentum scrolling for mobile browsers */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
